@@ -1,0 +1,62 @@
+{
+  "name": "LifeQuest",
+  "short_name": "LifeQuest",
+  "description": "Il tuo mondo. Come un gioco di ruolo. Trasforma abitudini, studio e obiettivi in XP, livelli e sfide PvP.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#0f0f1a",
+  "theme_color": "#7c3aed",
+  "orientation": "portrait",
+  "lang": "it",
+  "dir": "ltr",
+  "categories": ["productivity", "lifestyle", "games"],
+  "icons": [
+    {
+      "src": "/assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/assets/img/screenshot-home.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Home — Feed attività e XP"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nuova Quest",
+      "short_name": "Quest",
+      "description": "Aggiungi una nuova quest rapidamente",
+      "url": "/?screen=quest",
+      "icons": [{ "src": "/assets/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Log Studio",
+      "short_name": "Studio",
+      "description": "Registra una sessione di studio",
+      "url": "/?screen=study",
+      "icons": [{ "src": "/assets/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}
