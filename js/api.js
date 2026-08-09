@@ -1,6 +1,4 @@
-{\rtf1\ansi\ansicpg1252\deff0\nouicompat{\fonttbl{\f0\fnil\fcharset0 Calibri;}{\f1\fnil Calibri;}{\f2\fnil\fcharset1 Segoe UI Symbol;}{\f3\fnil\fcharset1 Cambria Math;}}
-{\*\generator Riched20 10.0.19041}{\*\mmathPr\mmathFont3\mwrapIndent1440 }\viewkind4\uc1 
-\pard\sa200\sl276\slmult1\f0\fs22\lang16\par
+
 // ============================================================\par
 // api.js \f1\emdash  Layer API LifeQuest (Fase 2: Supabase)\par
 // ============================================================\par
