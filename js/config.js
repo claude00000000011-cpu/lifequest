@@ -61,18 +61,18 @@ export const MOTIVS = [
 
 // ── Routine predefinite ─────────────────────────────────────
 export const ROUTINE_ITEMS = [
-  { id: 'meditation',   emoji: '🧘', name: 'Meditazione',      category: 'meditazione', xp: 15 },
-  { id: 'workout',      emoji: '💪', name: 'Allenamento',       category: 'fitness',     xp: 25 },
-  { id: 'run',          emoji: '🏃', name: 'Corsa',             category: 'fitness',     xp: 20 },
-  { id: 'journal',      emoji: '📔', name: 'Diario',            category: 'creatività',  xp: 10 },
-  { id: 'cold_shower',  emoji: '🚿', name: 'Doccia fredda',     category: 'fitness',     xp: 15 },
-  { id: 'reading',      emoji: '📚', name: 'Lettura (30 min)',  category: 'lettura',     xp: 20 },
-  { id: 'gratitude',    emoji: '🙏', name: 'Gratitudine',       category: 'meditazione', xp: 10 },
-  { id: 'stretch',      emoji: '🤸', name: 'Stretching',        category: 'fitness',     xp: 10 },
-  { id: 'noscreen',     emoji: '📵', name: 'No schermo (1h)',   category: 'meditazione', xp: 20 },
-  { id: 'water',        emoji: '💧', name: 'Bevi 2L d\'acqua',  category: 'fitness',     xp: 10 },
-  { id: 'sleep',        emoji: '😴', name: 'Sonno 8h',          category: 'fitness',     xp: 15 },
-  { id: 'socialize',    emoji: '👥', name: 'Socializza',        category: 'sociale',     xp: 15 },
+  { id: 'meditation',   emoji: '🧘', name: 'Meditazione',      category: 'meditazione', xpValue: 15 },
+  { id: 'workout',      emoji: '💪', name: 'Allenamento',       category: 'fitness',     xpValue: 25 },
+  { id: 'run',          emoji: '🏃', name: 'Corsa',             category: 'fitness',     xpValue: 20 },
+  { id: 'journal',      emoji: '📔', name: 'Diario',            category: 'creatività',  xpValue: 10 },
+  { id: 'cold_shower',  emoji: '🚿', name: 'Doccia fredda',     category: 'fitness',     xpValue: 15 },
+  { id: 'reading',      emoji: '📚', name: 'Lettura (30 min)',  category: 'lettura',     xpValue: 20 },
+  { id: 'gratitude',    emoji: '🙏', name: 'Gratitudine',       category: 'meditazione', xpValue: 10 },
+  { id: 'stretch',      emoji: '🤸', name: 'Stretching',        category: 'fitness',     xpValue: 10 },
+  { id: 'noscreen',     emoji: '📵', name: 'No schermo (1h)',   category: 'meditazione', xpValue: 20 },
+  { id: 'water',        emoji: '💧', name: 'Bevi 2L d\'acqua',  category: 'fitness',     xpValue: 10 },
+  { id: 'sleep',        emoji: '😴', name: 'Sonno 8h',          category: 'fitness',     xpValue: 15 },
+  { id: 'socialize',    emoji: '👥', name: 'Socializza',        category: 'sociale',     xpValue: 15 },
 ];
 
 // ── Lingue supportate ───────────────────────────────────────
