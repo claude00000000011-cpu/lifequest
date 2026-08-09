@@ -5,25 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="description" content="LifeQuest — Trasforma la tua vita in un gioco di ruolo. XP, livelli, streak e sfide PvP." />
   <meta name="theme-color" content="#7c3aed" />
-  <!-- PWA -->
   <link rel="manifest" href="./manifest.json" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="LifeQuest" />
-  <!-- Icons -->
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon-192.png" />
   <link rel="apple-touch-icon" href="./assets/icons/icon-192.png" />
-  <!-- Open Graph -->
   <meta property="og:title" content="LifeQuest" />
   <meta property="og:description" content="Il tuo mondo. Come un gioco di ruolo." />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="./assets/icons/icon-512.png" />
-  <!-- CSS -->
   <link rel="stylesheet" href="./css/style.css" />
   <link rel="stylesheet" href="./css/components.css" />
   <link rel="stylesheet" href="./css/animations.css" />
-  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
@@ -31,236 +26,220 @@
 </head>
 <body>
 
-  <!-- ══════════════════════════════════════════════════════════
-       SPLASH SCREEN
-  ══════════════════════════════════════════════════════════ -->
-  <div id="splash" class="splash-screen" aria-hidden="true">
-    <div class="splash-content">
-      <div class="splash-icon">⚔️</div>
-      <h1 class="splash-title">LifeQuest</h1>
-      <div class="splash-loader">
-        <div class="splash-bar"></div>
-      </div>
-    </div>
+  <!-- SPLASH -->
+  <div id="splash" style="position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;">
+    <div style="font-size:3rem">⚔️</div>
+    <div class="splash-logo">LifeQuest</div>
+    <div class="splash-tagline">Il tuo mondo. Come un gioco di ruolo.</div>
+    <div class="splash-spinner"></div>
   </div>
 
-  <!-- ══════════════════════════════════════════════════════════
-       AUTH SCREEN
-  ══════════════════════════════════════════════════════════ -->
+  <!-- AUTH SCREEN -->
   <div id="auth-screen" class="hidden">
-    <div class="auth-wrapper">
-      <div class="auth-logo">
-        <span class="auth-logo__icon">⚔️</span>
-        <h1 class="auth-logo__title">LifeQuest</h1>
-        <p class="auth-logo__sub">Il tuo mondo. Come un gioco di ruolo.</p>
-      </div>
-
-      <!-- Tab switcher -->
+    <div class="auth-logo">⚔️ LifeQuest</div>
+    <p class="auth-tagline">Il tuo mondo. Come un gioco di ruolo.</p>
+    <div class="auth-box">
       <div class="auth-tabs">
         <button class="auth-tab-btn auth-tab-btn--active" data-tab="login">Accedi</button>
         <button class="auth-tab-btn" data-tab="register">Registrati</button>
       </div>
 
-      <!-- Login panel -->
+      <!-- Login -->
       <div class="auth-panel" data-panel="login">
-        <input id="login-username" type="text" placeholder="Username" autocomplete="username" />
-        <input id="login-password" type="password" placeholder="Password" autocomplete="current-password" />
-        <button id="btn-login" class="btn-primary btn-full">Accedi</button>
-        <button class="btn-link" onclick="window._openResetPin?.()">Password dimenticata?</button>
+        <div class="auth-field">
+          <label>Username</label>
+          <input id="login-username" type="text" placeholder="Il tuo username" autocomplete="username" />
+        </div>
+        <div class="auth-field">
+          <label>Password</label>
+          <input id="login-password" type="password" placeholder="La tua password" autocomplete="current-password" />
+        </div>
+        <button id="btn-login" class="btn-primary">Accedi</button>
+        <span class="auth-forgot" onclick="window._openResetPin?.()">Password dimenticata?</span>
       </div>
 
-      <!-- Register panel -->
+      <!-- Register -->
       <div class="auth-panel auth-panel--hidden" data-panel="register">
-        <input id="reg-username" type="text" placeholder="Username (min 3 caratteri)" autocomplete="username" />
-        <input id="reg-password" type="password" placeholder="Password (min 6 caratteri)" autocomplete="new-password" />
-        <input id="reg-pin" type="number" placeholder="PIN di recupero (4 cifre)" maxlength="4" />
-        <button id="btn-register" class="btn-primary btn-full">Crea account</button>
+        <div class="auth-field">
+          <label>Username</label>
+          <input id="reg-username" type="text" placeholder="Scegli uno username" autocomplete="username" />
+        </div>
+        <div class="auth-field">
+          <label>Password</label>
+          <input id="reg-password" type="password" placeholder="Min 6 caratteri" autocomplete="new-password" />
+        </div>
+        <div class="auth-field">
+          <label>PIN di recupero</label>
+          <input id="reg-pin" type="number" placeholder="4 cifre" maxlength="4" />
+          <p class="auth-hint">Usato per recuperare la password</p>
+        </div>
+        <button id="btn-register" class="btn-primary">Crea account</button>
       </div>
     </div>
   </div>
 
-  <!-- ══════════════════════════════════════════════════════════
-       APP PRINCIPALE
-  ══════════════════════════════════════════════════════════ -->
+  <!-- APP PRINCIPALE -->
   <div id="app-main" class="hidden">
 
-    <!-- ── HOME ─────────────────────────────────────────────── -->
+    <!-- HOME -->
     <div class="screen" data-screen="home">
-
-      <!-- Hero card -->
       <div class="hero-card">
-        <div class="hero-card__avatar-row">
+        <div class="hero-top">
           <div id="user-avatar" class="user-avatar"></div>
-          <div class="hero-card__user-info">
-            <span id="user-username" class="hero-username">@—</span>
-            <span id="user-streak" class="hero-streak">🔥 0 giorni</span>
+          <div class="hero-info">
+            <div id="user-username" class="hero-username">@—</div>
+            <div id="user-level" class="hero-level">Lv. 1</div>
+            <div id="user-rank" class="hero-rank">Novizio</div>
           </div>
-          <div class="hero-card__level">
-            <span id="user-level" class="level-badge">Lv. 1</span>
-            <span id="user-rank" class="rank-title">Novizio</span>
+          <div id="user-streak" class="hero-streak">🔥 0</div>
+        </div>
+
+        <div class="xp-bar-wrapper">
+          <div class="xp-bar">
+            <div id="xp-bar-fill" class="xp-bar__fill" style="width:0%"></div>
+          </div>
+          <div class="xp-bar__label">
+            <span id="xp-current">0 XP</span><span id="xp-next"> / 100</span>
           </div>
         </div>
 
-        <!-- XP bar -->
-        <div class="xp-bar">
-          <div id="xp-bar-fill" class="xp-bar__fill" style="width:0%"></div>
-        </div>
-        <div class="xp-bar__labels">
-          <span id="xp-current">0 XP</span>
-          <span id="xp-next">/100</span>
-        </div>
-
-        <!-- Stats mini -->
         <div class="stats-mini">
-          <div class="stats-mini__item">
-            <span class="stats-mini__label">🧠 Mente</span>
-            <span id="stat-mente" class="stats-mini__val">0</span>
-            <div class="stats-mini__bar"><div id="stat-bar-mente" class="stats-mini__bar-fill"></div></div>
+          <div class="stat-mini-item">
+            <div id="stat-mente" class="stat-mini-item__val" style="color:var(--mente)">0</div>
+            <div class="stat-mini-item__label">🧠 Mente</div>
+            <div class="progress-bar" style="height:4px;margin-top:4px"><div id="stat-bar-mente" class="progress-bar__fill" style="background:var(--mente)"></div></div>
           </div>
-          <div class="stats-mini__item">
-            <span class="stats-mini__label">💪 Corpo</span>
-            <span id="stat-corpo" class="stats-mini__val">0</span>
-            <div class="stats-mini__bar"><div id="stat-bar-corpo" class="stats-mini__bar-fill"></div></div>
+          <div class="stat-mini-item">
+            <div id="stat-corpo" class="stat-mini-item__val" style="color:var(--corpo)">0</div>
+            <div class="stat-mini-item__label">💪 Corpo</div>
+            <div class="progress-bar" style="height:4px;margin-top:4px"><div id="stat-bar-corpo" class="progress-bar__fill" style="background:var(--corpo)"></div></div>
           </div>
-          <div class="stats-mini__item">
-            <span class="stats-mini__label">📚 Cultura</span>
-            <span id="stat-cultura" class="stats-mini__val">0</span>
-            <div class="stats-mini__bar"><div id="stat-bar-cultura" class="stats-mini__bar-fill"></div></div>
+          <div class="stat-mini-item">
+            <div id="stat-cultura" class="stat-mini-item__val" style="color:var(--cultura)">0</div>
+            <div class="stat-mini-item__label">📚 Cultura</div>
+            <div class="progress-bar" style="height:4px;margin-top:4px"><div id="stat-bar-cultura" class="progress-bar__fill" style="background:var(--cultura)"></div></div>
           </div>
-          <div class="stats-mini__item">
-            <span class="stats-mini__label">👥 Sociale</span>
-            <span id="stat-sociale" class="stats-mini__val">0</span>
-            <div class="stats-mini__bar"><div id="stat-bar-sociale" class="stats-mini__bar-fill"></div></div>
+          <div class="stat-mini-item">
+            <div id="stat-sociale" class="stat-mini-item__val" style="color:var(--sociale)">0</div>
+            <div class="stat-mini-item__label">👥 Sociale</div>
+            <div class="progress-bar" style="height:4px;margin-top:4px"><div id="stat-bar-sociale" class="progress-bar__fill" style="background:var(--sociale)"></div></div>
           </div>
-          <div class="stats-mini__item">
-            <span class="stats-mini__label">⚔️ Sfide</span>
-            <span id="stat-sfide" class="stats-mini__val">0</span>
-            <div class="stats-mini__bar"><div id="stat-bar-sfide" class="stats-mini__bar-fill"></div></div>
+          <div class="stat-mini-item">
+            <div id="stat-sfide" class="stat-mini-item__val" style="color:var(--sfide)">0</div>
+            <div class="stat-mini-item__label">⚔️ Sfide</div>
+            <div class="progress-bar" style="height:4px;margin-top:4px"><div id="stat-bar-sfide" class="progress-bar__fill" style="background:var(--sfide)"></div></div>
           </div>
         </div>
       </div>
 
-      <!-- Motivazione del giorno -->
-      <div class="daily-motiv">
-        <span id="daily-motiv">Inizia la tua avventura!</span>
+      <div class="daily-motiv" id="daily-motiv">Inizia la tua avventura!</div>
+
+      <div class="feed-filter">
+        <button class="feed-filter-btn feed-filter-btn--active" onclick="window._setFeedFilter?.('all')">🌍 Tutti</button>
+        <button class="feed-filter-btn" onclick="window._setFeedFilter?.('following')">👣 Seguiti</button>
       </div>
 
-      <!-- Feed filter -->
-      <div class="feed-filters">
-        <button class="feed-filter-btn feed-filter-btn--active" onclick="window._setFeedFilter?.('all')">Tutti</button>
-        <button class="feed-filter-btn" onclick="window._setFeedFilter?.('following')">Seguiti</button>
-      </div>
-
-      <!-- Feed container -->
-      <div id="feed-container" class="feed-container"></div>
+      <div id="feed-container"></div>
     </div>
 
-    <!-- ── QUEST ─────────────────────────────────────────────── -->
+    <!-- QUEST -->
     <div class="screen screen--hidden" data-screen="quest">
       <div id="screen-quest"></div>
     </div>
 
-    <!-- ── STUDIO ────────────────────────────────────────────── -->
+    <!-- STUDIO -->
     <div class="screen screen--hidden" data-screen="study">
       <div id="screen-study"></div>
     </div>
 
-    <!-- ── ROUTINE ───────────────────────────────────────────── -->
+    <!-- ROUTINE -->
     <div class="screen screen--hidden" data-screen="routine">
       <div id="screen-routine"></div>
     </div>
 
-    <!-- ── PVP ──────────────────────────────────────────────── -->
+    <!-- PVP -->
     <div class="screen screen--hidden" data-screen="pvp">
       <div id="screen-pvp"></div>
     </div>
 
-    <!-- ── LIBRI ─────────────────────────────────────────────── -->
+    <!-- LIBRI -->
     <div class="screen screen--hidden" data-screen="libri">
       <div id="screen-libri"></div>
     </div>
 
-    <!-- ── SOCIAL ────────────────────────────────────────────── -->
+    <!-- SOCIAL -->
     <div class="screen screen--hidden" data-screen="social">
       <div id="screen-social"></div>
     </div>
 
-    <!-- ── STATS ─────────────────────────────────────────────── -->
+    <!-- STATS -->
     <div class="screen screen--hidden" data-screen="stats">
       <div id="screen-stats"></div>
     </div>
 
-    <!-- ── BOTTOM NAV ────────────────────────────────────────── -->
-    <nav class="bottom-nav" role="navigation" aria-label="Navigazione principale">
-      <button class="nav-btn nav-btn--active" data-tab="home" aria-label="Home">
-        <span class="nav-btn__icon">🏠</span>
-        <span class="nav-btn__label">Home</span>
+    <!-- BOTTOM NAV -->
+    <nav class="bottom-nav">
+      <button class="nav-btn nav-btn--active" data-tab="home">
+        <span class="nav-icon">🏠</span>
+        <span>Home</span>
       </button>
-      <button class="nav-btn" data-tab="quest" aria-label="Quest">
-        <span class="nav-btn__icon">⚔️</span>
-        <span class="nav-btn__label">Quest</span>
+      <button class="nav-btn" data-tab="quest">
+        <span class="nav-icon">⚔️</span>
+        <span>Quest</span>
       </button>
-      <button class="nav-btn" data-tab="study" aria-label="Studio">
-        <span class="nav-btn__icon">📚</span>
-        <span class="nav-btn__label">Studio</span>
+      <button class="nav-btn" data-tab="study">
+        <span class="nav-icon">📚</span>
+        <span>Studio</span>
       </button>
-      <button class="nav-btn" data-tab="routine" aria-label="Routine">
-        <span class="nav-btn__icon">⚡</span>
-        <span class="nav-btn__label">Routine</span>
+      <button class="nav-btn" data-tab="routine">
+        <span class="nav-icon">⚡</span>
+        <span>Routine</span>
       </button>
-      <button class="nav-btn" data-tab="pvp" aria-label="Sfide">
-        <span class="nav-btn__icon">🏆</span>
-        <span class="nav-btn__label">Sfide</span>
+      <button class="nav-btn" data-tab="pvp">
+        <span class="nav-icon">🏆</span>
+        <span>Sfide</span>
       </button>
-      <button class="nav-btn" data-tab="libri" aria-label="Libri">
-        <span class="nav-btn__icon">📖</span>
-        <span class="nav-btn__label">Libri</span>
+      <button class="nav-btn" data-tab="libri">
+        <span class="nav-icon">📖</span>
+        <span>Libri</span>
       </button>
-      <button class="nav-btn" data-tab="social" aria-label="Social">
-        <span class="nav-btn__icon">👥</span>
-        <span class="nav-btn__label">Social</span>
+      <button class="nav-btn" data-tab="social">
+        <span class="nav-icon">👥</span>
+        <span>Social</span>
       </button>
-      <button class="nav-btn" data-tab="stats" aria-label="Stats">
-        <span class="nav-btn__icon">📊</span>
-        <span class="nav-btn__label">Stats</span>
+      <button class="nav-btn" data-tab="stats">
+        <span class="nav-icon">📊</span>
+        <span>Stats</span>
       </button>
     </nav>
 
   </div><!-- /app-main -->
 
-  <!-- ══════════════════════════════════════════════════════════
-       MODALI
-  ══════════════════════════════════════════════════════════ -->
+  <!-- ══════════ MODALI ══════════ -->
 
-  <!-- Modal: Reset PIN -->
-  <div id="modal-reset-pin" class="modal modal--hidden" role="dialog" aria-modal="true">
-    <div class="modal__backdrop" onclick="closeModal('modal-reset-pin')"></div>
-    <div class="modal__box">
-      <div class="modal__header">
-        <h3>Reset Password</h3>
-        <button class="modal__close" onclick="closeModal('modal-reset-pin')">✕</button>
-      </div>
-      <div class="modal__body">
-        <input id="reset-username" type="text" placeholder="Username" />
-        <input id="reset-pin" type="number" placeholder="PIN (4 cifre)" maxlength="4" />
-        <input id="reset-newpass" type="password" placeholder="Nuova password" />
-      </div>
-      <div class="modal__footer">
-        <button id="btn-reset-pin" class="btn-primary btn-full">Reimposta password</button>
+  <!-- Reset PIN -->
+  <div id="modal-reset-pin" class="modal-overlay modal--hidden">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-title">🔑 Reset Password</div>
+      <div class="modal-field"><label>Username</label><input id="reset-username" type="text" placeholder="Il tuo username" /></div>
+      <div class="modal-field"><label>PIN (4 cifre)</label><input id="reset-pin" type="number" placeholder="1234" maxlength="4" /></div>
+      <div class="modal-field"><label>Nuova password</label><input id="reset-newpass" type="password" placeholder="Min 6 caratteri" /></div>
+      <div class="modal-actions">
+        <button id="btn-reset-pin" class="btn-primary">Reimposta</button>
+        <button class="btn-secondary" onclick="closeModal('modal-reset-pin')">Annulla</button>
       </div>
     </div>
   </div>
 
-  <!-- Modal: Aggiungi Quest -->
-  <div id="modal-add-quest" class="modal modal--hidden" role="dialog" aria-modal="true">
-    <div class="modal__backdrop" onclick="closeModal('modal-add-quest')"></div>
-    <div class="modal__box">
-      <div class="modal__header">
-        <h3>Nuova Quest</h3>
-        <button class="modal__close" onclick="closeModal('modal-add-quest')">✕</button>
-      </div>
-      <div class="modal__body">
-        <input id="quest-title" type="text" placeholder="Titolo quest" maxlength="80" />
+  <!-- Aggiungi Quest -->
+  <div id="modal-add-quest" class="modal-overlay modal--hidden">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-title">⚔️ Nuova Quest</div>
+      <div class="modal-field"><label>Titolo</label><input id="quest-title" type="text" placeholder="Cosa vuoi fare?" maxlength="80" /></div>
+      <div class="modal-field">
+        <label>Categoria</label>
         <select id="quest-category">
           <option value="studio">📚 Studio</option>
           <option value="fitness">💪 Fitness</option>
@@ -270,122 +249,110 @@
           <option value="creativo">🎨 Creativo</option>
           <option value="altro">⚡ Altro</option>
         </select>
+      </div>
+      <div class="modal-field">
+        <label>Tipo</label>
         <select id="quest-type">
-          <option value="todo">📋 To-Do</option>
-          <option value="goal">🎯 Obiettivo</option>
+          <option value="todo">📋 To-Do (completabile subito)</option>
+          <option value="goal">🎯 Obiettivo (lungo termine)</option>
         </select>
-        <label>Difficoltà (1-5)</label>
-        <input id="quest-difficulty" type="range" min="1" max="5" value="1" />
-        <input id="quest-due" type="date" placeholder="Scadenza (opzionale)" />
+      </div>
+      <div class="modal-field"><label>Difficoltà (1–5)</label><input id="quest-difficulty" type="range" min="1" max="5" value="1" /></div>
+      <div class="modal-field"><label>Scadenza (opzionale)</label><input id="quest-due" type="date" /></div>
+      <div class="modal-field">
         <button id="quest-attach-btn" class="btn-secondary">📷 Allega foto</button>
         <img id="quest-photo-preview" class="hidden" alt="preview" style="max-width:100%;border-radius:8px;margin-top:8px;" />
       </div>
-      <div class="modal__footer">
-        <button onclick="window._addQuest?.()" class="btn-primary btn-full">Aggiungi Quest</button>
+      <div class="modal-actions">
+        <button onclick="window._addQuest?.()" class="btn-primary">Aggiungi Quest</button>
+        <button class="btn-secondary" onclick="closeModal('modal-add-quest')">Annulla</button>
       </div>
     </div>
   </div>
 
-  <!-- Modal: Aggiungi Esame -->
-  <div id="modal-add-exam" class="modal modal--hidden" role="dialog" aria-modal="true">
-    <div class="modal__backdrop" onclick="closeModal('modal-add-exam')"></div>
-    <div class="modal__box">
-      <div class="modal__header">
-        <h3>Nuovo Esame</h3>
-        <button class="modal__close" onclick="closeModal('modal-add-exam')">✕</button>
-      </div>
-      <div class="modal__body">
-        <input id="exam-name" type="text" placeholder="Nome esame" maxlength="80" />
-        <input id="exam-date" type="date" placeholder="Data esame (opzionale)" />
-      </div>
-      <div class="modal__footer">
-        <button onclick="window._addExam?.()" class="btn-primary btn-full">Aggiungi Esame</button>
+  <!-- Aggiungi Esame -->
+  <div id="modal-add-exam" class="modal-overlay modal--hidden">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-title">📚 Nuovo Esame</div>
+      <div class="modal-field"><label>Nome esame</label><input id="exam-name" type="text" placeholder="es. Matematica" maxlength="80" /></div>
+      <div class="modal-field"><label>Data esame (opzionale)</label><input id="exam-date" type="date" /></div>
+      <div class="modal-actions">
+        <button onclick="window._addExam?.()" class="btn-primary">Aggiungi</button>
+        <button class="btn-secondary" onclick="closeModal('modal-add-exam')">Annulla</button>
       </div>
     </div>
   </div>
 
-  <!-- Modal: Log Sessione Studio -->
-  <div id="modal-log-session" class="modal modal--hidden" role="dialog" aria-modal="true">
-    <div class="modal__backdrop" onclick="closeModal('modal-log-session')"></div>
-    <div class="modal__box">
-      <div class="modal__header">
-        <h3>Sessione di Studio</h3>
-        <button class="modal__close" onclick="closeModal('modal-log-session')">✕</button>
-      </div>
-      <div class="modal__body">
-        <input id="session-exam-id" type="hidden" />
-        <label>Minuti studiati</label>
-        <input id="session-minutes" type="number" placeholder="es. 60" min="1" max="480" />
-        <label>Focus (1-10)</label>
-        <input id="session-focus" type="range" min="1" max="10" value="7" />
-      </div>
-      <div class="modal__footer">
-        <button onclick="window._logSession?.()" class="btn-primary btn-full">Salva Sessione</button>
+  <!-- Log Sessione Studio -->
+  <div id="modal-log-session" class="modal-overlay modal--hidden">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-title">⏱ Sessione di Studio</div>
+      <input id="session-exam-id" type="hidden" />
+      <div class="modal-field"><label>Minuti studiati</label><input id="session-minutes" type="number" placeholder="es. 60" min="1" max="480" /></div>
+      <div class="modal-field"><label>Focus (1–10): <span id="focus-val">7</span></label><input id="session-focus" type="range" min="1" max="10" value="7" oninput="document.getElementById('focus-val').textContent=this.value" /></div>
+      <div class="modal-actions">
+        <button onclick="window._logSession?.()" class="btn-primary">Salva Sessione</button>
+        <button class="btn-secondary" onclick="closeModal('modal-log-session')">Annulla</button>
       </div>
     </div>
   </div>
 
-  <!-- Modal: Aggiungi Routine Custom -->
-  <div id="modal-add-routine" class="modal modal--hidden" role="dialog" aria-modal="true">
-    <div class="modal__backdrop" onclick="closeModal('modal-add-routine')"></div>
-    <div class="modal__box">
-      <div class="modal__header">
-        <h3>Routine Personalizzata</h3>
-        <button class="modal__close" onclick="closeModal('modal-add-routine')">✕</button>
-      </div>
-      <div class="modal__body">
-        <input id="routine-emoji" type="text" placeholder="Emoji (es. 🏃)" maxlength="4" />
-        <input id="routine-name" type="text" placeholder="Nome routine" maxlength="50" />
-        <label>XP (1-100)</label>
-        <input id="routine-xp" type="number" min="1" max="100" value="10" />
-      </div>
-      <div class="modal__footer">
-        <button onclick="window._saveCustomRoutine?.()" class="btn-primary btn-full">Salva</button>
+  <!-- Routine Custom -->
+  <div id="modal-add-routine" class="modal-overlay modal--hidden">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-title">⚡ Routine Personalizzata</div>
+      <div class="modal-field"><label>Emoji</label><input id="routine-emoji" type="text" placeholder="⚡" maxlength="4" /></div>
+      <div class="modal-field"><label>Nome</label><input id="routine-name" type="text" placeholder="es. Meditazione" maxlength="50" /></div>
+      <div class="modal-field"><label>XP (1–100)</label><input id="routine-xp" type="number" min="1" max="100" value="10" /></div>
+      <div class="modal-actions">
+        <button onclick="window._saveCustomRoutine?.()" class="btn-primary">Salva</button>
+        <button class="btn-secondary" onclick="closeModal('modal-add-routine')">Annulla</button>
       </div>
     </div>
   </div>
 
-  <!-- Modal: Crea Sfida PvP -->
-  <div id="modal-create-challenge" class="modal modal--hidden" role="dialog" aria-modal="true">
-    <div class="modal__backdrop" onclick="closeModal('modal-create-challenge')"></div>
-    <div class="modal__box">
-      <div class="modal__header">
-        <h3>Nuova Sfida PvP</h3>
-        <button class="modal__close" onclick="closeModal('modal-create-challenge')">✕</button>
-      </div>
-      <div class="modal__body">
-        <input id="ch-title" type="text" placeholder="Titolo sfida" maxlength="80" />
-        <textarea id="ch-rules" placeholder="Regole (opzionale)" maxlength="300" rows="3"></textarea>
+  <!-- Crea Sfida PvP -->
+  <div id="modal-create-challenge" class="modal-overlay modal--hidden">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-title">⚔️ Nuova Sfida PvP</div>
+      <div class="modal-field"><label>Titolo</label><input id="ch-title" type="text" placeholder="es. Chi fa più pushup?" maxlength="80" /></div>
+      <div class="modal-field"><label>Regole (opzionale)</label><textarea id="ch-rules" placeholder="Descrivi le regole…" maxlength="300" rows="3"></textarea></div>
+      <div class="modal-field">
+        <label>Tipo</label>
         <select id="ch-type">
           <option value="mixed">⚔️ Misto</option>
           <option value="athletic">🏋️ Atletico</option>
           <option value="mental">🧠 Mentale</option>
         </select>
-        <label>XP in palio</label>
-        <input id="ch-stake" type="number" value="50" min="1" max="500" />
-        <input id="ch-expires" type="date" placeholder="Scadenza (opzionale)" />
+      </div>
+      <div class="modal-field"><label>XP in palio</label><input id="ch-stake" type="number" value="50" min="1" max="500" /></div>
+      <div class="modal-field"><label>Scadenza (opzionale)</label><input id="ch-expires" type="date" /></div>
+      <div class="modal-field">
         <label class="toggle-row">
           <span>Sfida pubblica</span>
           <input id="ch-public" type="checkbox" checked />
         </label>
       </div>
-      <div class="modal__footer">
-        <button onclick="window._createChallenge?.()" class="btn-primary btn-full">Crea Sfida</button>
+      <div class="modal-actions">
+        <button onclick="window._createChallenge?.()" class="btn-primary">Crea Sfida</button>
+        <button class="btn-secondary" onclick="closeModal('modal-create-challenge')">Annulla</button>
       </div>
     </div>
   </div>
 
-  <!-- Modal: Aggiungi Libro (personale) -->
-  <div id="modal-add-book" class="modal modal--hidden" role="dialog" aria-modal="true">
-    <div class="modal__backdrop" onclick="closeModal('modal-add-book')"></div>
-    <div class="modal__box">
-      <div class="modal__header">
-        <h3>Aggiungi Libro</h3>
-        <button class="modal__close" onclick="closeModal('modal-add-book')">✕</button>
-      </div>
-      <div class="modal__body">
-        <input id="book-title" type="text" placeholder="Titolo" maxlength="100" />
-        <input id="book-author" type="text" placeholder="Autore" maxlength="80" />
+  <!-- Aggiungi Libro personale -->
+  <div id="modal-add-book" class="modal-overlay modal--hidden">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-title">📖 Aggiungi Libro</div>
+      <div class="modal-field"><label>Titolo</label><input id="book-title" type="text" placeholder="Titolo del libro" maxlength="100" /></div>
+      <div class="modal-field"><label>Autore</label><input id="book-author" type="text" placeholder="Nome autore" maxlength="80" /></div>
+      <div class="modal-field">
+        <label>Genere</label>
         <select id="book-genre">
           <option value="narrativa">📖 Narrativa</option>
           <option value="saggistica">📰 Saggistica</option>
@@ -400,46 +367,39 @@
           <option value="psicologia">🧠 Psicologia</option>
           <option value="altro">📚 Altro</option>
         </select>
-        <label>Difficoltà (1-5)</label>
-        <input id="book-difficulty" type="range" min="1" max="5" value="2" />
-        <input id="book-pages" type="number" placeholder="Numero di pagine" min="1" />
       </div>
-      <div class="modal__footer">
-        <button onclick="window._addBook?.()" class="btn-primary btn-full">Aggiungi</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal: Log Lettura -->
-  <div id="modal-log-reading" class="modal modal--hidden" role="dialog" aria-modal="true">
-    <div class="modal__backdrop" onclick="closeModal('modal-log-reading')"></div>
-    <div class="modal__box">
-      <div class="modal__header">
-        <h3>Sessione di Lettura</h3>
-        <button class="modal__close" onclick="closeModal('modal-log-reading')">✕</button>
-      </div>
-      <div class="modal__body">
-        <input id="reading-book-id" type="hidden" />
-        <label>Pagine lette</label>
-        <input id="reading-pages" type="number" placeholder="es. 30" min="1" />
-      </div>
-      <div class="modal__footer">
-        <button onclick="window._logReading?.()" class="btn-primary btn-full">Salva</button>
+      <div class="modal-field"><label>Difficoltà (1–5)</label><input id="book-difficulty" type="range" min="1" max="5" value="2" /></div>
+      <div class="modal-field"><label>Numero di pagine</label><input id="book-pages" type="number" placeholder="es. 320" min="1" /></div>
+      <div class="modal-actions">
+        <button onclick="window._addBook?.()" class="btn-primary">Aggiungi</button>
+        <button class="btn-secondary" onclick="closeModal('modal-add-book')">Annulla</button>
       </div>
     </div>
   </div>
 
-  <!-- Modal: Aggiungi Libro al Catalogo Globale -->
-  <div id="modal-add-global-book" class="modal modal--hidden" role="dialog" aria-modal="true">
-    <div class="modal__backdrop" onclick="closeModal('modal-add-global-book')"></div>
-    <div class="modal__box">
-      <div class="modal__header">
-        <h3>Aggiungi al Catalogo</h3>
-        <button class="modal__close" onclick="closeModal('modal-add-global-book')">✕</button>
+  <!-- Log Lettura -->
+  <div id="modal-log-reading" class="modal-overlay modal--hidden">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-title">📖 Sessione di Lettura</div>
+      <input id="reading-book-id" type="hidden" />
+      <div class="modal-field"><label>Pagine lette</label><input id="reading-pages" type="number" placeholder="es. 30" min="1" /></div>
+      <div class="modal-actions">
+        <button onclick="window._logReading?.()" class="btn-primary">Salva</button>
+        <button class="btn-secondary" onclick="closeModal('modal-log-reading')">Annulla</button>
       </div>
-      <div class="modal__body">
-        <input id="gb-title" type="text" placeholder="Titolo" maxlength="100" />
-        <input id="gb-author" type="text" placeholder="Autore" maxlength="80" />
+    </div>
+  </div>
+
+  <!-- Aggiungi al Catalogo Globale -->
+  <div id="modal-add-global-book" class="modal-overlay modal--hidden">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-title">🌐 Aggiungi al Catalogo</div>
+      <div class="modal-field"><label>Titolo</label><input id="gb-title" type="text" placeholder="Titolo" maxlength="100" /></div>
+      <div class="modal-field"><label>Autore</label><input id="gb-author" type="text" placeholder="Autore" maxlength="80" /></div>
+      <div class="modal-field">
+        <label>Genere</label>
         <select id="gb-genre">
           <option value="narrativa">📖 Narrativa</option>
           <option value="saggistica">📰 Saggistica</option>
@@ -455,83 +415,69 @@
           <option value="altro">📚 Altro</option>
         </select>
       </div>
-      <div class="modal__footer">
-        <button onclick="window._addGlobalBook?.()" class="btn-primary btn-full">Aggiungi</button>
+      <div class="modal-actions">
+        <button onclick="window._addGlobalBook?.()" class="btn-primary">Aggiungi</button>
+        <button class="btn-secondary" onclick="closeModal('modal-add-global-book')">Annulla</button>
       </div>
     </div>
   </div>
 
-  <!-- Modal: Crea Discussione -->
-  <div id="modal-create-disc" class="modal modal--hidden" role="dialog" aria-modal="true">
-    <div class="modal__backdrop" onclick="closeModal('modal-create-disc')"></div>
-    <div class="modal__box">
-      <div class="modal__header">
-        <h3>Nuova Discussione</h3>
-        <button class="modal__close" onclick="closeModal('modal-create-disc')">✕</button>
-      </div>
-      <div class="modal__body">
-        <input id="disc-title" type="text" placeholder="Titolo (opzionale)" maxlength="100" />
-        <textarea id="disc-content" placeholder="Scrivi qualcosa…" maxlength="500" rows="4"></textarea>
+  <!-- Crea Discussione -->
+  <div id="modal-create-disc" class="modal-overlay modal--hidden">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-title">💬 Nuova Discussione</div>
+      <div class="modal-field"><label>Titolo (opzionale)</label><input id="disc-title" type="text" placeholder="Argomento…" maxlength="100" /></div>
+      <div class="modal-field"><label>Messaggio</label><textarea id="disc-content" placeholder="Scrivi qualcosa…" maxlength="500" rows="4"></textarea></div>
+      <div class="modal-field">
+        <label>Tipo</label>
         <select id="disc-type">
           <option value="discussion">💬 Discussione</option>
           <option value="help">❓ Chiedi aiuto</option>
         </select>
       </div>
-      <div class="modal__footer">
-        <button onclick="window._createDiscussion?.()" class="btn-primary btn-full">Pubblica</button>
+      <div class="modal-actions">
+        <button onclick="window._createDiscussion?.()" class="btn-primary">Pubblica</button>
+        <button class="btn-secondary" onclick="closeModal('modal-create-disc')">Annulla</button>
       </div>
     </div>
   </div>
 
-  <!-- Modal: Profilo Utente -->
-  <div id="modal-profile" class="modal modal--hidden" role="dialog" aria-modal="true">
-    <div class="modal__backdrop" onclick="closeModal('modal-profile')"></div>
-    <div class="modal__box">
-      <div class="modal__header">
-        <h3>Profilo</h3>
-        <button class="modal__close" onclick="closeModal('modal-profile')">✕</button>
-      </div>
-      <div id="modal-profile-content" class="modal__body"></div>
+  <!-- Profilo Utente -->
+  <div id="modal-profile" class="modal-overlay modal--hidden modal-overlay--center">
+    <div class="modal-card">
+      <div id="modal-profile-content"></div>
+      <button class="btn-secondary" style="margin-top:1rem" onclick="closeModal('modal-profile')">Chiudi</button>
     </div>
   </div>
 
-  <!-- Modal: Lingue -->
-  <div id="modal-languages" class="modal modal--hidden" role="dialog" aria-modal="true">
-    <div class="modal__backdrop" onclick="closeModal('modal-languages')"></div>
-    <div class="modal__box">
-      <div class="modal__header">
-        <h3>Le mie Lingue</h3>
-        <button class="modal__close" onclick="closeModal('modal-languages')">✕</button>
-      </div>
-      <div id="modal-languages-content" class="modal__body"></div>
+  <!-- Lingue -->
+  <div id="modal-languages" class="modal-overlay modal--hidden">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-title">🌍 Le mie Lingue</div>
+      <div id="modal-languages-content" style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:1rem;"></div>
+      <button class="btn-secondary" onclick="closeModal('modal-languages')">Chiudi</button>
     </div>
   </div>
 
-  <!-- ══════════════════════════════════════════════════════════
-       OVERLAY E TOAST
-  ══════════════════════════════════════════════════════════ -->
-  <div id="loading-overlay" class="loading-overlay" aria-hidden="true">
-  <div class="loading-spinner"></div>
-  <p class="loading-msg">Caricamento…</p>
-</div>
+  <!-- Loading overlay -->
+  <div id="loading-overlay">
+    <div class="loading-spinner"></div>
+    <p class="loading-msg">Caricamento…</p>
+  </div>
 
-  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+  <!-- Toast container -->
+  <div id="toast-container"></div>
 
-  <!-- Noscript -->
   <noscript>
     <div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0f0f1a;color:#e2e8f0;font-family:sans-serif;text-align:center;padding:2rem;">
-      <div>
-        <div style="font-size:3rem">⚔️</div>
-        <h2 style="margin:1rem 0 0.5rem">LifeQuest richiede JavaScript</h2>
-        <p style="color:#94a3b8">Abilita JavaScript nel browser per continuare.</p>
-      </div>
+      <div><div style="font-size:3rem">⚔️</div><h2>LifeQuest richiede JavaScript</h2></div>
     </div>
   </noscript>
 
-  <!-- Entry point JS -->
   <script type="module" src="./js/main.js"></script>
 
-  <!-- Helper globale per i modali (usato inline negli HTML generati) -->
   <script>
     function closeModal(id) {
       document.getElementById(id)?.classList.add('modal--hidden');
@@ -542,9 +488,10 @@
     window._setFeedFilter = function(filter) {
       import('./js/screens/home.js').then(m => m.setFeedFilter?.(filter));
       document.querySelectorAll('.feed-filter-btn').forEach(btn => {
+        const isAll = filter === 'all';
         btn.classList.toggle('feed-filter-btn--active',
-          (filter === 'all' && btn.textContent.trim() === 'Tutti') ||
-          (filter === 'following' && btn.textContent.trim() === 'Seguiti')
+          (isAll && btn.textContent.includes('Tutti')) ||
+          (!isAll && btn.textContent.includes('Seguiti'))
         );
       });
     };
