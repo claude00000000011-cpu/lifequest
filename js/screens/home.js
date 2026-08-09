@@ -13,26 +13,19 @@ import { MOTIVS, STAT_COLORS } from '../config.js';
 
 const TABS = ['home','quest','study','routine','pvp','libri','social','stats'];
 
-/**
- * Naviga alla schermata indicata.
- * @param {string} tabId
- */
 export async function gotoTab(tabId) {
   playSound('tap');
 
-  // Aggiorna bottom nav
   document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.classList.toggle('nav-btn--active', btn.dataset.tab === tabId);
   });
 
-  // Mostra/nasconde schermate
   document.querySelectorAll('.screen').forEach(s => {
     s.classList.toggle('screen--hidden', s.dataset.screen !== tabId);
   });
 
   window.scrollTo(0, 0);
 
-  // Rendering specifico per schermata
   switch (tabId) {
     case 'home':    return renderHome();
     case 'quest':   return (await import('./quest.js')).renderQuests();
@@ -47,9 +40,6 @@ export async function gotoTab(tabId) {
 
 // ── Dashboard ─────────────────────────────────────────────────
 
-/**
- * Aggiorna tutti gli elementi UI della dashboard utente.
- */
 export function updateDashboard() {
   if (!CUR) return;
 
@@ -60,19 +50,16 @@ export function updateDashboard() {
   const rank  = rankTitle(level);
   const next  = xpForLevel(level + 1);
 
-  // Livello & rango
-  setEl('user-level',   `Lv. ${level}`);
-  setEl('user-rank',    rank);
+  setEl('user-level',    `Lv. ${level}`);
+  setEl('user-rank',     rank);
   setEl('user-username', `@${user.username}`);
-  setEl('user-streak',  `🔥 ${user.streak || 0} giorni`);
+  setEl('user-streak',   `🔥 ${user.streak || 0} giorni`);
 
-  // XP bar
   const bar = document.getElementById('xp-bar-fill');
   if (bar) bar.style.width = `${pct}%`;
   setEl('xp-current', `${xp.toLocaleString()} XP`);
   setEl('xp-next',    `/${next.toLocaleString()}`);
 
-  // Avatar
   const avatarEl = document.getElementById('user-avatar');
   if (avatarEl) {
     if (user.avatarUrl) {
@@ -84,7 +71,6 @@ export function updateDashboard() {
     }
   }
 
-  // Stats
   const stats = user.stats || {};
   Object.entries(stats).forEach(([key, val]) => {
     setEl(`stat-${key}`, val.toLocaleString());
@@ -101,36 +87,25 @@ export function updateDashboard() {
 
 export function renderHome() {
   updateDashboard();
-
-  // Motto del giorno (basato sul giorno della settimana)
   const dayIdx = new Date().getDay();
   setEl('daily-motiv', MOTIVS[dayIdx % MOTIVS.length]);
-
-  // Feed
   loadAndRenderFeed();
 }
 
 // ── Feed ──────────────────────────────────────────────────────
 
-let _feedCache   = null;
-let _feedFilter  = 'all'; // 'all' | 'following'
-let _feedPage    = 0;
-const PAGE_SIZE  = 15;
+let _feedCache  = null;
+let _feedFilter = 'all';
+let _feedPage   = 0;
+const PAGE_SIZE = 15;
 
-/**
- * Cambia il filtro del feed e ricarica.
- * @param {'all'|'following'} filter
- */
 export function setFeedFilter(filter) {
-  _feedFilter  = filter;
-  _feedPage    = 0;
-  _feedCache   = null;
+  _feedFilter = filter;
+  _feedPage   = 0;
+  _feedCache  = null;
   loadAndRenderFeed();
 }
 
-/**
- * Carica i post dal layer API e li renderizza.
- */
 export async function loadAndRenderFeed() {
   if (!CUR) return;
 
@@ -143,15 +118,10 @@ export async function loadAndRenderFeed() {
     _feedCache = ok ? data : [];
   }
 
-  const page  = _feedCache.slice(0, (_feedPage + 1) * PAGE_SIZE);
+  const page = _feedCache.slice(0, (_feedPage + 1) * PAGE_SIZE);
   renderFeed(page, container);
 }
 
-/**
- * Renderizza i post nel container.
- * @param {Object[]} posts
- * @param {HTMLElement} container
- */
 function renderFeed(posts, container) {
   if (!posts.length) {
     container.innerHTML = `
@@ -164,7 +134,6 @@ function renderFeed(posts, container) {
 
   container.innerHTML = posts.map(post => feedCard(post)).join('');
 
-  // Infinite scroll
   const sentinel = document.createElement('div');
   sentinel.id = 'feed-sentinel';
   container.appendChild(sentinel);
@@ -177,9 +146,8 @@ function renderFeed(posts, container) {
   }, { threshold: 0.1 }).observe(sentinel);
 }
 
-/**
- * Genera l'HTML di una card del feed.
- */
+// BUG #6 FIX — feedCard ora mostra il tasto 🗑 elimina post
+// solo se il post appartiene all'utente corrente.
 function feedCard(post) {
   const author   = DB.users[post.userId];
   const name     = escHtml(author?.username || post.username || 'Utente');
@@ -191,6 +159,7 @@ function feedCard(post) {
   const likes    = post.likes?.length || 0;
   const liked    = post.likes?.includes(CUR?.id);
   const comments = DB.comments.filter(c => c.postId === post.id).length;
+  const isMyPost = post.userId === CUR?.id;
 
   const photo = post.photoUrl
     ? `<div class="feed-photo" onclick="window._openPhotoModal?.('${post.id}')">
@@ -200,6 +169,12 @@ function feedCard(post) {
 
   const xpBadge = post.xpEarned
     ? `<span class="feed-xp">+${post.xpEarned} XP</span>`
+    : '';
+
+  // Tasto elimina post: visibile solo se è il mio post
+  const deletePostBtn = isMyPost
+    ? `<button class="feed-btn" style="margin-left:auto;color:#f87171"
+               onclick="window._deletePost?.('${post.id}')" title="Elimina post">🗑</button>`
     : '';
 
   return `
@@ -213,6 +188,7 @@ function feedCard(post) {
           </div>
         </div>
         ${xpBadge}
+        ${deletePostBtn}
       </header>
 
       <p class="feed-card__content">${escHtml(post.content)}</p>
@@ -229,7 +205,7 @@ function feedCard(post) {
       </footer>
 
       <div id="comments-${post.id}" class="comments-section comments-section--hidden">
-        ${renderComments(post.id)}
+        ${renderComments(post.id, isMyPost)}
         <div class="comment-input-row">
           <input type="text" id="comment-input-${post.id}"
                  placeholder="Scrivi un commento…" maxlength="200">
@@ -239,28 +215,37 @@ function feedCard(post) {
     </article>`;
 }
 
-function renderComments(postId) {
+// BUG #6 FIX — renderComments mostra 🗑 su ogni commento
+// se il commento è mio OPPURE se il post è mio (moderazione).
+function renderComments(postId, isMyPost) {
   const comments = DB.comments.filter(c => c.postId === postId);
   if (!comments.length) return '<p class="comments-empty">Nessun commento.</p>';
-  return comments.map(c => `
-    <div class="comment">
-      <strong>@${escHtml(c.username)}</strong>
-      <span>${escHtml(c.content)}</span>
-      <time>${timeAgo(new Date(c.createdAt).getTime())}</time>
-    </div>`).join('');
+
+  return comments.map(c => {
+    const canDelete = c.userId === CUR?.id || isMyPost;
+    const deleteBtn = canDelete
+      ? `<button class="comment-delete-btn" style="margin-left:auto;color:#f87171;font-size:0.75rem;padding:0 0.3rem"
+                 onclick="window._deleteComment?.('${c.id}', '${postId}')" title="Elimina">🗑</button>`
+      : '';
+    return `
+      <div class="comment" data-comment-id="${c.id}">
+        <strong>@${escHtml(c.username)}</strong>
+        <span>${escHtml(c.content)}</span>
+        <time>${timeAgo(new Date(c.createdAt).getTime())}</time>
+        ${deleteBtn}
+      </div>`;
+  }).join('');
 }
 
-// ── Azioni feed (esposte su window per uso inline) ───────────
+// ── Azioni feed ───────────────────────────────────────────────
 
 window._toggleLike = async function(postId) {
   if (!CUR) return;
   const { ok, data } = await Feed.toggleLike(postId, CUR.id);
   if (!ok) return;
   playSound(data.liked ? 'like' : 'tap');
-  // Optimistic UI: aggiorna il contatore e l'icona in-place
   const card = document.querySelector(`[data-post-id="${postId}"]`);
-  if (!card) return;
-  const btn  = card.querySelector('.feed-btn--like');
+  const btn  = card?.querySelector('.feed-btn--like');
   if (btn) {
     btn.classList.toggle('feed-btn--liked', data.liked);
     btn.innerHTML = `${data.liked ? '❤️' : '🤍'} <span>${data.count}</span>`;
@@ -288,7 +273,6 @@ window._submitComment = async function(postId) {
   playSound('tap');
   input.value = '';
 
-  // Aggiorna commenti in-place
   const section = document.getElementById(`comments-${postId}`);
   if (section) {
     const empty = section.querySelector('.comments-empty');
@@ -296,13 +280,66 @@ window._submitComment = async function(postId) {
     const row = section.querySelector('.comment-input-row');
     const div = document.createElement('div');
     div.className = 'comment';
-    div.innerHTML = `<strong>@${escHtml(CUR.username)}</strong><span>${escHtml(text)}</span><time>adesso</time>`;
+    div.dataset.commentId = data.id;
+    // Il commento è mio → mostro subito il tasto elimina
+    div.innerHTML = `
+      <strong>@${escHtml(CUR.username)}</strong>
+      <span>${escHtml(text)}</span>
+      <time>adesso</time>
+      <button class="comment-delete-btn" style="margin-left:auto;color:#f87171;font-size:0.75rem;padding:0 0.3rem"
+              onclick="window._deleteComment?.('${data.id}', '${postId}')" title="Elimina">🗑</button>`;
     section.insertBefore(div, row);
-    // Aggiorna contatore
-    const card = document.querySelector(`[data-post-id="${postId}"]`);
+
+    const card    = document.querySelector(`[data-post-id="${postId}"]`);
     const countEl = card?.querySelector('.feed-btn:nth-child(2) span');
     if (countEl) countEl.textContent = parseInt(countEl.textContent) + 1;
   }
+};
+
+// BUG #6 — elimina un singolo commento dal feed
+window._deleteComment = async function(commentId, postId) {
+  if (!confirm('Eliminare questo commento?')) return;
+
+  const { ok } = await Feed.deleteComment(commentId);
+  if (!ok) return toast('Errore nell\'eliminazione', 'error');
+
+  playSound('tap');
+
+  // Rimuovi dalla cache locale
+  DB.comments = DB.comments.filter(c => c.id !== commentId);
+  persist();
+
+  // Rimuovi il nodo dal DOM
+  const el = document.querySelector(`[data-comment-id="${commentId}"]`);
+  if (el) {
+    el.remove();
+    // Aggiorna contatore
+    const card    = document.querySelector(`[data-post-id="${postId}"]`);
+    const countEl = card?.querySelector('.feed-btn:nth-child(2) span');
+    if (countEl) countEl.textContent = Math.max(0, parseInt(countEl.textContent) - 1);
+  }
+
+  toast('Commento eliminato', 'info');
+};
+
+// BUG #6 — elimina un post intero (solo il proprietario)
+window._deletePost = async function(postId) {
+  if (!confirm('Eliminare questo post?')) return;
+
+  const { ok } = await Feed.deletePost(postId);
+  if (!ok) return toast('Errore nell\'eliminazione', 'error');
+
+  playSound('tap');
+
+  // Rimuovi dalla cache locale e dal DOM
+  DB.feedPosts = DB.feedPosts.filter(p => p.id !== postId);
+  if (_feedCache) _feedCache = _feedCache.filter(p => p.id !== postId);
+  persist();
+
+  const card = document.querySelector(`[data-post-id="${postId}"]`);
+  card?.remove();
+
+  toast('Post eliminato', 'info');
 };
 
 window._openPhotoModal = function(postId) {
