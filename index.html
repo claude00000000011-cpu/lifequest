@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="description" content="LifeQuest — Trasforma la tua vita in un gioco di ruolo. XP, livelli, streak e sfide PvP." />
+  <meta name="theme-color" content="#7c3aed" />
+
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="LifeQuest" />
+
+  <!-- Icons -->
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="/assets/icons/icon-192.png" />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="LifeQuest" />
+  <meta property="og:description" content="Il tuo mondo. Come un gioco di ruolo." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/assets/icons/icon-512.png" />
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="/css/components.css" />
+  <link rel="stylesheet" href="/css/animations.css" />
+
+  <!-- Preconnect per performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+
+  <title>LifeQuest</title>
+</head>
+<body>
+
+  <!-- Splash screen (visibile solo al primo caricamento) -->
+  <div id="splash-screen" class="splash-screen" aria-hidden="true">
+    <div class="splash-content">
+      <div class="splash-icon">⚔️</div>
+      <h1 class="splash-title">LifeQuest</h1>
+      <div class="splash-loader">
+        <div class="splash-bar"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Root app: auth o app vera vengono iniettate qui da main.js -->
+  <div id="root" class="root-wrapper" role="application" aria-label="LifeQuest"></div>
+
+  <!-- Noscript fallback -->
+  <noscript>
+    <div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0f0f1a;color:#e2e8f0;font-family:sans-serif;text-align:center;padding:2rem;">
+      <div>
+        <div style="font-size:3rem">⚔️</div>
+        <h2 style="margin:1rem 0 0.5rem">LifeQuest richiede JavaScript</h2>
+        <p style="color:#94a3b8">Abilita JavaScript nel browser per continuare.</p>
+      </div>
+    </div>
+  </noscript>
+
+  <!-- Entry point JS (modulo ES2022+) -->
+  <script type="module" src="/js/main.js"></script>
+
+  <!-- Splash screen dismiss -->
+  <script>
+    // Rimuove lo splash dopo che il DOM è pronto e i moduli sono caricati
+    window.addEventListener('load', () => {
+      const splash = document.getElementById('splash-screen');
+      if (splash) {
+        setTimeout(() => {
+          splash.classList.add('splash-hidden');
+          splash.addEventListener('transitionend', () => splash.remove(), { once: true });
+        }, 800);
+      }
+    });
+  </script>
+
+</body>
+</html>
