@@ -215,31 +215,70 @@ export const Users = {
     return ok(data.map(toCamel));
   },
 
+  // ── FOLLOW (corretto) ──────────────────────────────────────
+  // Prima aggiorna su Supabase, poi ricarica entrambi i profili
+  // dal cloud in modo che DB.users contenga i dati freschi.
   async follow(userId, targetId) {
-    const user   = DB.users[userId];
-    const target = DB.users[targetId];
+    const user   = DB.users[userId]   || {};
+    const target = DB.users[targetId] || {};
 
-    if (!user.following.includes(targetId)) user.following.push(targetId);
-    if (target && !target.followers.includes(userId)) target.followers.push(userId);
+    // Calcola i nuovi array (senza duplicati)
+    const newFollowing  = user.following?.includes(targetId)
+      ? user.following
+      : [...(user.following  || []), targetId];
+    const newFollowers  = target.followers?.includes(userId)
+      ? target.followers
+      : [...(target.followers || []), userId];
 
-    await supabase.from('users').update({ following: user.following }).eq('id', userId);
-    if (target) await supabase.from('users').update({ followers: target.followers }).eq('id', targetId);
+    // Scrivi su Supabase
+    const [r1, r2] = await Promise.all([
+      supabase.from('users').update({ following: newFollowing }).eq('id', userId),
+      supabase.from('users').update({ followers: newFollowers }).eq('id', targetId),
+    ]);
 
-    persist();
+    if (r1.error || r2.error) {
+      // Fallback locale se Supabase non risponde
+      DB.users[userId]   = { ...user,   following: newFollowing };
+      DB.users[targetId] = { ...target, followers: newFollowers };
+      persist();
+      return ok(true);
+    }
+
+    // Ricarica entrambi i profili dal cloud per avere i contatori aggiornati
+    await Promise.all([
+      Users.get(userId),
+      Users.get(targetId),
+    ]);
+
     return ok(true);
   },
 
+  // ── UNFOLLOW (corretto) ────────────────────────────────────
   async unfollow(userId, targetId) {
-    const user   = DB.users[userId];
-    const target = DB.users[targetId];
+    const user   = DB.users[userId]   || {};
+    const target = DB.users[targetId] || {};
 
-    user.following = user.following.filter(id => id !== targetId);
-    if (target) target.followers = target.followers.filter(id => id !== userId);
+    const newFollowing = (user.following  || []).filter(id => id !== targetId);
+    const newFollowers = (target.followers || []).filter(id => id !== userId);
 
-    await supabase.from('users').update({ following: user.following }).eq('id', userId);
-    if (target) await supabase.from('users').update({ followers: target.followers }).eq('id', targetId);
+    const [r1, r2] = await Promise.all([
+      supabase.from('users').update({ following: newFollowing }).eq('id', userId),
+      supabase.from('users').update({ followers: newFollowers }).eq('id', targetId),
+    ]);
 
-    persist();
+    if (r1.error || r2.error) {
+      DB.users[userId]   = { ...user,   following: newFollowing };
+      DB.users[targetId] = { ...target, followers: newFollowers };
+      persist();
+      return ok(true);
+    }
+
+    // Ricarica entrambi i profili dal cloud
+    await Promise.all([
+      Users.get(userId),
+      Users.get(targetId),
+    ]);
+
     return ok(true);
   },
 };
@@ -774,6 +813,17 @@ export const Discussions = {
     const r = { ...toCamel(data), username: CUR.username };
     insert('discussionReplies', r);
     return ok(r);
+  },
+
+  async getReplies(discussionId) {
+    const { data, error } = await supabase
+      .from('discussion_replies')
+      .select('*')
+      .eq('discussion_id', discussionId)
+      .order('created_at', { ascending: true });
+
+    if (error) return ok(DB.discussionReplies.filter(r => r.discussionId === discussionId));
+    return ok(data.map(r => ({ ...toCamel(r), username: DB.users[r.user_id]?.username || 'Utente' })));
   },
 
   async toggleLike(discussionId, userId) {
