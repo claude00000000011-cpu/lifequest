@@ -1,14 +1,16 @@
 // ============================================================
 // main.js — Entry point di LifeQuest
 // ============================================================
-// Importato come <script type="module" src="js/main.js"> in index.html
-// ============================================================
 
 import { loadSession, setCUR, DB } from './db.js';
 import { initModals } from './modals.js';
 import { Moderation } from './api.js';
 import { updateDashboard, gotoTab } from './screens/home.js';
 import { switchAuthTab, doRegister, doLogin, doResetPin } from './auth.js';
+
+// BUG #7 FIX — tiene traccia della tab attiva
+// così doAppRefresh può ritornarci invece di andare sempre a 'home'
+let _activeTab = 'home';
 
 // ── Splash screen ─────────────────────────────────────────────
 
@@ -26,8 +28,6 @@ function bootApp(user) {
   document.getElementById('auth-screen')?.classList.add('hidden');
   document.getElementById('app-main')?.classList.remove('hidden');
   gotoTab('home');
-
-  // Carica parole bannate in background
   Moderation.getBannedWords();
 }
 
@@ -35,13 +35,10 @@ function bootApp(user) {
 
 document.addEventListener('DOMContentLoaded', () => {
 
-  // Inizializza sistema modal
   initModals();
 
-  // Splash → nasconde dopo 1.5s
   setTimeout(hideSplash, 1500);
 
-  // Controlla sessione esistente
   const session = loadSession();
   if (session) {
     setCUR(session);
@@ -53,8 +50,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 1500);
   }
 
-  // ── Binding pulsanti globali ──────────────────────────────
-
   // Auth
   document.getElementById('btn-login')?.addEventListener('click', doLogin);
   document.getElementById('btn-register')?.addEventListener('click', doRegister);
@@ -64,12 +59,14 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => switchAuthTab(btn.dataset.tab));
   });
 
-  // Bottom nav
+  // BUG #7 FIX — ogni click sulla nav aggiorna _activeTab
   document.querySelectorAll('.nav-btn').forEach(btn => {
-    btn.addEventListener('click', () => gotoTab(btn.dataset.tab));
+    btn.addEventListener('click', () => {
+      _activeTab = btn.dataset.tab;
+      gotoTab(_activeTab);
+    });
   });
 
-  // Enter nelle form di auth
   ['login-password', 'reg-pin'].forEach(id => {
     document.getElementById(id)?.addEventListener('keydown', e => {
       if (e.key === 'Enter') {
@@ -79,10 +76,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Refresh manuale (icona nella bottom nav)
   document.getElementById('btn-refresh')?.addEventListener('click', doAppRefresh);
 
-  // ── Esponi su window per uso inline negli HTML generati ───
+  // Esponi su window
   window._openAddQuestModal   = () => import('./screens/quest.js').then(m => m.openAddQuestModal?.());
   window._switchQuestTab      = t  => import('./screens/quest.js').then(m => m.switchQuestTab(t));
   window._switchStudyTab      = t  => import('./screens/study.js').then(m => m.switchStudyTab(t));
@@ -91,34 +87,29 @@ document.addEventListener('DOMContentLoaded', () => {
   window._switchSocialTab     = t  => import('./screens/social.js').then(m => m.switchSocialTab(t));
   window._switchStatsTab      = t  => import('./screens/stats.js').then(m => m.switchStatsTab(t));
 
-  // Quest actions
-  window._addQuest            = ()      => import('./screens/quest.js').then(m => m.default?._addQuest?.() || window._addQuest?.());
-  window._deleteQuest         = id      => import('./screens/quest.js').then(() => window._deleteQuest?.(id));
+  window._addQuest            = ()  => import('./screens/quest.js').then(m => m.default?._addQuest?.() || window._addQuest?.());
+  window._deleteQuest         = id  => import('./screens/quest.js').then(() => window._deleteQuest?.(id));
 
-  // Study actions
-  window._addExam             = ()      => import('./screens/study.js').then(() => window._addExam?.());
-  window._logSession          = ()      => import('./screens/study.js').then(() => window._logSession?.());
+  window._addExam             = ()  => import('./screens/study.js').then(() => window._addExam?.());
+  window._logSession          = ()  => import('./screens/study.js').then(() => window._logSession?.());
 
-  // Routine actions
-  window._saveCustomRoutine   = ()      => import('./screens/routine.js').then(() => window._saveCustomRoutine?.());
+  window._saveCustomRoutine   = ()  => import('./screens/routine.js').then(() => window._saveCustomRoutine?.());
 
-  // PvP actions
-  window._createChallenge     = ()      => import('./screens/pvp.js').then(() => window._createChallenge?.());
+  window._createChallenge     = ()  => import('./screens/pvp.js').then(() => window._createChallenge?.());
 
-  // Books actions
-  window._addBook             = ()      => import('./screens/books.js').then(() => window._addBook?.());
-  window._logReading          = ()      => import('./screens/books.js').then(() => window._logReading?.());
+  window._addBook             = ()  => import('./screens/books.js').then(() => window._addBook?.());
+  window._logReading          = ()  => import('./screens/books.js').then(() => window._logReading?.());
 
-  // Libri actions
-  window._addGlobalBook       = ()      => import('./screens/libri.js').then(() => window._addGlobalBook?.());
-  window._createDiscussion    = ()      => import('./screens/libri.js').then(() => window._createDiscussion?.());
+  window._addGlobalBook       = ()  => import('./screens/libri.js').then(() => window._addGlobalBook?.());
+  window._createDiscussion    = ()  => import('./screens/libri.js').then(() => window._createDiscussion?.());
 
-  // Stats actions
-  window._doLogout            = ()      => import('./auth.js').then(m => m.doLogout());
+  window._doLogout            = ()  => import('./auth.js').then(m => m.doLogout());
 });
 
 // ── App Refresh ───────────────────────────────────────────────
 
+// BUG #7 FIX — dopo il refresh ritorna alla tab che stava usando l'utente,
+// non sempre a 'home'. Usa gotoTab(_activeTab) invece di updateDashboard().
 async function doAppRefresh() {
   const { CUR, DB, persist, mergeUserData } = await import('./db.js');
   const { Users, syncCloudDataOnLogin } = await import('./api.js');
@@ -139,7 +130,10 @@ async function doAppRefresh() {
     }
 
     await syncCloudDataOnLogin(CUR.id);
-    updateDashboard();
+
+    // BUG #7: ricarica la tab corrente invece di tornare sempre a home
+    await gotoTab(_activeTab);
+
     toast('Dati aggiornati ✅', 'success');
   } catch (e) {
     toast('Aggiornamento fallito — sei offline?', 'error');
