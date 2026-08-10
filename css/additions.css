@@ -1,0 +1,461 @@
+/* ============================================================
+   additions.css — Componenti aggiuntivi LifeQuest
+   Importare dopo components.css
+   ============================================================ */
+
+/* ── Btn-sm (pulsanti piccoli nelle card) ─────────────────── */
+.btn-sm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem 0.75rem;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all var(--trans);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.btn-sm:active { transform: scale(0.95); background: var(--surface-2); }
+.btn-sm.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.btn-sm.btn-primary:active { background: var(--accent-dark); }
+.btn-sm.btn-danger {
+  background: rgba(220,38,38,0.12);
+  color: #f87171;
+  border-color: rgba(220,38,38,0.3);
+}
+.btn-sm.btn-danger:active { background: rgba(220,38,38,0.25); }
+
+/* ── Btn icona piccolo ────────────────────────────────────── */
+.btn-icon-sm {
+  background: none;
+  border: none;
+  padding: 0.2rem 0.4rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: var(--text-3);
+  border-radius: var(--radius-sm);
+  transition: color var(--trans);
+  flex-shrink: 0;
+}
+.btn-icon-sm:active { color: var(--danger); }
+
+/* ── Btn add inline ───────────────────────────────────────── */
+.btn-add-inline {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.7rem;
+  background: rgba(124,58,237,0.12);
+  color: var(--accent-light);
+  border: 1px solid rgba(124,58,237,0.3);
+  border-radius: 99px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  transition: all var(--trans);
+  white-space: nowrap;
+}
+.btn-add-inline:active { background: rgba(124,58,237,0.25); }
+
+/* ── Inline input row ─────────────────────────────────────── */
+.inline-input-row {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  margin-top: 0.5rem;
+  animation: slideDown 0.18s ease;
+}
+.inline-input-row input {
+  flex: 1;
+  font-size: 0.85rem;
+  padding: 0.45rem 0.7rem;
+}
+.inline-input-row button {
+  padding: 0.45rem 0.7rem;
+  background: var(--accent);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  min-width: 36px;
+}
+.inline-input-row button:last-child {
+  background: var(--surface);
+  color: var(--text-2);
+  border: 1px solid var(--border);
+}
+
+/* ── Exam card ────────────────────────────────────────────── */
+.exam-card {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: border-color var(--trans);
+}
+.exam-card--open { border-color: var(--accent); }
+.exam-card:active { border-color: var(--accent); }
+
+.exam-card__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  cursor: pointer;
+  user-select: none;
+}
+.exam-card__title {
+  flex: 1;
+  min-width: 0;
+}
+.exam-card__title h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+.exam-card__meta {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.78rem;
+}
+.exam-card__chevron {
+  font-size: 0.8rem;
+  color: var(--text-3);
+  flex-shrink: 0;
+  padding-top: 0.15rem;
+}
+
+.exam-card__body {
+  border-top: 1px solid var(--border);
+  padding: 0.85rem 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  animation: fadeIn 0.18s ease;
+}
+
+.exam-actions-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* ── Exam section (capitoli / nozioni) ───────────────────── */
+.exam-section { display: flex; flex-direction: column; gap: 0.4rem; }
+.exam-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.exam-section__header h4 {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-2);
+}
+
+/* ── Chapter item ─────────────────────────────────────────── */
+.chapter-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  background: var(--bg-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  transition: opacity var(--trans);
+}
+.chapter-item--done { opacity: 0.5; }
+.chapter-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.chapter-checkbox input[type="checkbox"] {
+  width: auto;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.chapter-checkbox span {
+  color: var(--text);
+  line-height: 1.35;
+}
+.chapter-item--done .chapter-checkbox span {
+  text-decoration: line-through;
+  color: var(--text-3);
+}
+
+/* ── Concept item ─────────────────────────────────────────── */
+.concept-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.65rem;
+  background: rgba(124,58,237,0.06);
+  border: 1px solid rgba(124,58,237,0.2);
+  border-radius: var(--radius-sm);
+  font-size: 0.84rem;
+  line-height: 1.4;
+  animation: fadeIn 0.15s ease;
+}
+.concept-item span { flex: 1; color: var(--text); }
+
+/* ── Empty mini ───────────────────────────────────────────── */
+.empty-mini {
+  font-size: 0.8rem;
+  color: var(--text-3);
+  padding: 0.35rem 0;
+}
+
+/* ── Session day group ────────────────────────────────────── */
+.session-day-group { margin-bottom: 1rem; }
+.session-day-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0.25rem 0;
+  margin-bottom: 0.4rem;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── Cal exam badge ───────────────────────────────────────── */
+.cal-day--exam { background: rgba(220,38,38,0.08); }
+.cal-badge--study { background: var(--accent); }
+.cal-badge--exam  { background: var(--danger); font-size: 0.55rem; }
+.cal-exam-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.82rem;
+  color: var(--text-2);
+}
+
+/* ── Book card riprogettata ───────────────────────────────── */
+.book-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: border-color var(--trans);
+}
+.book-card--open { border-color: var(--accent); }
+.book-card__main {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem;
+  cursor: pointer;
+  user-select: none;
+}
+.book-card__body { flex: 1; min-width: 0; }
+.book-card__body h3 { font-size: 0.9rem; font-weight: 700; margin-bottom: 0.2rem; }
+
+/* Detail panel del libro */
+.book-detail {
+  border-top: 1px solid var(--border);
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  animation: fadeIn 0.18s ease;
+}
+
+.book-actions-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* Sezione note libro */
+.book-notes-section { display: flex; flex-direction: column; gap: 0.4rem; }
+.book-notes-section .exam-section__header { /* riusa lo stesso stile */ }
+
+.notes-list { display: flex; flex-direction: column; gap: 0.4rem; }
+.note-item {
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.65rem;
+  font-size: 0.84rem;
+  line-height: 1.4;
+  animation: fadeIn 0.15s ease;
+}
+.note-item p { color: var(--text); margin-bottom: 0.25rem; }
+.note-item__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.note-item__footer time { font-size: 0.72rem; color: var(--text-3); }
+
+/* ── Book reading progress ────────────────────────────────── */
+.reading-progress-card {
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.reading-progress-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.82rem;
+}
+.reading-progress-card__top strong { color: var(--accent-light); }
+.reading-progress-card__pct { color: var(--text-3); font-size: 0.78rem; }
+
+/* ── Book modal — reading-book-name ──────────────────────── */
+#reading-book-name {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--text-2);
+  margin-bottom: 0.75rem;
+  font-style: italic;
+}
+
+/* ── Autocomplete dropdown ────────────────────────────────── */
+.autocomplete-wrap {
+  position: relative;
+}
+.autocomplete-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--bg-2);
+  border: 1px solid var(--accent);
+  border-top: none;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  z-index: 200;
+  max-height: 180px;
+  overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.autocomplete-item {
+  padding: 0.6rem 0.85rem;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: background var(--trans);
+  border-bottom: 1px solid var(--border);
+}
+.autocomplete-item:last-child { border-bottom: none; }
+.autocomplete-item:active, .autocomplete-item:hover { background: var(--surface); }
+.autocomplete-item strong { color: var(--accent-light); display: block; font-size: 0.88rem; }
+.autocomplete-item span   { color: var(--text-3); font-size: 0.75rem; }
+
+/* ── Notifiche ────────────────────────────────────────────── */
+.notif-btn {
+  position: relative;
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 0.25rem;
+}
+.notif-badge {
+  position: absolute;
+  top: 0; right: 0;
+  background: var(--danger);
+  color: #fff;
+  border-radius: 99px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 0.1rem 0.35rem;
+  min-width: 16px;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.notif-panel {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  animation: slideDown 0.2s ease;
+}
+.notif-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.5rem 0.65rem;
+  background: var(--bg-3);
+  border-radius: var(--radius-sm);
+  font-size: 0.84rem;
+  border-left: 3px solid var(--accent);
+}
+.notif-item--read { border-left-color: var(--border); opacity: 0.65; }
+.notif-item .notif-text { flex: 1; }
+.notif-item time { font-size: 0.72rem; color: var(--text-3); white-space: nowrap; }
+.notif-empty { text-align: center; color: var(--text-3); font-size: 0.85rem; padding: 0.5rem; }
+
+/* ── Discussion filters extra ─────────────────────────────── */
+.disc-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.disc-filters-row {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.disc-filters-row::-webkit-scrollbar { display: none; }
+.disc-filter-select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
+/* ── Readers screen filtri ────────────────────────────────── */
+.readers-toolbar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.readers-toolbar input {
+  flex: 1;
+  min-width: 140px;
+  font-size: 0.85rem;
+}
+.readers-toolbar select {
+  flex: 1;
+  min-width: 120px;
+  font-size: 0.85rem;
+}
+
+/* ── Profile modal scrollabile ────────────────────────────── */
+.modal-card { overflow-y: auto; }
