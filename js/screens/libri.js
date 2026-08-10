@@ -41,7 +41,7 @@ export async function renderLibri() {
     <div id="libri-content"><div class="feed-loading">Caricamento…</div></div>
   `;
 
-  if      (_libriTab === 'mylibrary')   await renderMyLibrary();
+  if      (_libriTab === 'mylibrary')   await ();
   else if (_libriTab === 'catalog')     await renderCatalog();
   else if (_libriTab === 'discussions') await renderDiscussions();
   else if (_libriTab === 'readers')     await renderReaders();
@@ -52,6 +52,10 @@ export async function renderLibri() {
 async function renderMyLibrary() {
   const container = document.getElementById('libri-content');
   if (!container) return;
+
+  // Importa books.js per registrare _openBook, _closeBook, ecc.
+  await import('./books.js');
+
 
   container.innerHTML = `<div class="feed-loading">Caricamento…</div>`;
 
