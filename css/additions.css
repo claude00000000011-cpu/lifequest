@@ -586,3 +586,136 @@ css
   font-weight: 600;
   width: 100%;
 }
+
+
+
+/* ── PvP — box ricerca codice ─────────────────────────────── */
+.pvp-code-box {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.85rem;
+  margin-bottom: 1rem;
+}
+.pvp-code-label {
+  font-size: 0.85rem;
+  color: var(--text-2);
+  margin-bottom: 0.5rem;
+}
+.pvp-code-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+/* Input numero codice — visibile e compatto */
+.pvp-code-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.55rem 0.75rem;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  /* rimuove le freccette spinner sui number input */
+  -moz-appearance: textfield;
+}
+.pvp-code-input::-webkit-outer-spin-button,
+.pvp-code-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.pvp-code-input::placeholder { color: var(--text-3); font-weight: 400; }
+.pvp-code-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Bottone Cerca — NON a piena larghezza */
+.pvp-search-btn {
+  flex-shrink: 0;
+  padding: 0.55rem 1rem;
+  background: var(--accent);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: all var(--trans);
+  /* override esplicito di width:100% da .btn-primary */
+  width: auto !important;
+}
+.pvp-search-btn:active { background: var(--accent-dark); transform: scale(0.96); }
+
+/* Messaggi sotto la ricerca */
+.pvp-code-error    { font-size: 0.82rem; color: var(--danger);  margin-top: 0.4rem; }
+.pvp-code-warn     { font-size: 0.82rem; color: var(--warning); margin-top: 0.4rem; }
+.pvp-code-searching{ font-size: 0.82rem; color: var(--text-3);  margin-top: 0.4rem; }
+
+/* Card risultato trovato */
+.pvp-code-found {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.85rem;
+  margin-top: 0.5rem;
+}
+.pvp-code-found__title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  margin-bottom: 0.2rem;
+}
+.pvp-code-found__meta {
+  font-size: 0.78rem;
+  color: var(--text-3);
+}
+
+/* ── PvP — pulsanti nelle card ────────────────────────────── */
+.challenge-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+  align-items: center;
+}
+
+.pvp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.85rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all var(--trans);
+  /* mai a piena larghezza */
+  width: auto !important;
+}
+.pvp-btn:active { background: var(--surface-2); transform: scale(0.96); }
+
+.pvp-btn--primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.pvp-btn--primary:active { background: var(--accent-dark); }
+
+.pvp-waiting {
+  font-size: 0.82rem;
+  color: var(--text-3);
+  width: 100%;
+}
+.pvp-result {
+  font-size: 0.85rem;
+  color: var(--success);
+  font-weight: 600;
+  width: 100%;
+}
