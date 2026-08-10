@@ -4,78 +4,57 @@
 
 import { DB_KEY, SESSION_KEY, SESSION_KEYS, ROUTINE_ITEMS } from './config.js';
 
-// ── Schema vuoto ─────────────────────────────────────────────
-
 function mkDB() {
   return {
-    version: 5,
-    users:            {},
-    quests:           [],
-    exams:            [],
-    chapters:         [],   // legacy — ora dentro exams[].chapters
-    concepts:         [],   // nozioni per esame
-    studySessions:    [],
-    books:            [],
-    bookNotes:        [],   // note private per libro
-    readingSessions:  [],
-    challenges:       [],
-    feedPosts:        [],
-    routines:         [...ROUTINE_ITEMS.map(r => ({ ...r, isDefault: true }))],
-    routineLogs:      [],
-    comments:         [],
-    globalBooks:      [],
-    discussions:      [],
-    discussionReplies:[],
-    bannedWords:      [],
+    version:           5,
+    users:             {},
+    quests:            [],
+    exams:             [],
+    chapters:          [],
+    concepts:          [],
+    studySessions:     [],
+    books:             [],
+    bookNotes:         [],
+    readingSessions:   [],
+    challenges:        [],
+    feedPosts:         [],
+    routines:          [...ROUTINE_ITEMS.map(r => ({ ...r, isDefault: true }))],
+    routineLogs:       [],
+    comments:          [],
+    globalBooks:       [],
+    discussions:       [],
+    discussionReplies: [],
+    bannedWords:       [],
+    notifications:     [],   // { id, toUserId, type, fromUsername, extra, read, createdAt }
   };
 }
-
-// ── Persistenza ──────────────────────────────────────────────
 
 export function loadDB() {
   try {
     const raw = localStorage.getItem(DB_KEY);
     if (!raw) return mkDB();
-    const parsed = JSON.parse(raw);
-    return { ...mkDB(), ...parsed };
-  } catch {
-    return mkDB();
-  }
+    return { ...mkDB(), ...JSON.parse(raw) };
+  } catch { return mkDB(); }
 }
 
 export function saveDB(db) {
-  try {
-    localStorage.setItem(DB_KEY, JSON.stringify(db));
-  } catch (e) {
-    console.error('[DB] saveDB failed:', e);
-  }
+  try { localStorage.setItem(DB_KEY, JSON.stringify(db)); }
+  catch (e) { console.error('[DB] saveDB failed:', e); }
 }
 
 export let DB = loadDB();
-
-export function persist() {
-  saveDB(DB);
-}
-
-// ── Sessione utente ──────────────────────────────────────────
+export function persist() { saveDB(DB); }
 
 export function loadSession() {
   for (const key of SESSION_KEYS) {
     const raw = localStorage.getItem(key);
-    if (raw) {
-      try { return JSON.parse(raw); } catch { /* continua */ }
-    }
+    if (raw) { try { return JSON.parse(raw); } catch { /* continua */ } }
   }
   return null;
 }
 
-export function saveSession(user) {
-  localStorage.setItem(SESSION_KEY, JSON.stringify(user));
-}
-
-export function clearSession() {
-  SESSION_KEYS.forEach(k => localStorage.removeItem(k));
-}
+export function saveSession(user)  { localStorage.setItem(SESSION_KEY, JSON.stringify(user)); }
+export function clearSession()     { SESSION_KEYS.forEach(k => localStorage.removeItem(k)); }
 
 export let CUR = loadSession();
 
@@ -88,13 +67,8 @@ export function setCUR(user) {
 export function refreshCUR() {
   if (!CUR) return;
   const fresh = DB.users[CUR.id];
-  if (fresh) {
-    CUR = { ...CUR, ...fresh };
-    saveSession(CUR);
-  }
+  if (fresh) { CUR = { ...CUR, ...fresh }; saveSession(CUR); }
 }
-
-// ── Helper CRUD ──────────────────────────────────────────────
 
 export function findById(collection, id) {
   return DB[collection]?.find(item => item.id === id) ?? null;
@@ -102,10 +76,7 @@ export function findById(collection, id) {
 
 export function insert(collection, record) {
   if (!DB[collection]) DB[collection] = [];
-  // Evita duplicati
-  if (!DB[collection].find(r => r.id === record.id)) {
-    DB[collection].push(record);
-  }
+  if (!DB[collection].find(r => r.id === record.id)) DB[collection].push(record);
   persist();
   return record;
 }
@@ -129,39 +100,26 @@ export function byUser(collection, userId) {
   return DB[collection]?.filter(r => r.userId === userId) ?? [];
 }
 
-// ── Merge cloud ──────────────────────────────────────────────
-
 export function mergeUserData(local, remote) {
   if (!remote) return local;
   if (!local)  return remote;
-
   const numericMax = (a, b) => Math.max(Number(a) || 0, Number(b) || 0);
   const unionArr   = (a, b) => [...new Set([...(a || []), ...(b || [])])];
-
   const stats = {};
-  const allStatKeys = new Set([
-    ...Object.keys(local.stats || {}),
-    ...Object.keys(remote.stats || {}),
-  ]);
-  for (const k of allStatKeys) {
-    stats[k] = numericMax(local.stats?.[k], remote.stats?.[k]);
-  }
-
+  const allStatKeys = new Set([...Object.keys(local.stats || {}), ...Object.keys(remote.stats || {})]);
+  for (const k of allStatKeys) stats[k] = numericMax(local.stats?.[k], remote.stats?.[k]);
   return {
-    ...local,
-    ...remote,
-    xp:        numericMax(local.xp,       remote.xp),
-    level:     numericMax(local.level,     remote.level),
-    streak:    numericMax(local.streak,    remote.streak),
-    trophies:  unionArr(local.trophies,   remote.trophies),
+    ...local, ...remote,
+    xp:        numericMax(local.xp,    remote.xp),
+    level:     numericMax(local.level, remote.level),
+    streak:    numericMax(local.streak,remote.streak),
+    trophies:  unionArr(local.trophies,  remote.trophies),
     following: remote.following ?? local.following ?? [],
     followers: remote.followers ?? local.followers ?? [],
     languages: remote.languages ?? local.languages ?? [],
     stats,
   };
 }
-
-// ── Utility date ─────────────────────────────────────────────
 
 export function byDate(collection, dateStr, dateField = 'createdAt') {
   return DB[collection]?.filter(r =>
