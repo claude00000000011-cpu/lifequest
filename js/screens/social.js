@@ -4,14 +4,16 @@
 
 import { CUR, DB, refreshCUR } from '../db.js';
 import { Users } from '../api.js';
-import { escHtml, toast, debounce } from '../utils.js';
+import { escHtml, toast, timeAgo, debounce } from '../utils.js';
 import { playSound } from '../audio.js';
 
 let _socialTab = 'following';
 
 export function switchSocialTab(t) { _socialTab = t; renderFriendsScreen(); }
 
-export function renderFriendsScreen() {
+// ── Render principale (async per caricare utenti mancanti) ───
+
+export async function renderFriendsScreen() {
   if (!CUR) return;
   const container = document.getElementById('screen-social');
   if (!container) return;
@@ -26,6 +28,7 @@ export function renderFriendsScreen() {
     { id: 'search',    label: '🔍 Cerca'                          },
   ];
 
+  // Shell immediata con loading
   container.innerHTML = `
     <div class="screen-header"><h2>Social</h2></div>
     <div class="tab-row">
@@ -35,24 +38,34 @@ export function renderFriendsScreen() {
           ${t.label}
         </button>`).join('')}
     </div>
-    ${{
-      following: renderUserList(following, true),
-      followers: renderUserList(followers, false),
-      search:    renderSearchPanel(),
-    }[_socialTab]}
+    <div id="social-list-content">
+      ${_socialTab === 'search' ? renderSearchPanel() : '<div class="feed-loading">Caricamento…</div>'}
+    </div>
   `;
+
+  if (_socialTab === 'search') return;
+
+  const content = document.getElementById('social-list-content');
+  const ids = _socialTab === 'following' ? following : followers;
+  const html = await renderUserList(ids, _socialTab === 'following');
+  if (content) content.innerHTML = html;
 }
 
-function renderUserList(userIds, isFollowing) {
+// ── Lista utenti (carica da Supabase quelli mancanti) ────────
+
+async function renderUserList(userIds, isFollowing) {
   if (!userIds.length) return `<div class="empty-state">
     ${isFollowing ? 'Non segui ancora nessuno. Cerca con 🔍!' : 'Nessun follower ancora.'}
   </div>`;
 
+  // Carica da Supabase gli utenti non ancora in cache locale
+  const missing = userIds.filter(id => !DB.users[id]);
+  if (missing.length) {
+    await Promise.all(missing.map(id => Users.get(id)));
+  }
+
   const users = userIds.map(id => DB.users[id]).filter(Boolean);
-  if (!users.length) return `<div class="empty-state">
-    Dati non ancora sincronizzati.
-    <br><button class="btn-sm" style="margin-top:0.75rem" onclick="window._syncFollowData?.()">🔄 Sincronizza</button>
-  </div>`;
+  if (!users.length) return `<div class="empty-state">Dati non disponibili.</div>`;
 
   return `<div class="user-list">${users.map(u => userCard(u)).join('')}</div>`;
 }
@@ -128,7 +141,6 @@ window._searchUsers = debounce(async function(query) {
 window._socialToggleFollow = async function(targetId, currentlyFollowing) {
   if (!CUR || targetId === CUR.id) return;
 
-  // 1. Ottimistic update DB locale
   const user   = DB.users[CUR.id]   || {};
   const target = DB.users[targetId] || {};
 
@@ -140,13 +152,9 @@ window._socialToggleFollow = async function(targetId, currentlyFollowing) {
     DB.users[targetId] = { ...target, followers: [...new Set([...(target.followers || []), CUR.id])] };
   }
 
-  // 2. Aggiorna CUR
   refreshCUR();
-
-  // 3. Re-render immediato
   renderFriendsScreen();
 
-  // 4. Sync cloud
   if (currentlyFollowing) {
     const { ok } = await Users.unfollow(CUR.id, targetId);
     if (!ok) toast('Errore sincronizzazione', 'error');
@@ -156,8 +164,6 @@ window._socialToggleFollow = async function(targetId, currentlyFollowing) {
     if (!ok) toast('Errore sincronizzazione', 'error');
     else {
       toast('Stai seguendo questo utente! 👥', 'success');
-
-      // 5. Notifica all'utente seguito
       const { pushNotification } = await import('./home.js');
       pushNotification({
         toUserId:     targetId,
@@ -169,7 +175,7 @@ window._socialToggleFollow = async function(targetId, currentlyFollowing) {
   playSound('tap');
 };
 
-// ── Profilo pubblico ──────────────────────────────────────────
+// ── Profilo pubblico — schermata completa ─────────────────────
 
 window._viewUserProfile = async function(userId) {
   if (!DB.users[userId]) {
@@ -177,64 +183,122 @@ window._viewUserProfile = async function(userId) {
     if (!ok) return toast('Profilo non disponibile', 'error');
   }
 
-  const u       = DB.users[userId] || {};
-  const myUser  = DB.users[CUR.id] || {};
+  const u      = DB.users[userId] || {};
+  const myUser = DB.users[CUR.id] || {};
   const iFollow = (myUser.following || []).includes(userId);
   const isMe    = userId === CUR.id;
   const initials = (u.username || '?').slice(0, 2).toUpperCase();
 
-  const myBooks    = DB.books.filter(b => b.userId === CUR.id).map(b => b.title.toLowerCase());
-  const theirBooks = DB.books.filter(b => b.userId === userId);
-  const common     = theirBooks.filter(b => myBooks.includes(b.title.toLowerCase()));
-
-  const modalContent = document.getElementById('modal-profile-content');
-  if (!modalContent) return;
+  const container = document.getElementById('screen-social');
+  if (!container) return;
 
   const avatar = u.avatarUrl
-    ? `<div class="profile-avatar" style="background-image:url(${u.avatarUrl})"></div>`
-    : `<div class="profile-avatar profile-avatar--initials">${initials}</div>`;
+    ? `<div style="width:64px;height:64px;border-radius:50%;background-image:url(${u.avatarUrl});background-size:cover;background-position:center;border:2px solid var(--accent-light);flex-shrink:0"></div>`
+    : `<div style="width:64px;height:64px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.2rem;color:#fff;border:2px solid var(--accent-light);flex-shrink:0">${escHtml(initials)}</div>`;
 
-  modalContent.innerHTML = `
-    <div class="profile-modal">
+  container.innerHTML = `
+    <div class="screen-header" style="gap:0.5rem">
+      <button style="font-size:1.2rem;color:var(--text-2);background:none;border:none;cursor:pointer;padding:0.25rem"
+              onclick="window._switchSocialTab?.('${_socialTab}')">←</button>
+      <h2 style="flex:1;font-size:1rem">@${escHtml(u.username || '?')}</h2>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem">
       ${avatar}
-      <h2>@${escHtml(u.username || '?')}</h2>
-      <p>${escHtml(u.rankTitle || 'Novizio')} — Lv. ${u.level || 1}</p>
-      <div class="profile-stats-row">
-        <div><strong>${(u.xp || 0).toLocaleString()}</strong><span>XP</span></div>
-        <div><strong>${(u.following || []).length}</strong><span>Seguiti</span></div>
-        <div><strong>${(u.followers || []).length}</strong><span>Follower</span></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:800;font-size:1.05rem">@${escHtml(u.username || '?')}</div>
+        <div style="color:var(--accent-light);font-size:0.82rem;margin-bottom:0.3rem">
+          ${escHtml(u.rankTitle || 'Novizio')} — Lv. ${u.level || 1}
+        </div>
+        <div style="display:flex;gap:1rem;font-size:0.8rem;color:var(--text-3)">
+          <span><strong style="color:var(--text)">${(u.following || []).length}</strong> seguiti</span>
+          <span><strong style="color:var(--text)">${(u.followers || []).length}</strong> follower</span>
+          <span><strong style="color:#fbbf24">${(u.xp || 0).toLocaleString()}</strong> XP</span>
+        </div>
       </div>
-      ${u.languages?.length ? `<p>🌍 ${u.languages.join(', ')}</p>` : ''}
-      ${common.length ? `
-        <div class="profile-common-books">
-          <h4>📚 ${common.length} libri in comune</h4>
-          <p style="font-size:0.8rem;color:var(--text-2)">${common.slice(0, 3).map(b => escHtml(b.title)).join(' · ')}</p>
-        </div>` : ''}
-      ${!isMe ? `
-        <button id="profile-follow-btn" class="${iFollow ? 'btn-unfollow' : 'btn-primary'}"
-                style="margin-top:0.75rem;width:100%"
-                onclick="window._profileToggleFollow?.('${userId}', ${iFollow})">
-          ${iFollow ? '✖ Smetti di seguire' : '+ Segui'}
-        </button>` : `<span class="badge" style="margin-top:0.75rem">Il tuo profilo</span>`}
-      ${theirBooks.length ? `
-        <h4 style="margin-top:1rem;text-align:left">📖 Libreria (${theirBooks.length})</h4>
-        <div class="profile-books">
-          ${theirBooks.slice(0, 5).map(b => `<span class="profile-book-tag">${escHtml(b.title)}</span>`).join('')}
-        </div>` : ''}
-    </div>`;
+    </div>
 
-  const { openModal } = await import('../modals.js');
-  openModal('modal-profile');
+    ${!isMe ? `
+    <button id="profile-follow-btn"
+            class="${iFollow ? 'btn-secondary' : 'btn-primary'}"
+            style="margin-bottom:1.25rem"
+            onclick="window._profileToggleFollow?.('${userId}', ${iFollow})">
+      ${iFollow ? '✖ Smetti di seguire' : '+ Segui'}
+    </button>` : ''}
+
+    <h3 class="section-title">📰 Attività recenti</h3>
+    <div id="user-profile-feed">
+      <div class="feed-loading" style="text-align:center;padding:2rem;color:var(--text-3)">
+        Caricamento attività…
+      </div>
+    </div>
+  `;
+
+  _loadUserFeed(userId, u);
 };
+
+async function _loadUserFeed(userId, u) {
+  const container = document.getElementById('user-profile-feed');
+  if (!container) return;
+
+  const { Feed } = await import('../api.js');
+  const { ok, data } = await Feed.get(userId, 'all');
+  const allPosts = ok ? data : DB.feedPosts;
+
+  const posts = allPosts
+    .filter(p => p.userId === userId)
+    .slice(0, 30);
+
+  if (!posts.length) {
+    container.innerHTML = `<div class="empty-state" style="padding:2rem">
+      Nessuna attività pubblica ancora.
+    </div>`;
+    return;
+  }
+
+  container.innerHTML = posts.map(post => {
+    const likes     = Array.isArray(post.likes) ? post.likes : [];
+    const likeCount = likes.length;
+    const commentCount = DB.comments.filter(c => c.postId === post.id).length;
+
+    const photo = post.photoUrl
+      ? `<div style="border-radius:var(--radius-sm);overflow:hidden;margin:0 0 0.5rem;max-height:220px">
+           <img src="${post.photoUrl}" style="width:100%;object-fit:cover" loading="lazy">
+         </div>` : '';
+
+    const xpBadge = post.xpEarned
+      ? `<span class="feed-xp">+${post.xpEarned} XP</span>` : '';
+
+    return `
+      <div class="feed-card" style="margin-bottom:0.65rem">
+        <div class="feed-card__header">
+          <div style="display:flex;align-items:center;gap:0.5rem;flex:1;min-width:0">
+            <div style="font-size:0.88rem;color:var(--text-2)">
+              <strong>@${escHtml(u.username || '?')}</strong>
+            </div>
+            <time style="font-size:0.75rem;color:var(--text-3)">
+              ${timeAgo(new Date(post.createdAt).getTime())}
+            </time>
+          </div>
+          ${xpBadge}
+        </div>
+        <p class="feed-card__content">${escHtml(post.content)}</p>
+        ${photo}
+        <div class="feed-card__actions">
+          <span class="feed-btn">🤍 ${likeCount}</span>
+          <span class="feed-btn">💬 ${commentCount}</span>
+        </div>
+      </div>`;
+  }).join('');
+}
 
 window._profileToggleFollow = async function(targetId, currentlyFollowing) {
   await window._socialToggleFollow?.(targetId, currentlyFollowing);
   const btn = document.getElementById('profile-follow-btn');
   if (btn) {
     const nowFollowing = !currentlyFollowing;
-    btn.className   = nowFollowing ? 'btn-unfollow' : 'btn-primary';
+    btn.className   = nowFollowing ? 'btn-secondary' : 'btn-primary';
     btn.textContent = nowFollowing ? '✖ Smetti di seguire' : '+ Segui';
-    btn.style.cssText = 'margin-top:0.75rem;width:100%';
     btn.setAttribute('onclick', `window._profileToggleFollow?.('${targetId}', ${nowFollowing})`);
   }
 };
