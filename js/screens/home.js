@@ -1,6 +1,11 @@
 // ============================================================
 // screens/home.js — Home, Feed, Navigazione, Notifiche
-// FIX: username nel feed, like persistenti, notifiche follow
+// FIX DEFINITIVO:
+//   - Feed caricato SEMPRE da Supabase (no cache stantia)
+//   - Like via tabella post_likes (no RLS block)
+//   - Commenti caricati da Supabase al primo click
+//   - Username risolto da DB.users
+//   - Feed "Seguiti" funziona anche con profilo privato
 // ============================================================
 
 import { CUR, DB, persist } from '../db.js';
@@ -73,13 +78,10 @@ export function updateDashboard() {
     }
   });
 
-  // Badge notifiche
   renderNotifBadge();
 }
 
 // ── Notifiche ─────────────────────────────────────────────────
-
-let _notifOpen = false;
 
 function getNotifs() {
   return (DB.notifications || []).filter(n => n.toUserId === CUR?.id);
@@ -90,35 +92,29 @@ function renderNotifBadge() {
   const btn = document.getElementById('notif-btn');
   if (!btn) return;
   const badge = btn.querySelector('.notif-badge');
-  if (badge) badge.textContent = unread > 0 ? (unread > 9 ? '9+' : unread) : '';
-  if (badge) badge.style.display = unread > 0 ? 'block' : 'none';
+  if (badge) {
+    badge.textContent = unread > 9 ? '9+' : (unread || '');
+    badge.style.display = unread > 0 ? 'block' : 'none';
+  }
 }
 
 export function pushNotification({ toUserId, type, fromUsername, extra = '' }) {
   if (!DB.notifications) DB.notifications = [];
-  const notif = {
-    id:           Date.now().toString(36) + Math.random().toString(36).slice(2),
-    toUserId,
-    type,
-    fromUsername,
-    extra,
-    read:         false,
-    createdAt:    new Date().toISOString(),
-  };
-  DB.notifications.push(notif);
+  DB.notifications.push({
+    id:          Date.now().toString(36) + Math.random().toString(36).slice(2),
+    toUserId, type, fromUsername, extra,
+    read:        false,
+    createdAt:   new Date().toISOString(),
+  });
   persist();
-  // Se la notifica è per l'utente corrente, aggiorna il badge subito
   if (toUserId === CUR?.id) renderNotifBadge();
 }
 
 window._toggleNotifPanel = function() {
-  _notifOpen = !_notifOpen;
   const existing = document.getElementById('notif-panel');
-  if (existing) { existing.remove(); _notifOpen = false; return; }
+  if (existing) { existing.remove(); return; }
 
   const notifs = getNotifs().slice().reverse().slice(0, 30);
-
-  // Segna tutte come lette
   if (DB.notifications) {
     DB.notifications.forEach(n => { if (n.toUserId === CUR?.id) n.read = true; });
     persist();
@@ -133,13 +129,14 @@ window._toggleNotifPanel = function() {
       <strong style="font-size:0.9rem">🔔 Notifiche</strong>
       <button onclick="document.getElementById('notif-panel')?.remove()" style="font-size:0.85rem;color:var(--text-3)">✕</button>
     </div>
-    ${!notifs.length ? `<p class="notif-empty">Nessuna notifica ancora.</p>` :
-      notifs.map(n => `
+    ${!notifs.length
+      ? `<p class="notif-empty">Nessuna notifica ancora.</p>`
+      : notifs.map(n => `
         <div class="notif-item ${n.read ? 'notif-item--read' : ''}">
-          <span style="font-size:1.1rem">${{ follow: '👥', like: '❤️', comment: '💬' }[n.type] || '🔔'}</span>
+          <span style="font-size:1.1rem">${{ follow:'👥', like:'❤️', comment:'💬' }[n.type] || '🔔'}</span>
           <span class="notif-text">${escHtml(n.fromUsername)} ${
-            n.type === 'follow'  ? 'ha iniziato a seguirti'  :
-            n.type === 'like'    ? `ha messo like al tuo post` :
+            n.type === 'follow'  ? 'ha iniziato a seguirti' :
+            n.type === 'like'    ? 'ha messo like al tuo post' :
             n.type === 'comment' ? `ha commentato: "${escHtml(n.extra)}"` : escHtml(n.extra)
           }</span>
           <time>${timeAgo(new Date(n.createdAt).getTime())}</time>
@@ -157,10 +154,9 @@ export function renderHome() {
   updateDashboard();
   const dayIdx = new Date().getDay();
   setEl('daily-motiv', MOTIVS[dayIdx % MOTIVS.length]);
-
-  // Inietta bottone notifiche nell'header se non c'è
   injectNotifBtn();
-
+  // Ogni volta che si apre Home, ricarica il feed SEMPRE da Supabase
+  _feedCache = null;
   loadAndRenderFeed();
 }
 
@@ -196,53 +192,53 @@ export async function loadAndRenderFeed() {
   if (!container) return;
 
   if (!_feedCache) {
-    container.innerHTML = '<div class="feed-loading">Caricamento…</div>';
+    container.innerHTML = '<div class="feed-loading" style="text-align:center;padding:2rem;color:var(--text-3)">Caricamento…</div>';
+
     const { ok, data } = await Feed.get(CUR.id, _feedFilter);
     _feedCache = ok ? data : [];
 
-    // FIX: risolvi username mancanti caricando gli utenti
+    // Risolvi username mancanti
     await resolveUsernames(_feedCache);
+
+    // Carica commenti dal DB locale (già sincronizzati)
+    // I commenti freschi vengono caricati al click su 💬
   }
 
   const page = _feedCache.slice(0, (_feedPage + 1) * PAGE_SIZE);
   renderFeed(page, container);
 }
 
-// FIX username: per ogni post senza username risolto, carica l'utente
 async function resolveUsernames(posts) {
-  const missing = posts.filter(p => {
-    const u = DB.users[p.userId];
-    return !u || !u.username;
-  });
-  if (!missing.length) return;
-
-  const ids = [...new Set(missing.map(p => p.userId))];
+  const ids = [...new Set(
+    posts
+      .filter(p => !DB.users[p.userId]?.username)
+      .map(p => p.userId)
+  )];
+  if (!ids.length) return;
   await Promise.all(ids.map(async id => {
-    if (!DB.users[id]) {
-      const { ok, data } = await Users.get(id);
-      if (ok) DB.users[id] = data;
-    }
+    const { ok, data } = await Users.get(id);
+    if (ok) DB.users[id] = data;
   }));
-
-  // Aggiorna username nei post
   posts.forEach(p => {
     if (!p.username || p.username === 'Utente') {
-      p.username = DB.users[p.userId]?.username || p.username || 'Utente';
+      p.username = DB.users[p.userId]?.username || 'Utente';
     }
   });
 }
 
 function renderFeed(posts, container) {
   if (!posts.length) {
-    container.innerHTML = `<div class="feed-empty">
+    container.innerHTML = `<div class="feed-empty" style="text-align:center;padding:3rem 1rem;color:var(--text-3)">
+      <p style="font-size:1.5rem">🌟</p>
       <p>Nessuna attività ancora.</p>
-      <p>Completa una quest o una routine per iniziare! 🚀</p>
+      <p style="font-size:0.85rem;margin-top:0.5rem">Completa una quest o una routine per iniziare!</p>
     </div>`;
     return;
   }
 
   container.innerHTML = posts.map(post => feedCard(post)).join('');
 
+  // Infinite scroll
   const sentinel = document.createElement('div');
   sentinel.id = 'feed-sentinel';
   container.appendChild(sentinel);
@@ -256,7 +252,6 @@ function renderFeed(posts, container) {
 }
 
 function feedCard(post) {
-  // FIX: usa DB.users per username fresco, fallback a post.username
   const author   = DB.users[post.userId];
   const name     = escHtml(author?.username || post.username || 'Utente');
   const initials = name.slice(0, 2).toUpperCase();
@@ -264,12 +259,14 @@ function feedCard(post) {
     ? `<div class="feed-avatar" style="background-image:url(${author.avatarUrl})"></div>`
     : `<div class="feed-avatar feed-avatar--initials">${initials}</div>`;
 
-  // FIX like: leggi sempre da DB.feedPosts per avere lo stato aggiornato
-  const freshPost = DB.feedPosts.find(p => p.id === post.id) || post;
-  const likes     = freshPost.likes?.length || 0;
-  const liked     = freshPost.likes?.includes(CUR?.id);
-  const comments  = DB.comments.filter(c => c.postId === post.id).length;
-  const isMyPost  = post.userId === CUR?.id;
+  // Leggi likes direttamente dal post (arrivano da post_likes via join in Feed.get)
+  const likes    = Array.isArray(post.likes) ? post.likes : [];
+  const liked    = likes.includes(CUR?.id);
+  const likeCount = likes.length;
+
+  // Commenti: conta dal DB locale, poi aggiorna al click
+  const commentCount = DB.comments.filter(c => c.postId === post.id).length;
+  const isMyPost     = post.userId === CUR?.id;
 
   const photo = post.photoUrl
     ? `<div class="feed-photo" onclick="window._openPhotoModal?.('${post.id}')">
@@ -300,82 +297,75 @@ function feedCard(post) {
       ${photo}
       <footer class="feed-card__actions">
         <button class="feed-btn feed-btn--like ${liked ? 'feed-btn--liked' : ''}"
-                data-liked="${liked ? '1' : '0'}"
                 onclick="window._toggleLike?.('${post.id}')">
-          ${liked ? '❤️' : '🤍'} <span>${likes}</span>
+          ${liked ? '❤️' : '🤍'} <span class="like-count">${likeCount}</span>
         </button>
         <button class="feed-btn" onclick="window._toggleComments?.('${post.id}')">
-          💬 <span>${comments}</span>
+          💬 <span class="comment-count">${commentCount}</span>
         </button>
       </footer>
       <div id="comments-${post.id}" class="comments-section comments-section--hidden">
-        ${renderComments(post.id, isMyPost)}
+        <div class="comments-list" id="comments-list-${post.id}">
+          <p class="comments-empty" style="font-size:0.82rem;color:var(--text-3);padding:0.5rem 0">
+            Premi 💬 per caricare i commenti.
+          </p>
+        </div>
         <div class="comment-input-row">
-          <input type="text" id="comment-input-${post.id}" placeholder="Scrivi un commento…" maxlength="200">
+          <input type="text" id="comment-input-${post.id}"
+                 placeholder="Scrivi un commento…" maxlength="200">
           <button onclick="window._submitComment?.('${post.id}')">Invia</button>
         </div>
       </div>
     </article>`;
 }
 
-function renderComments(postId, isMyPost) {
-  const comments = DB.comments.filter(c => c.postId === postId);
-  if (!comments.length) return '<p class="comments-empty">Nessun commento.</p>';
-  return comments.map(c => {
-    const canDelete = c.userId === CUR?.id || isMyPost;
-    const deleteBtn = canDelete
-      ? `<button class="comment-delete-btn" style="margin-left:auto;color:#f87171;font-size:0.75rem;padding:0 0.3rem"
-                 onclick="window._deleteComment?.('${c.id}', '${postId}')" title="Elimina">🗑</button>` : '';
-    return `
-      <div class="comment" data-comment-id="${c.id}">
-        <strong>@${escHtml(c.username)}</strong>
-        <span>${escHtml(c.content)}</span>
-        <time>${timeAgo(new Date(c.createdAt).getTime())}</time>
-        ${deleteBtn}
-      </div>`;
-  }).join('');
-}
-
 // ── Azioni feed ───────────────────────────────────────────────
 
-// FIX like: aggiorna sia DB locale che Supabase, ottimistic update immediato
 window._toggleLike = async function(postId) {
   if (!CUR) return;
 
-  // 1. Ottimistic update locale
-  const postIdx = DB.feedPosts.findIndex(p => p.id === postId);
-  if (postIdx === -1) return;
+  // Trova il post nel feed cache
+  const cacheIdx = (_feedCache || []).findIndex(p => p.id === postId);
+  const post = cacheIdx !== -1 ? _feedCache[cacheIdx] : DB.feedPosts.find(p => p.id === postId);
+  if (!post) return;
 
-  const post  = DB.feedPosts[postIdx];
-  const liked = post.likes?.includes(CUR.id);
-  const likes = liked
-    ? (post.likes || []).filter(id => id !== CUR.id)
-    : [...(post.likes || []), CUR.id];
+  const likes    = Array.isArray(post.likes) ? post.likes : [];
+  const liked    = likes.includes(CUR.id);
+  const newLikes = liked
+    ? likes.filter(id => id !== CUR.id)
+    : [...likes, CUR.id];
 
-  DB.feedPosts[postIdx] = { ...post, likes };
+  // 1. Ottimistic update in cache e DOM
+  if (cacheIdx !== -1) _feedCache[cacheIdx] = { ...post, likes: newLikes };
+  const dbIdx = DB.feedPosts.findIndex(p => p.id === postId);
+  if (dbIdx !== -1) DB.feedPosts[dbIdx] = { ...DB.feedPosts[dbIdx], likes: newLikes };
   persist();
 
-  // 2. Aggiorna DOM subito
   const card = document.querySelector(`[data-post-id="${postId}"]`);
-  const btn  = card?.querySelector('.feed-btn--like');
+  const btn  = card?.querySelector('.feed-btn--like, .feed-btn');
   if (btn) {
     const nowLiked = !liked;
-    btn.classList.toggle('feed-btn--liked', nowLiked);
-    btn.innerHTML = `${nowLiked ? '❤️' : '🤍'} <span>${likes.length}</span>`;
-    btn.dataset.liked = nowLiked ? '1' : '0';
+    btn.className = `feed-btn feed-btn--like ${nowLiked ? 'feed-btn--liked' : ''}`;
+    btn.innerHTML = `${nowLiked ? '❤️' : '🤍'} <span class="like-count">${newLikes.length}</span>`;
   }
 
   playSound(liked ? 'tap' : 'like');
 
-  // 3. Sync cloud in background
-  const { ok } = await Feed.toggleLike(postId, CUR.id);
+  // 2. Sync su Supabase tramite post_likes
+  const { ok, error } = await Feed.toggleLike(postId, CUR.id);
   if (!ok) {
     // Rollback
-    DB.feedPosts[postIdx] = { ...DB.feedPosts[postIdx], likes: post.likes };
+    if (cacheIdx !== -1) _feedCache[cacheIdx] = { ...post, likes };
+    if (dbIdx !== -1) DB.feedPosts[dbIdx] = { ...DB.feedPosts[dbIdx], likes };
     persist();
+    // Ripristina DOM
+    if (btn) btn.innerHTML = `${liked ? '❤️' : '🤍'} <span class="like-count">${likes.length}</span>`;
+    toast('Errore nel like, riprova', 'error');
+    console.error('[Like]', error);
+    return;
   }
 
-  // 4. Notifica al proprietario del post (solo se mi piace, non quando tolgo)
+  // 3. Notifica al proprietario
   if (!liked && post.userId !== CUR.id) {
     pushNotification({
       toUserId:     post.userId,
@@ -385,9 +375,59 @@ window._toggleLike = async function(postId) {
   }
 };
 
-window._toggleComments = function(postId) {
-  document.getElementById(`comments-${postId}`)?.classList.toggle('comments-section--hidden');
+window._toggleComments = async function(postId) {
+  const section = document.getElementById(`comments-${postId}`);
+  if (!section) return;
+
+  const wasHidden = section.classList.contains('comments-section--hidden');
+  section.classList.toggle('comments-section--hidden');
+
+  // Carica commenti da Supabase la prima volta che si apre
+  if (wasHidden) {
+    const listEl = document.getElementById(`comments-list-${postId}`);
+    if (listEl) {
+      listEl.innerHTML = '<p style="font-size:0.8rem;color:var(--text-3);padding:0.5rem 0">Caricamento…</p>';
+      const { ok, data } = await Feed.getComments(postId);
+      const comments = ok ? data : DB.comments.filter(c => c.postId === postId);
+
+      // Aggiorna DB locale
+      comments.forEach(c => {
+        if (!DB.comments.find(x => x.id === c.id)) DB.comments.push(c);
+      });
+      persist();
+
+      // Aggiorna contatore
+      const card = document.querySelector(`[data-post-id="${postId}"]`);
+      const countEl = card?.querySelector('.comment-count');
+      if (countEl) countEl.textContent = comments.length;
+
+      renderCommentsList(postId, listEl, comments);
+    }
+  }
 };
+
+function renderCommentsList(postId, container, comments) {
+  const isMyPost = (_feedCache || []).find(p => p.id === postId)?.userId === CUR?.id
+    || DB.feedPosts.find(p => p.id === postId)?.userId === CUR?.id;
+
+  if (!comments.length) {
+    container.innerHTML = '<p class="comments-empty" style="font-size:0.82rem;color:var(--text-3);padding:0.5rem 0">Nessun commento ancora. Sii il primo!</p>';
+    return;
+  }
+
+  container.innerHTML = comments.map(c => {
+    const canDelete = c.userId === CUR?.id || isMyPost;
+    return `
+      <div class="comment" data-comment-id="${c.id}">
+        <strong>@${escHtml(c.username || DB.users[c.userId]?.username || 'Utente')}</strong>
+        <span>${escHtml(c.content)}</span>
+        <time>${timeAgo(new Date(c.createdAt).getTime())}</time>
+        ${canDelete ? `<button class="comment-delete-btn"
+          style="margin-left:auto;color:#f87171;font-size:0.75rem;padding:0 0.3rem"
+          onclick="window._deleteComment?.('${c.id}','${postId}')">🗑</button>` : ''}
+      </div>`;
+  }).join('');
+}
 
 window._submitComment = async function(postId) {
   const input = document.getElementById(`comment-input-${postId}`);
@@ -395,17 +435,26 @@ window._submitComment = async function(postId) {
   if (!text) return;
   if (checkBannedWords(text, DB.bannedWords)) return toast('Contenuto non consentito', 'error');
 
-  const { ok, data } = await Feed.addComment({ postId, content: text });
-  if (!ok) return toast('Errore nell\'invio', 'error');
+  const { ok, data, error } = await Feed.addComment({ postId, content: text });
+  if (!ok) {
+    console.error('[Comment]', error);
+    return toast('Errore nell\'invio del commento', 'error');
+  }
 
   playSound('tap');
   input.value = '';
 
-  const section = document.getElementById(`comments-${postId}`);
-  if (section) {
-    const empty = section.querySelector('.comments-empty');
+  // Aggiorna DB locale
+  if (!DB.comments.find(c => c.id === data.id)) {
+    DB.comments.push(data);
+    persist();
+  }
+
+  // Aggiorna DOM
+  const listEl = document.getElementById(`comments-list-${postId}`);
+  if (listEl) {
+    const empty = listEl.querySelector('.comments-empty');
     if (empty) empty.remove();
-    const row = section.querySelector('.comment-input-row');
     const div = document.createElement('div');
     div.className = 'comment';
     div.dataset.commentId = data.id;
@@ -413,16 +462,20 @@ window._submitComment = async function(postId) {
       <strong>@${escHtml(CUR.username)}</strong>
       <span>${escHtml(text)}</span>
       <time>adesso</time>
-      <button class="comment-delete-btn" style="margin-left:auto;color:#f87171;font-size:0.75rem;padding:0 0.3rem"
-              onclick="window._deleteComment?.('${data.id}', '${postId}')" title="Elimina">🗑</button>`;
-    section.insertBefore(div, row);
-    const card    = document.querySelector(`[data-post-id="${postId}"]`);
-    const countEl = card?.querySelector('.feed-btn:nth-child(2) span');
-    if (countEl) countEl.textContent = parseInt(countEl.textContent) + 1;
+      <button class="comment-delete-btn"
+        style="margin-left:auto;color:#f87171;font-size:0.75rem;padding:0 0.3rem"
+        onclick="window._deleteComment?.('${data.id}','${postId}')">🗑</button>`;
+    const inputRow = listEl.parentElement.querySelector('.comment-input-row');
+    listEl.insertBefore(div, inputRow);
   }
 
+  // Aggiorna contatore
+  const card = document.querySelector(`[data-post-id="${postId}"]`);
+  const countEl = card?.querySelector('.comment-count');
+  if (countEl) countEl.textContent = parseInt(countEl.textContent || '0') + 1;
+
   // Notifica
-  const post = DB.feedPosts.find(p => p.id === postId);
+  const post = (_feedCache || []).find(p => p.id === postId) || DB.feedPosts.find(p => p.id === postId);
   if (post && post.userId !== CUR.id) {
     pushNotification({
       toUserId:     post.userId,
@@ -436,24 +489,26 @@ window._submitComment = async function(postId) {
 window._deleteComment = async function(commentId, postId) {
   if (!confirm('Eliminare questo commento?')) return;
   const { ok } = await Feed.deleteComment(commentId);
-  if (!ok) return toast('Errore', 'error');
+  if (!ok) return toast('Errore nell\'eliminazione', 'error');
+
   playSound('tap');
   DB.comments = DB.comments.filter(c => c.id !== commentId);
   persist();
-  const el = document.querySelector(`[data-comment-id="${commentId}"]`);
-  if (el) {
-    el.remove();
-    const card    = document.querySelector(`[data-post-id="${postId}"]`);
-    const countEl = card?.querySelector('.feed-btn:nth-child(2) span');
-    if (countEl) countEl.textContent = Math.max(0, parseInt(countEl.textContent) - 1);
-  }
+
+  document.querySelector(`[data-comment-id="${commentId}"]`)?.remove();
+
+  const card = document.querySelector(`[data-post-id="${postId}"]`);
+  const countEl = card?.querySelector('.comment-count');
+  if (countEl) countEl.textContent = Math.max(0, parseInt(countEl.textContent || '1') - 1);
+
   toast('Commento eliminato', 'info');
 };
 
 window._deletePost = async function(postId) {
   if (!confirm('Eliminare questo post?')) return;
   const { ok } = await Feed.deletePost(postId);
-  if (!ok) return toast('Errore', 'error');
+  if (!ok) return toast('Errore nell\'eliminazione', 'error');
+
   playSound('tap');
   DB.feedPosts = DB.feedPosts.filter(p => p.id !== postId);
   if (_feedCache) _feedCache = _feedCache.filter(p => p.id !== postId);
@@ -463,7 +518,7 @@ window._deletePost = async function(postId) {
 };
 
 window._openPhotoModal = function(postId) {
-  const post = DB.feedPosts.find(p => p.id === postId);
+  const post = (_feedCache || []).find(p => p.id === postId) || DB.feedPosts.find(p => p.id === postId);
   if (!post?.photoUrl) return;
   const overlay = document.createElement('div');
   overlay.className = 'photo-overlay';
@@ -473,7 +528,7 @@ window._openPhotoModal = function(postId) {
 };
 
 window._viewProfile = function(userId) {
-  import('./social.js').then(m => m.default?._viewUserProfile?.(userId) || window._viewUserProfile?.(userId));
+  import('./social.js').then(() => window._viewUserProfile?.(userId));
 };
 
 // ── Helpers ───────────────────────────────────────────────────
