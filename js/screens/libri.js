@@ -173,7 +173,11 @@ async function renderDiscussions() {
   });
 
   const page     = filtered.slice(0, (_discPage + 1) * DISC_PAGE);
-  const cardHtmls = await Promise.all(page.map(d => discCard(d)));
+  // Carica profili mancanti degli autori delle discussioni
+const missingIds = [...new Set(page.map(d => d.userId).filter(id => id && !DB.users[id]))];
+if (missingIds.length) await Promise.all(missingIds.map(id => Users.get(id)));
+
+const cardHtmls = await Promise.all(page.map(d => discCard(d)));
 
   container.innerHTML = `
     <div class="catalog-toolbar">
