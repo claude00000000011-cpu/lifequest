@@ -551,5 +551,6 @@ window._deleteBook = async function(bookId) {
   _currentBookId = null;
   playSound('tap');
   toast('Libro rimosso', 'info');
-  renderBooks();
+  const { renderLibri } = await import('./libri.js');
+  await renderLibri();
 };
