@@ -152,8 +152,8 @@ window._socialToggleFollow = async function(targetId, currentlyFollowing) {
     DB.users[targetId] = { ...target, followers: [...new Set([...(target.followers || []), CUR.id])] };
   }
 
-  refreshCUR();
-  renderFriendsScreen();
+ refreshCUR();
+await renderFriendsScreen();
 
   if (currentlyFollowing) {
     const { ok } = await Users.unfollow(CUR.id, targetId);
@@ -177,11 +177,10 @@ window._socialToggleFollow = async function(targetId, currentlyFollowing) {
 
 // ── Profilo pubblico — schermata completa ─────────────────────
 
+// SOSTITUISCI CON
 window._viewUserProfile = async function(userId) {
-  if (!DB.users[userId]) {
-    const { ok, data } = await Users.get(userId);
-    if (!ok) return toast('Profilo non disponibile', 'error');
-  }
+  const { ok, data } = await Users.get(userId);
+  if (!ok) return toast('Profilo non disponibile', 'error');
 
   const u      = DB.users[userId] || {};
   const myUser = DB.users[CUR.id] || {};
