@@ -878,26 +878,25 @@ export const Feed = {
 
 
 
+async toggleLike(postId, userId) {
+  const { data: session } = await supabase.auth.getSession();
+  console.log('[toggleLike] session:', session?.session?.access_token ? 'OK' : 'MANCANTE');
 
-
-  
-  async toggleLike(postId, userId) {
   console.log('[toggleLike] postId:', postId);
   console.log('[toggleLike] feedPosts in DB:', DB.feedPosts.map(p => p.id));
-  
+
   const post = findById('feedPosts', postId);
   console.log('[toggleLike] post trovato:', post);
-  
+
   if (!post) {
-    // Post non in DB locale — aggiorna direttamente Supabase
     const { data: freshPost } = await supabase
       .from('feed_posts')
       .select('likes')
       .eq('id', postId)
       .single();
-      
+
     if (!freshPost) return fail('Post non trovato');
-    
+
     const liked = freshPost.likes?.includes(userId);
     const likes = liked
       ? (freshPost.likes || []).filter(id => id !== userId)
@@ -908,6 +907,7 @@ export const Feed = {
       .update({ likes })
       .eq('id', postId);
 
+    console.log('[toggleLike] fallback error:', error);
     if (error) return fail(error.message);
     return ok({ liked: !liked, count: likes.length });
   }
@@ -922,16 +922,13 @@ export const Feed = {
     .update({ likes })
     .eq('id', postId);
 
-  if (error) {
-    console.error('[toggleLike] Supabase error:', error);
-    return fail(error.message);
-  }
+  console.log('[toggleLike] Supabase error:', error);
+  console.log('[toggleLike] likes aggiornati:', likes);
 
+  if (error) return fail(error.message);
   update('feedPosts', postId, { likes });
   return ok({ liked: !liked, count: likes.length });
 },
-
-
 
 
 
