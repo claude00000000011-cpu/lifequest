@@ -204,7 +204,7 @@ window._joinByCode = async function() {
   // 2. Se non trovata localmente, cerca su Supabase
   if (!challenge) {
     try {
-      const { supabase } = await import('../../supabase.js');
+      const { supabase } = await import('../supabase.js');
       const { data, error } = await supabase
         .from('challenges')
         .select('*')
