@@ -511,3 +511,28 @@ css
   padding: 0.5rem 0.75rem;
   animation: fadeIn 0.15s ease;
 }
+
+
+
+/* ── Privacy section ─────────────────────────────────────────── */
+.privacy-section .toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.privacy-section .toggle-row:last-child {
+  border-bottom: none;
+}
+.privacy-section .toggle-row span {
+  font-size: 0.88rem;
+  color: var(--text);
+}
+.privacy-section .toggle-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
