@@ -41,7 +41,7 @@ export async function renderLibri() {
     <div id="libri-content"><div class="feed-loading">Caricamento…</div></div>
   `;
 
-  if      (_libriTab === 'mylibrary')   await ();
+  if      (_libriTab === 'mylibrary')   await renderMyLibrary();
   else if (_libriTab === 'catalog')     await renderCatalog();
   else if (_libriTab === 'discussions') await renderDiscussions();
   else if (_libriTab === 'readers')     await renderReaders();
