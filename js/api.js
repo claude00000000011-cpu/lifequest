@@ -811,6 +811,31 @@ export const Challenges = {
     return ok(data.map(toCamel));
   },
 
+
+
+
+async findByCode(code) {
+  const { data, error } = await supabase
+    .from('challenges')
+    .select('*')
+    .eq('join_code', code)
+    .eq('status', 'open')
+    .limit(1);
+
+  if (error || !data?.length) return fail('Sfida non trovata');
+
+  const c = toCamel(data[0]);
+  if (!DB.challenges.find(x => x.id === c.id)) DB.challenges.push(c);
+  return ok(c);
+},
+
+
+
+
+
+
+
+  
   async create(payload) {
     const challenge = {
       creator_id: CUR.id,
