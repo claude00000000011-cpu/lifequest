@@ -5,7 +5,7 @@
 // ============================================================
 
 import { CUR, DB } from '../db.js';
-import { Challenges, Feed } from '../api.js';
+import { Challenges, Feed, Users } from '../api.js';
 import { awardXP } from '../xp.js';
 import { escHtml, toast } from '../utils.js';
 import { playSound } from '../audio.js';
@@ -56,12 +56,10 @@ export async function renderPvP() {
 
     <div id="pvp-list"><div class="empty-state" style="padding:2rem">Caricamento…</div></div>
   `;
-
-  if (_pvpTab === 'active') {
+if (_pvpTab === 'active') {
     const { ok, data } = await Challenges.list(CUR.id);
     const cloud = ok ? data : [];
 
-    // Merge con sfide locali non ancora sincronizzate
     const cloudIds  = new Set(cloud.map(c => c.id));
     const localOnly = DB.challenges.filter(
       c => (c.creatorId === CUR.id || c.opponentId === CUR.id) && !cloudIds.has(c.id)
@@ -70,13 +68,21 @@ export async function renderPvP() {
       (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
     );
 
+    // Carica i profili di tutti gli utenti coinvolti nelle sfide
+    const userIds = [...new Set(
+      merged.flatMap(c => [c.creatorId, c.opponentId]).filter(Boolean)
+    )].filter(id => !DB.users[id]);
+
+    if (userIds.length) {
+      await Promise.all(userIds.map(id => Users.get(id)));
+    }
+
     renderChallengeList(merged, 'pvp-list', false);
   } else {
     const { ok, data } = await Challenges.listPublic();
     renderChallengeList(ok ? data : [], 'pvp-list', true);
   }
 }
-
 // ── Render lista ──────────────────────────────────────────────
 
 function renderChallengeList(challenges, containerId, isPublic) {
