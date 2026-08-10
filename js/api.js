@@ -1231,27 +1231,30 @@ export const Moderation = {
 };
 
 // ── Sync post-login ──────────────────────────────────────────
-
 export async function syncCloudDataOnLogin(userId) {
   try {
-    const [quests, books, sessions, exams, concepts, bookNotes, feedPosts, comments] = await Promise.all([
+    const [freshProfile, quests, books, sessions, exams, concepts, bookNotes, feedPosts, comments] = await Promise.all([
+      supabase.from('users').select('*').eq('id', userId).single(),
       supabase.from('quests').select('*').eq('user_id', userId),
       supabase.from('books').select('*').eq('user_id', userId),
       supabase.from('study_sessions').select('*').eq('user_id', userId),
       supabase.from('exams').select('*').eq('user_id', userId),
       supabase.from('concepts').select('*').eq('user_id', userId),
       supabase.from('book_notes').select('*').eq('user_id', userId),
-      // Feed posts con likes dalla tabella dedicata
       supabase.from('feed_posts')
         .select('*, post_likes(user_id)')
         .order('created_at', { ascending: false })
         .limit(50),
-      // Commenti recenti
       supabase.from('comments')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(200),
     ]);
+
+    if (freshProfile.data) {
+      DB.users[userId] = { ...DB.users[userId], ...toCamel(freshProfile.data) };
+      persist();
+    }
 
     if (quests.data)    DB.quests        = quests.data.map(toCamel);
     if (books.data)     DB.books         = books.data.map(toCamel);
