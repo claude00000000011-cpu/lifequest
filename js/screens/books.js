@@ -297,32 +297,18 @@ window._addBookNote = async function(bookId) {
   if (el) el.innerHTML = renderNotesList(notes);
 };
 
+
+
+
+
+
 window._deleteBookNote = async function(noteId, bookId) {
-window._deleteBook = async function(bookId) {
-  if (!confirm('Rimuovere questo libro e tutte le sue note?')) return;
-
-  // Rimuovi dal DB locale direttamente
-  DB.books = DB.books.filter(b => b.id !== bookId);
-  if (DB.bookNotes)       DB.bookNotes       = DB.bookNotes.filter(n => n.bookId !== bookId);
-  if (DB.readingSessions) DB.readingSessions = DB.readingSessions.filter(s => s.bookId !== bookId);
-  persist();
-
-  // Sync Supabase in background
-  try {
-    const { supabase } = await import('../supabase.js');
-    supabase.from('books').delete().eq('id', bookId);
-    supabase.from('book_notes').delete().eq('book_id', bookId);
-    supabase.from('reading_sessions').delete().eq('book_id', bookId);
-  } catch(e) {}
-
-  _currentBookId = null;
+  await Books.deleteNote(noteId);
   playSound('tap');
-  toast('Libro rimosso', 'info');
-  
-  // Torna alla lista aggiornando libri-content
-  const container = document.getElementById('screen-libri') ||
-                    document.getElementById('screen-books');
-  if (container) await renderBookList(container);
+  const notes = (DB.bookNotes || [])
+    .filter(n => n.bookId === bookId && n.userId === CUR.id);
+  const el = document.getElementById(`book-notes-${bookId}`);
+  if (el) el.innerHTML = renderNotesList(notes);
 };
 
 // ── Aggiungi libro con autocomplete ───────────────────────────
