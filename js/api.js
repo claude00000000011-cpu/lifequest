@@ -2,6 +2,9 @@
 // api.js — Layer API LifeQuest (Fase 2: Supabase)
 // ============================================================
 // CONTRATTO: ogni metodo restituisce Promise<{ ok, data, error }>
+// FIX: toggleLike usa tabella post_likes (no RLS block)
+//      Feed.get fa join con post_likes per conteggio corretto
+//      addComment salva username denormalizzato
 // ============================================================
 
 import { supabase } from '../supabase.js';
@@ -50,7 +53,7 @@ export const Auth = {
 
     const fakeEmail = `${username.toLowerCase()}@lifequest.app`;
     const { data: authData, error: authErr } = await supabase.auth.signUp({
-      email: fakeEmail,
+      email:    fakeEmail,
       password: passwordHash,
     });
 
@@ -92,7 +95,7 @@ export const Auth = {
 
     const fakeEmail = `${username.toLowerCase()}@lifequest.app`;
     const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({
-      email: fakeEmail,
+      email:    fakeEmail,
       password: passwordHash,
     });
 
@@ -231,7 +234,6 @@ export const Users = {
       supabase.from('users').update({ followers: newFollowers }).eq('id', targetId),
     ]);
 
-    // Aggiorna sempre DB locale (anche in caso di errore rete)
     DB.users[userId]   = { ...user,   following: newFollowing };
     DB.users[targetId] = { ...target, followers: newFollowers };
     persist();
@@ -407,7 +409,6 @@ export const Study = {
     return ok(s);
   },
 
-  // ── Capitoli ────────────────────────────────────────────────
   async addChapter(examId, title) {
     const chapter = {
       id:        uid(),
@@ -417,7 +418,6 @@ export const Study = {
       createdAt: new Date().toISOString(),
     };
 
-    // Aggiorna array chapters nell'esame in Supabase
     const exam = DB.exams.find(e => e.id === examId);
     const newChapters = [...(exam?.chapters || []), chapter];
 
@@ -427,7 +427,7 @@ export const Study = {
       .eq('id', examId);
 
     update('exams', examId, { chapters: newChapters });
-    if (error) { persist(); }
+    if (error) persist();
     return ok(chapter);
   },
 
@@ -454,7 +454,6 @@ export const Study = {
     return ok(true);
   },
 
-  // ── Nozioni ─────────────────────────────────────────────────
   async addConcept(examId, text) {
     const concept = {
       id:        uid(),
@@ -465,7 +464,6 @@ export const Study = {
     };
     insert('concepts', concept);
 
-    // Prova a salvare su Supabase (tabella concepts, opzionale)
     supabase.from('concepts')
       .insert({ id: concept.id, exam_id: examId, user_id: CUR.id, text, created_at: concept.createdAt })
       .then(({ error }) => { if (error) console.warn('[Study] concept sync:', error.message); });
@@ -487,12 +485,11 @@ export const Study = {
       .order('created_at', { ascending: true });
 
     if (error) {
-      return ok(DB.concepts.filter(c => c.examId === examId));
+      return ok((DB.concepts || []).filter(c => c.examId === examId));
     }
 
     const concepts = data.map(toCamel);
-    // Merge in DB locale senza duplicati
-    const existing = new Set(DB.concepts.map(c => c.id));
+    const existing = new Set((DB.concepts || []).map(c => c.id));
     concepts.forEach(c => { if (!existing.has(c.id)) DB.concepts.push(c); });
     persist();
     return ok(concepts);
@@ -533,7 +530,14 @@ export const Books = {
       .single();
 
     if (error) {
-      const local = { id: uid(), userId: CUR.id, ...payload, currentPage: 0, completed: false, createdAt: new Date().toISOString() };
+      const local = {
+        id:          uid(),
+        userId:      CUR.id,
+        currentPage: 0,
+        completed:   false,
+        createdAt:   new Date().toISOString(),
+        ...payload,
+      };
       insert('books', local);
       return ok(local);
     }
@@ -558,7 +562,13 @@ export const Books = {
   async logReading(payload) {
     const { data, error } = await supabase
       .from('reading_sessions')
-      .insert({ user_id: CUR.id, book_id: payload.bookId, pages_read: payload.pagesRead, xp_earned: payload.xpEarned || 0, read_at: today() })
+      .insert({
+        user_id:    CUR.id,
+        book_id:    payload.bookId,
+        pages_read: payload.pagesRead,
+        xp_earned:  payload.xpEarned || 0,
+        read_at:    today(),
+      })
       .select()
       .single();
 
@@ -574,11 +584,16 @@ export const Books = {
   },
 
   async getGlobalCatalog(query = '') {
-    let q = supabase.from('global_books').select('*').order('created_at', { ascending: false }).limit(100);
+    let q = supabase
+      .from('global_books')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(100);
+
     if (query) q = q.or(`title.ilike.%${query}%,author.ilike.%${query}%`);
 
     const { data, error } = await q;
-    if (error) return ok(DB.globalBooks);
+    if (error) return ok(DB.globalBooks || []);
 
     const books = data.map(toCamel);
     DB.globalBooks = books;
@@ -589,7 +604,12 @@ export const Books = {
   async addToGlobalCatalog(payload) {
     const { data, error } = await supabase
       .from('global_books')
-      .insert({ title: payload.title, author: payload.author || '', genre: payload.genre || 'narrativa', added_by: CUR.id })
+      .insert({
+        title:    payload.title,
+        author:   payload.author || '',
+        genre:    payload.genre || 'narrativa',
+        added_by: CUR.id,
+      })
       .select()
       .single();
 
@@ -604,7 +624,6 @@ export const Books = {
     return ok(book);
   },
 
-  // ── Note libro personali ─────────────────────────────────────
   async addNote(bookId, text) {
     const note = {
       id:        uid(),
@@ -648,9 +667,7 @@ export const Books = {
     return ok(notes);
   },
 
-  // ── Lettori per libro (catalogo globale) ─────────────────────
   async getReadersOfBook(globalBookId) {
-    // Cerca tutti gli utenti che hanno questo libro (per titolo, via join)
     const gb = DB.globalBooks.find(b => b.id === globalBookId);
     if (!gb) return ok([]);
 
@@ -661,7 +678,6 @@ export const Books = {
       .neq('user_id', CUR.id);
 
     if (error) {
-      // Fallback locale
       const readers = Object.values(DB.users).filter(u =>
         u.id !== CUR.id &&
         DB.books.some(b => b.userId === u.id && b.title.toLowerCase() === gb.title.toLowerCase())
@@ -701,7 +717,12 @@ export const Routines = {
   async log(payload) {
     const { data, error } = await supabase
       .from('routine_logs')
-      .insert({ user_id: CUR.id, routine_id: payload.routineId, xp_earned: payload.xpEarned || 5, done_at: today() })
+      .insert({
+        user_id:    CUR.id,
+        routine_id: payload.routineId,
+        xp_earned:  payload.xpEarned || 5,
+        done_at:    today(),
+      })
       .select()
       .single();
 
@@ -719,7 +740,14 @@ export const Routines = {
   async createCustom(payload) {
     const { data, error } = await supabase
       .from('routines')
-      .insert({ user_id: CUR.id, name: payload.name, emoji: payload.emoji || '⚡', category: payload.category || 'routine', xp_value: payload.xpValue || 10, is_default: false })
+      .insert({
+        user_id:    CUR.id,
+        name:       payload.name,
+        emoji:      payload.emoji || '⚡',
+        category:   payload.category || 'routine',
+        xp_value:   payload.xpValue || 10,
+        is_default: false,
+      })
       .select()
       .single();
 
@@ -748,7 +776,10 @@ export const Challenges = {
     if (error) return ok(DB.challenges.filter(c => c.creatorId === userId || c.opponentId === userId));
 
     const challenges = data.map(toCamel);
-    DB.challenges = [...DB.challenges.filter(c => c.creatorId !== userId && c.opponentId !== userId), ...challenges];
+    DB.challenges = [
+      ...DB.challenges.filter(c => c.creatorId !== userId && c.opponentId !== userId),
+      ...challenges,
+    ];
     persist();
     return ok(challenges);
   },
@@ -767,15 +798,15 @@ export const Challenges = {
 
   async create(payload) {
     const challenge = {
-      creator_id:  CUR.id,
-      title:       payload.title,
-      rules:       payload.rules || '',
-      stake_xp:    payload.stakeXP || 50,
-      type:        payload.type || 'mixed',
-      is_public:   payload.isPublic !== false,
-      join_code:   payload.isPublic ? null : String(Math.floor(1000 + Math.random() * 9000)),
-      expires_at:  payload.expiresAt || null,
-      status:      'open',
+      creator_id: CUR.id,
+      title:      payload.title,
+      rules:      payload.rules || '',
+      stake_xp:   payload.stakeXP || 50,
+      type:       payload.type || 'mixed',
+      is_public:  payload.isPublic !== false,
+      join_code:  payload.isPublic ? null : String(Math.floor(1000 + Math.random() * 9000)),
+      expires_at: payload.expiresAt || null,
+      status:     'open',
     };
 
     const { data, error } = await supabase.from('challenges').insert(challenge).select().single();
@@ -822,20 +853,27 @@ export const Challenges = {
 // ── Feed ─────────────────────────────────────────────────────
 
 export const Feed = {
+
+  // FIX: join con post_likes per conteggio like corretto
   async get(userId, filter = 'all') {
     let query = supabase
       .from('feed_posts')
-      .select('*')
+      .select(`
+        *,
+        post_likes ( user_id )
+      `)
       .order('created_at', { ascending: false })
       .limit(50);
 
     if (filter === 'following') {
       const following = DB.users[userId]?.following || [];
       if (!following.length) return ok([]);
+      // Mostra post dei seguiti + propri, indipendentemente da is_public
       query = query.in('user_id', [...following, userId]);
     }
 
     const { data, error } = await query;
+
     if (error) {
       let posts = [...DB.feedPosts].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       if (filter === 'following') {
@@ -845,7 +883,16 @@ export const Feed = {
       return ok(posts);
     }
 
-    const posts = data.map(p => ({ ...toCamel(p), username: DB.users[p.user_id]?.username || 'Utente' }));
+    const posts = data.map(p => {
+      // Costruisci array likes dagli id nella tabella post_likes
+      const likesList = (p.post_likes || []).map(l => l.user_id);
+      return {
+        ...toCamel(p),
+        likes:    likesList,
+        username: DB.users[p.user_id]?.username || 'Utente',
+      };
+    });
+
     DB.feedPosts = posts;
     persist();
     return ok(posts);
@@ -858,7 +905,6 @@ export const Feed = {
       photo_url: payload.photoUrl || null,
       category:  payload.category || null,
       xp_earned: payload.xpEarned || 0,
-      likes:     [],
       lang:      CUR.languages?.[0]?.slice(0, 2).toLowerCase() || 'it',
       ref_type:  payload.refType || null,
       ref_id:    payload.refId || null,
@@ -866,68 +912,71 @@ export const Feed = {
 
     const { data, error } = await supabase.from('feed_posts').insert(post).select().single();
     if (error) {
-      const local = { id: uid(), userId: CUR.id, username: CUR.username, ...payload, likes: [], createdAt: new Date().toISOString() };
+      const local = {
+        id:        uid(),
+        userId:    CUR.id,
+        username:  CUR.username,
+        likes:     [],
+        createdAt: new Date().toISOString(),
+        ...payload,
+      };
       insert('feedPosts', local);
       return ok(local);
     }
 
-    const p = { ...toCamel(data), username: CUR.username };
+    const p = { ...toCamel(data), username: CUR.username, likes: [] };
     insert('feedPosts', p);
     return ok(p);
   },
 
+  // FIX: usa post_likes invece di UPDATE su feed_posts (nessun blocco RLS)
+  async toggleLike(postId, userId) {
+    // Controlla se il like esiste già
+    const { data: existing, error: checkErr } = await supabase
+      .from('post_likes')
+      .select('id')
+      .eq('post_id', postId)
+      .eq('user_id', userId)
+      .maybeSingle();
 
+    if (checkErr) return fail(checkErr.message);
 
-async toggleLike(postId, userId) {
-  const post = findById('feedPosts', postId);
+    let liked;
 
-  if (!post) {
-    const { data: freshPost } = await supabase
-      .from('feed_posts')
-      .select('likes')
-      .eq('id', postId)
-      .single();
+    if (existing) {
+      // Rimuovi like
+      const { error } = await supabase
+        .from('post_likes')
+        .delete()
+        .eq('post_id', postId)
+        .eq('user_id', userId);
 
-    if (!freshPost) return fail('Post non trovato');
+      if (error) return fail(error.message);
+      liked = false;
+    } else {
+      // Aggiungi like
+      const { error } = await supabase
+        .from('post_likes')
+        .insert({ post_id: postId, user_id: userId });
 
-    const rawLikes = Array.isArray(freshPost.likes) ? freshPost.likes : [];
-    const liked    = rawLikes.includes(userId);
-    const likes    = liked
-      ? rawLikes.filter(id => id !== userId)
-      : [...rawLikes, userId];
+      if (error) return fail(error.message);
+      liked = true;
+    }
 
-    const { error } = await supabase
-      .from('feed_posts')
-      .update({ likes })
-      .eq('id', postId);
+    // Aggiorna DB locale
+    const postIdx = DB.feedPosts.findIndex(p => p.id === postId);
+    if (postIdx !== -1) {
+      const current = DB.feedPosts[postIdx].likes || [];
+      DB.feedPosts[postIdx].likes = liked
+        ? [...current, userId]
+        : current.filter(id => id !== userId);
+      persist();
+    }
 
-    if (error) return fail(error.message);
-    update('feedPosts', postId, { likes });
-    return ok({ liked: !liked, count: likes.length });
-  }
+    const count = DB.feedPosts[postIdx]?.likes?.length || 0;
+    return ok({ liked, count });
+  },
 
-  const rawLikes = Array.isArray(post.likes) ? post.likes : [];
-  const liked    = rawLikes.includes(userId);
-  const likes    = liked
-    ? rawLikes.filter(id => id !== userId)
-    : [...rawLikes, userId];
-
-  const { error } = await supabase
-    .from('feed_posts')
-    .update({ likes })
-    .eq('id', postId);
-
-  if (error) return fail(error.message);
-  update('feedPosts', postId, { likes });
-  return ok({ liked: !liked, count: likes.length });
-},
-
-
-
-
-
-
-  
   async getComments(postId) {
     const { data, error } = await supabase
       .from('comments')
@@ -939,15 +988,28 @@ async toggleLike(postId, userId) {
     return ok(data.map(toCamel));
   },
 
+  // FIX: salva username denormalizzato così non serve join
   async addComment(payload) {
     const { data, error } = await supabase
       .from('comments')
-      .insert({ post_id: payload.postId, user_id: CUR.id, content: payload.content })
+      .insert({
+        post_id:  payload.postId,
+        user_id:  CUR.id,
+        username: CUR.username,
+        content:  payload.content,
+      })
       .select()
       .single();
 
     if (error) {
-      const local = { id: uid(), postId: payload.postId, userId: CUR.id, username: CUR.username, content: payload.content, createdAt: new Date().toISOString() };
+      const local = {
+        id:        uid(),
+        postId:    payload.postId,
+        userId:    CUR.id,
+        username:  CUR.username,
+        content:   payload.content,
+        createdAt: new Date().toISOString(),
+      };
       insert('comments', local);
       return ok(local);
     }
@@ -965,8 +1027,8 @@ async toggleLike(postId, userId) {
   },
 
   async deletePost(postId) {
-    // Elimina anche i commenti del post
     await supabase.from('comments').delete().eq('post_id', postId);
+    await supabase.from('post_likes').delete().eq('post_id', postId);
     DB.comments = DB.comments.filter(c => c.postId !== postId);
 
     const { error } = await supabase.from('feed_posts').delete().eq('id', postId);
@@ -980,13 +1042,21 @@ async toggleLike(postId, userId) {
 
 export const Discussions = {
   async list(bookId) {
-    let query = supabase.from('discussions').select('*').order('created_at', { ascending: false }).limit(50);
+    let query = supabase
+      .from('discussions')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50);
+
     if (bookId) query = query.eq('book_id', bookId);
 
     const { data, error } = await query;
     if (error) return ok(DB.discussions.filter(d => !bookId || d.bookId === bookId));
 
-    const discs = data.map(d => ({ ...toCamel(d), username: DB.users[d.user_id]?.username || 'Utente' }));
+    const discs = data.map(d => ({
+      ...toCamel(d),
+      username: DB.users[d.user_id]?.username || 'Utente',
+    }));
     DB.discussions = discs;
     persist();
     return ok(discs);
@@ -995,12 +1065,26 @@ export const Discussions = {
   async create(payload) {
     const { data, error } = await supabase
       .from('discussions')
-      .insert({ user_id: CUR.id, book_id: payload.bookId || null, title: payload.title || '', content: payload.content, type: payload.type || 'discussion', likes: [] })
+      .insert({
+        user_id:  CUR.id,
+        book_id:  payload.bookId || null,
+        title:    payload.title || '',
+        content:  payload.content,
+        type:     payload.type || 'discussion',
+        likes:    [],
+      })
       .select()
       .single();
 
     if (error) {
-      const local = { id: uid(), userId: CUR.id, username: CUR.username, ...payload, likes: [], createdAt: new Date().toISOString() };
+      const local = {
+        id:        uid(),
+        userId:    CUR.id,
+        username:  CUR.username,
+        likes:     [],
+        createdAt: new Date().toISOString(),
+        ...payload,
+      };
       insert('discussions', local);
       return ok(local);
     }
@@ -1013,12 +1097,24 @@ export const Discussions = {
   async addReply(payload) {
     const { data, error } = await supabase
       .from('discussion_replies')
-      .insert({ discussion_id: payload.discussionId, user_id: CUR.id, content: payload.content })
+      .insert({
+        discussion_id: payload.discussionId,
+        user_id:       CUR.id,
+        username:      CUR.username,
+        content:       payload.content,
+      })
       .select()
       .single();
 
     if (error) {
-      const local = { id: uid(), discussionId: payload.discussionId, userId: CUR.id, username: CUR.username, content: payload.content, createdAt: new Date().toISOString() };
+      const local = {
+        id:            uid(),
+        discussionId:  payload.discussionId,
+        userId:        CUR.id,
+        username:      CUR.username,
+        content:       payload.content,
+        createdAt:     new Date().toISOString(),
+      };
       insert('discussionReplies', local);
       return ok(local);
     }
@@ -1036,7 +1132,10 @@ export const Discussions = {
       .order('created_at', { ascending: true });
 
     if (error) return ok(DB.discussionReplies.filter(r => r.discussionId === discussionId));
-    return ok(data.map(r => ({ ...toCamel(r), username: DB.users[r.user_id]?.username || 'Utente' })));
+    return ok(data.map(r => ({
+      ...toCamel(r),
+      username: r.username || DB.users[r.user_id]?.username || 'Utente',
+    })));
   },
 
   async deleteReply(replyId) {
@@ -1046,7 +1145,7 @@ export const Discussions = {
   },
 
   async toggleLike(discussionId, userId) {
-    const disc = findById('discussions', discussionId);
+    const disc  = findById('discussions', discussionId);
     const liked = disc?.likes?.includes(userId);
     const likes = liked
       ? (disc.likes || []).filter(id => id !== userId)
@@ -1072,7 +1171,7 @@ export const Moderation = {
   },
 };
 
-// ── Sync ─────────────────────────────────────────────────────
+// ── Sync post-login ──────────────────────────────────────────
 
 export async function syncCloudDataOnLogin(userId) {
   try {
