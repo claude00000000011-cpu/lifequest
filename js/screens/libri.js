@@ -32,16 +32,17 @@ export async function renderLibri() {
   container.innerHTML = `
     <div class="screen-header"><h2>Libri</h2></div>
     <div class="tab-row">
-      ${['catalog','discussions','readers'].map(t => `
+      ${['mylibrary','catalog','discussions','readers'].map(t => `
         <button class="tab-btn ${_libriTab === t ? 'tab-btn--active' : ''}"
                 onclick="window._switchLibriTab?.('${t}')">
-          ${{ catalog: '🌐 Catalogo', discussions: '💬 Discussioni', readers: '👥 Lettori' }[t]}
+          ${{ mylibrary: '📚 Miei', catalog: '🌐 Catalogo', discussions: '💬 Discussioni', readers: '👥 Lettori' }[t]}
         </button>`).join('')}
     </div>
     <div id="libri-content"><div class="feed-loading">Caricamento…</div></div>
   `;
 
-  if      (_libriTab === 'catalog')     await renderCatalog();
+  if      (_libriTab === 'mylibrary')   await renderMyLibrary();
+  else if (_libriTab === 'catalog')     await renderCatalog();
   else if (_libriTab === 'discussions') await renderDiscussions();
   else if (_libriTab === 'readers')     await renderReaders();
 }
