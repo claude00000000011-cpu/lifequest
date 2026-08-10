@@ -316,35 +316,33 @@
   </div>
 
   <!-- Crea Sfida PvP -->
-  <div id="modal-create-challenge" class="modal-overlay modal--hidden">
-    <div class="modal-sheet">
-      <div class="modal-handle"></div>
-      <div class="modal-title">⚔️ Nuova Sfida PvP</div>
-      <div class="modal-field"><label>Titolo</label><input id="ch-title" type="text" placeholder="es. Chi fa più pushup?" maxlength="80" /></div>
-      <div class="modal-field"><label>Regole (opzionale)</label><textarea id="ch-rules" placeholder="Descrivi le regole…" maxlength="300" rows="3"></textarea></div>
-      <div class="modal-field">
-        <label>Tipo</label>
-        <select id="ch-type">
-          <option value="mixed">⚔️ Misto</option>
-          <option value="athletic">🏋️ Atletico</option>
-          <option value="mental">🧠 Mentale</option>
-        </select>
-      </div>
-      <div class="modal-field"><label>XP in palio</label><input id="ch-stake" type="number" value="50" min="1" max="500" /></div>
-      <div class="modal-field"><label>Scadenza (opzionale)</label><input id="ch-expires" type="date" /></div>
-      <div class="modal-field">
-        <label class="toggle-row">
-          <span>Sfida pubblica</span>
-          <input id="ch-public" type="checkbox" checked />
-        </label>
-      </div>
-      <div class="modal-actions">
-        <button onclick="window._createChallenge?.()" class="btn-primary">Crea Sfida</button>
-        <button class="btn-secondary" onclick="closeModal('modal-create-challenge')">Annulla</button>
-      </div>
+<div id="modal-create-challenge" class="modal-overlay modal--hidden">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">⚔️ Nuova Sfida PvP</div>
+    <div class="modal-field"><label>Titolo</label><input id="ch-title" type="text" placeholder="es. Chi fa più pushup?" maxlength="80" /></div>
+    <div class="modal-field"><label>Regole (opzionale)</label><textarea id="ch-rules" placeholder="Descrivi le regole…" maxlength="300" rows="3"></textarea></div>
+    <div class="modal-field">
+      <label>Tipo</label>
+      <select id="ch-type">
+        <option value="mixed">⚔️ Misto</option>
+        <option value="athletic">🏋️ Atletico</option>
+        <option value="mental">🧠 Mentale</option>
+      </select>
+    </div>
+    <div class="modal-field"><label>Scadenza (opzionale)</label><input id="ch-expires" type="date" /></div>
+    <div class="modal-field">
+      <label class="toggle-row">
+        <span>Sfida pubblica</span>
+        <input id="ch-public" type="checkbox" checked />
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button onclick="window._createChallenge?.()" class="btn-primary">Crea Sfida</button>
+      <button class="btn-secondary" onclick="closeModal('modal-create-challenge')">Annulla</button>
     </div>
   </div>
-
+</div>
   <!-- Aggiungi Libro personale -->
   <div id="modal-add-book" class="modal-overlay modal--hidden">
     <div class="modal-sheet">
