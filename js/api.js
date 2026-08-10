@@ -879,14 +879,7 @@ export const Feed = {
 
 
 async toggleLike(postId, userId) {
-  const { data: session } = await supabase.auth.getSession();
-  console.log('[toggleLike] session:', session?.session?.access_token ? 'OK' : 'MANCANTE');
-
-  console.log('[toggleLike] postId:', postId);
-  console.log('[toggleLike] feedPosts in DB:', DB.feedPosts.map(p => p.id));
-
   const post = findById('feedPosts', postId);
-  console.log('[toggleLike] post trovato:', post);
 
   if (!post) {
     const { data: freshPost } = await supabase
@@ -897,39 +890,37 @@ async toggleLike(postId, userId) {
 
     if (!freshPost) return fail('Post non trovato');
 
-    const liked = freshPost.likes?.includes(userId);
-    const likes = liked
-      ? (freshPost.likes || []).filter(id => id !== userId)
-      : [...(freshPost.likes || []), userId];
+    const rawLikes = Array.isArray(freshPost.likes) ? freshPost.likes : [];
+    const liked    = rawLikes.includes(userId);
+    const likes    = liked
+      ? rawLikes.filter(id => id !== userId)
+      : [...rawLikes, userId];
 
     const { error } = await supabase
       .from('feed_posts')
       .update({ likes })
       .eq('id', postId);
 
-    console.log('[toggleLike] fallback error:', error);
     if (error) return fail(error.message);
+    update('feedPosts', postId, { likes });
     return ok({ liked: !liked, count: likes.length });
   }
 
-  const liked = post?.likes?.includes(userId);
-  const likes = liked
-    ? (post.likes || []).filter(id => id !== userId)
-    : [...(post?.likes || []), userId];
+  const rawLikes = Array.isArray(post.likes) ? post.likes : [];
+  const liked    = rawLikes.includes(userId);
+  const likes    = liked
+    ? rawLikes.filter(id => id !== userId)
+    : [...rawLikes, userId];
 
   const { error } = await supabase
     .from('feed_posts')
     .update({ likes })
     .eq('id', postId);
 
-  console.log('[toggleLike] Supabase error:', error);
-  console.log('[toggleLike] likes aggiornati:', likes);
-
   if (error) return fail(error.message);
   update('feedPosts', postId, { likes });
   return ok({ liked: !liked, count: likes.length });
 },
-
 
 
 
