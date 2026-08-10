@@ -247,7 +247,7 @@ export const Users = {
 
     return ok(true);
   },
-
+  
   async unfollow(userId, targetId) {
     const user   = DB.users[userId]   || {};
     const target = DB.users[targetId] || {};
