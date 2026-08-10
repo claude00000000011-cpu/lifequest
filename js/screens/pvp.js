@@ -1,19 +1,40 @@
 // ============================================================
-// screens/pvp.js — Sfide PvP tra utenti
-// FIX: input codice visibile, btn Cerca non a piena larghezza,
-//      ricerca su Supabase funzionante, stakeXP letto correttamente
+// screens/pvp.js — Sfide PvP
+// NEW: conferma vittoria, limite 3 sfide/giorno, cap XP
 // ============================================================
 
 import { CUR, DB } from '../db.js';
 import { Challenges, Feed, Users } from '../api.js';
 import { awardXP } from '../xp.js';
-import { escHtml, toast } from '../utils.js';
+import { escHtml, toast, today } from '../utils.js';
 import { playSound } from '../audio.js';
 import { openModal, closeModal } from '../modals.js';
+import { calcLevel } from '../xp.js';
 
 let _pvpTab = 'active';
 
 export function switchPvPTab(t) { _pvpTab = t; renderPvP(); }
+
+// ── Limiti ────────────────────────────────────────────────────
+
+const MAX_DAILY_JOINS = 3;
+const MAX_XP_ABS      = 200;
+
+function xpCap(requestedXP) {
+  const level  = calcLevel(CUR?.xp || 0);
+  const capByLevel = level * 20;
+  return Math.min(requestedXP, capByLevel, MAX_XP_ABS);
+}
+
+function dailyJoinsCount() {
+  const t = today();
+  return DB.challenges.filter(c =>
+    c.opponentId === CUR?.id &&
+    c.joinedAt?.startsWith(t)
+  ).length;
+}
+
+// ── Render principale ─────────────────────────────────────────
 
 export async function renderPvP() {
   if (!CUR) return;
@@ -42,13 +63,9 @@ export async function renderPvP() {
       <div class="pvp-code-box">
         <p class="pvp-code-label">🔑 Hai un codice sfida privata?</p>
         <div class="pvp-code-row">
-          <input
-            type="number"
-            id="join-code-input"
-            placeholder="Codice a 4 cifre"
-            min="1000" max="9999"
-            class="pvp-code-input"
-          />
+          <input type="number" id="join-code-input"
+                 placeholder="Codice a 4 cifre"
+                 min="1000" max="9999" class="pvp-code-input" />
           <button class="pvp-search-btn" onclick="window._joinByCode?.()">Cerca</button>
         </div>
         <div id="join-code-result"></div>
@@ -56,7 +73,8 @@ export async function renderPvP() {
 
     <div id="pvp-list"><div class="empty-state" style="padding:2rem">Caricamento…</div></div>
   `;
-if (_pvpTab === 'active') {
+
+  if (_pvpTab === 'active') {
     const { ok, data } = await Challenges.list(CUR.id);
     const cloud = ok ? data : [];
 
@@ -68,21 +86,25 @@ if (_pvpTab === 'active') {
       (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
     );
 
-    // Carica i profili di tutti gli utenti coinvolti nelle sfide
+    // Carica profili mancanti
     const userIds = [...new Set(
-      merged.flatMap(c => [c.creatorId, c.opponentId]).filter(Boolean)
+      merged.flatMap(c => [c.creatorId, c.opponentId, c.claimedWinnerId]).filter(Boolean)
     )].filter(id => !DB.users[id]);
-
-    if (userIds.length) {
-      await Promise.all(userIds.map(id => Users.get(id)));
-    }
+    if (userIds.length) await Promise.all(userIds.map(id => Users.get(id)));
 
     renderChallengeList(merged, 'pvp-list', false);
   } else {
     const { ok, data } = await Challenges.listPublic();
-    renderChallengeList(ok ? data : [], 'pvp-list', true);
+    const list = ok ? data : [];
+
+    const userIds = [...new Set(list.map(c => c.creatorId).filter(Boolean))]
+      .filter(id => !DB.users[id]);
+    if (userIds.length) await Promise.all(userIds.map(id => Users.get(id)));
+
+    renderChallengeList(list, 'pvp-list', true);
   }
 }
+
 // ── Render lista ──────────────────────────────────────────────
 
 function renderChallengeList(challenges, containerId, isPublic) {
@@ -108,10 +130,18 @@ function challengeCard(c, isPublic) {
   const isOpponent = c.opponentId === CUR.id;
   const alreadyIn  = isCreator || isOpponent;
   const canJoin    = isPublic && !alreadyIn && c.status === 'open';
-  const canDeclare = alreadyIn && c.status === 'active';
 
   const otherUserId = isCreator ? c.opponentId : c.creatorId;
   const otherUser   = otherUserId ? DB.users[otherUserId] : null;
+
+  // Stato conferma vittoria
+  const hasClaim       = !!c.claimedWinnerId;
+  const iClaimedWin    = c.claimedWinnerId === CUR.id;
+  const otherClaimed   = hasClaim && !iClaimedWin && alreadyIn;
+  const claimantUser   = hasClaim ? DB.users[c.claimedWinnerId] : null;
+
+  // Posso dichiarare solo se la sfida è active, sono dentro, e nessuno ha ancora dichiarato
+  const canDeclare = alreadyIn && c.status === 'active' && !hasClaim;
 
   const statusBadge = {
     open:      '<span class="badge badge--green">Aperta</span>',
@@ -120,42 +150,81 @@ function challengeCard(c, isPublic) {
   }[c.status] || '';
 
   const typeIcon = { athletic: '🏋️', mental: '🧠', mixed: '⚔️' }[c.type] || '⚔️';
-  const xp = c.stakeXP || c.stake_xp || 0;
+  const xp       = c.stakeXP || c.stake_xp || 0;
+  const cappedXP = xpCap(xp);
 
   const actionBtns = [];
 
+  // Unisciti (sfide pubbliche)
   if (canJoin) {
-    actionBtns.push(`
-      <button class="pvp-btn pvp-btn--primary"
-              onclick="window._joinChallenge?.('${c.id}')">
-        ⚔️ Unisciti
-      </button>`);
+    const joinsToday = dailyJoinsCount();
+    if (joinsToday >= MAX_DAILY_JOINS) {
+      actionBtns.push(`<p class="pvp-waiting">⏳ Hai già accettato ${MAX_DAILY_JOINS} sfide oggi. Torna domani!</p>`);
+    } else {
+      actionBtns.push(`
+        <button class="pvp-btn pvp-btn--primary"
+                onclick="window._joinChallenge?.('${c.id}')">
+          ⚔️ Unisciti (${MAX_DAILY_JOINS - joinsToday} rimaste oggi)
+        </button>`);
+    }
   }
 
+  // In attesa avversario
   if (alreadyIn && c.status === 'open') {
     actionBtns.push(`<p class="pvp-waiting">⏳ In attesa di un avversario…</p>`);
   }
 
+  // Dichiarazione vittoria (nessuno ha ancora dichiarato)
   if (canDeclare) {
     actionBtns.push(`
       <button class="pvp-btn pvp-btn--primary"
-              onclick="window._declareWinner?.('${c.id}','${CUR.id}')">
+              onclick="window._claimWin?.('${c.id}','${CUR.id}')">
         🏆 Ho vinto
       </button>`);
     if (otherUser) {
       actionBtns.push(`
         <button class="pvp-btn"
-                onclick="window._declareWinner?.('${c.id}','${otherUserId}')">
+                onclick="window._claimWin?.('${c.id}','${otherUserId}')">
           🏳 Ha vinto @${escHtml(otherUser.username)}
         </button>`);
     }
     actionBtns.push(`
       <button class="pvp-btn"
-              onclick="window._declareWinner?.('${c.id}','draw')">
+              onclick="window._claimDraw?.('${c.id}')">
         🤝 Pareggio
       </button>`);
   }
 
+  // L'altro ha dichiarato di aver vinto — io devo confermare o contestare
+  if (otherClaimed) {
+    actionBtns.push(`
+      <div class="pvp-confirm-box">
+        <p class="pvp-confirm-msg">
+          ⚠️ <strong>@${escHtml(claimantUser?.username || '?')}</strong> ha dichiarato di aver vinto.
+          Confermi?
+        </p>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.5rem">
+          <button class="pvp-btn pvp-btn--primary"
+                  onclick="window._confirmWin?.('${c.id}','${c.claimedWinnerId}')">
+            ✅ Sì, ha vinto
+          </button>
+          <button class="pvp-btn"
+                  onclick="window._contestWin?.('${c.id}')">
+            ❌ Contesto — pareggio
+          </button>
+        </div>
+      </div>`);
+  }
+
+  // Io ho dichiarato, aspetto conferma
+  if (iClaimedWin && c.status === 'active') {
+    actionBtns.push(`
+      <p class="pvp-waiting">
+        ⏳ Hai dichiarato vittoria. In attesa che @${escHtml(otherUser?.username || '?')} confermi…
+      </p>`);
+  }
+
+  // Sfida conclusa
   if (c.status === 'completed') {
     const winnerName = c.winnerId ? (DB.users[c.winnerId]?.username || 'N/D') : null;
     actionBtns.push(`
@@ -176,7 +245,7 @@ function challengeCard(c, isPublic) {
         ${opponent
           ? `<span>🆚 @${escHtml(opponent.username)}</span>`
           : '<span>🆚 In attesa avversario</span>'}
-        ${xp > 0 ? `<span>💰 ${xp} XP</span>` : ''}
+        ${xp > 0 ? `<span>💰 ${cappedXP} XP${cappedXP < xp ? ` <small style="color:var(--text-3)">(cap)</small>` : ''}</span>` : ''}
         ${c.expiresAt ? `<span>📅 ${c.expiresAt}</span>` : ''}
         ${c.joinCode && isCreator
           ? `<span>🔑 Codice: <strong>${c.joinCode}</strong></span>` : ''}
@@ -186,6 +255,8 @@ function challengeCard(c, isPublic) {
         : ''}
     </div>`;
 }
+
+// ── Cerca per codice ──────────────────────────────────────────
 
 window._joinByCode = async function() {
   const input    = document.getElementById('join-code-input');
@@ -200,12 +271,10 @@ window._joinByCode = async function() {
 
   resultEl.innerHTML = `<p class="pvp-code-searching">🔍 Ricerca in corso…</p>`;
 
-  // 1. Cerca in locale
   let challenge = DB.challenges.find(
     c => String(c.joinCode) === raw && c.status === 'open'
   );
 
-  // 2. Cerca su Supabase tramite api.js (nessun import diretto di supabase)
   if (!challenge) {
     const { ok: found, data } = await Challenges.findByCode(raw);
     if (found && data) challenge = data;
@@ -226,12 +295,21 @@ window._joinByCode = async function() {
     return;
   }
 
-  const xp = challenge.stakeXP || 0;
+  const joinsToday = dailyJoinsCount();
+  if (joinsToday >= MAX_DAILY_JOINS) {
+    resultEl.innerHTML =
+      `<p class="pvp-code-error">Hai già accettato ${MAX_DAILY_JOINS} sfide oggi. Torna domani!</p>`;
+    return;
+  }
+
+  const xp       = challenge.stakeXP || 0;
+  const cappedXP = xpCap(xp);
   resultEl.innerHTML = `
     <div class="pvp-code-found">
       <div>
         <p class="pvp-code-found__title">⚔️ ${escHtml(challenge.title)}</p>
-        ${xp > 0 ? `<p class="pvp-code-found__meta">💰 ${xp} XP in palio</p>` : ''}
+        ${cappedXP > 0 ? `<p class="pvp-code-found__meta">💰 ${cappedXP} XP in palio</p>` : ''}
+        <p style="font-size:0.75rem;color:var(--text-3)">${MAX_DAILY_JOINS - joinsToday} accettazioni rimaste oggi</p>
       </div>
       <button class="pvp-btn pvp-btn--primary"
               onclick="window._joinChallenge?.('${challenge.id}')">
@@ -251,7 +329,6 @@ window._openCreateChallengeModal = function() {
 window._createChallenge = async function() {
   const title    = document.getElementById('ch-title')?.value.trim();
   const rules    = document.getElementById('ch-rules')?.value.trim();
-  // FIX: leggi stakeXP correttamente e dai 50 come default se vuoto
   const stakeRaw = document.getElementById('ch-stake')?.value;
   const stakeXP  = stakeRaw ? parseInt(stakeRaw, 10) : 50;
   const type     = document.getElementById('ch-type')?.value    || 'mixed';
@@ -262,8 +339,14 @@ window._createChallenge = async function() {
   if (isNaN(stakeXP) || stakeXP < 1)
     return toast('XP in palio deve essere almeno 1', 'error');
 
+  // Applica cap XP già in fase di creazione
+  const cappedXP = xpCap(stakeXP);
+  if (cappedXP < stakeXP) {
+    toast(`XP ridotti a ${cappedXP} (cap livello ${calcLevel(CUR.xp || 0)})`, 'info');
+  }
+
   const { ok, data, error } = await Challenges.create({
-    title, rules, stakeXP, type, isPublic, expiresAt: expires,
+    title, rules, stakeXP: cappedXP, type, isPublic, expiresAt: expires,
   });
 
   if (!ok) return toast(error || 'Errore nella creazione', 'error');
@@ -275,7 +358,6 @@ window._createChallenge = async function() {
     : `🔑 Sfida privata creata! Codice: ${data.joinCode}`;
   toast(msg, 'success');
 
-  // Reset campi
   ['ch-title', 'ch-rules'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
@@ -289,6 +371,12 @@ window._createChallenge = async function() {
 };
 
 window._joinChallenge = async function(challengeId) {
+  // Controllo limite giornaliero
+  const joinsToday = dailyJoinsCount();
+  if (joinsToday >= MAX_DAILY_JOINS) {
+    return toast(`Hai già accettato ${MAX_DAILY_JOINS} sfide oggi!`, 'error');
+  }
+
   const existing = DB.challenges.find(c => c.id === challengeId);
   if (existing) {
     if (existing.creatorId  === CUR.id)
@@ -306,20 +394,76 @@ window._joinChallenge = async function(challengeId) {
   renderPvP();
 };
 
-window._declareWinner = async function(challengeId, winnerId) {
+// ── Dichiarazione vittoria (nuovo sistema) ────────────────────
+
+// Dichiaro che ho vinto (o che ha vinto l'altro)
+window._claimWin = async function(challengeId, claimedWinnerId) {
   const challenge = DB.challenges.find(c => c.id === challengeId);
   if (!challenge) return toast('Sfida non trovata', 'error');
 
-  if (!confirm('Confermi il risultato? Questa azione non è reversibile.')) return;
+  const winner = DB.users[claimedWinnerId];
+  const isSelf = claimedWinnerId === CUR.id;
+  const msg    = isSelf
+    ? 'Stai dichiarando di aver vinto. L\'avversario dovrà confermare.'
+    : `Stai dichiarando che ha vinto @${winner?.username || '?'}. Confermi?`;
 
-  const isDraw = winnerId === 'draw';
-  const { ok }  = await Challenges.declareWinner(challengeId, isDraw ? null : winnerId);
+  if (!confirm(msg)) return;
+
+  const { ok, error } = await Challenges.claimWinner(challengeId, claimedWinnerId);
+  if (!ok) return toast(error || 'Errore', 'error');
+
+  playSound('tap');
+  toast('Dichiarazione inviata. In attesa di conferma…', 'info');
+
+  // Notifica all'avversario
+  const otherUserId = challenge.creatorId === CUR.id ? challenge.opponentId : challenge.creatorId;
+  if (otherUserId) {
+    const { pushNotification } = await import('./home.js');
+    pushNotification({
+      toUserId:     otherUserId,
+      type:         'pvp_claim',
+      fromUsername: CUR.username,
+      extra:        isSelf ? 'ha dichiarato vittoria' : 'ti ha concesso la vittoria',
+    });
+  }
+
+  renderPvP();
+};
+
+// Pareggio diretto (entrambi d'accordo)
+window._claimDraw = async function(challengeId) {
+  if (!confirm('Dichiari pareggio? Entrambi riceverete metà degli XP.')) return;
+  await _finalizeResult(challengeId, null, true);
+};
+
+// L'avversario conferma la vittoria dichiarata
+window._confirmWin = async function(challengeId, winnerId) {
+  if (!confirm(`Confermi che @${DB.users[winnerId]?.username || '?'} ha vinto?`)) return;
+  await _finalizeResult(challengeId, winnerId, false);
+};
+
+// L'avversario contesta → pareggio automatico
+window._contestWin = async function(challengeId) {
+  if (!confirm('Contesti la vittoria? Il risultato sarà pareggio.')) return;
+  await _finalizeResult(challengeId, null, true);
+};
+
+async function _finalizeResult(challengeId, winnerId, isDraw) {
+  const challenge = DB.challenges.find(c => c.id === challengeId);
+  if (!challenge) return toast('Sfida non trovata', 'error');
+
+  const { ok } = await Challenges.declareWinner(challengeId, isDraw ? null : winnerId);
   if (!ok) return toast('Errore nella dichiarazione del vincitore', 'error');
 
-  const xpStake = challenge.stakeXP || challenge.stake_xp || 50;
+  const xpStake  = challenge.stakeXP || challenge.stake_xp || 50;
+  const cappedXP = xpCap(xpStake);
 
-  if (!isDraw && winnerId === CUR.id) {
-    const earned = await awardXP(xpStake * 2, 'sfide');
+  if (isDraw) {
+    const earned = await awardXP(Math.round(cappedXP * 0.5), 'sfide');
+    toast(`Pareggio! +${earned} XP 🤝`, 'info');
+    playSound('tap');
+  } else if (winnerId === CUR.id) {
+    const earned = await awardXP(cappedXP * 2, 'sfide');
     await Feed.create({
       content:  `🏆 Ho vinto la sfida: "${challenge.title}"!`,
       category: 'sfide',
@@ -329,14 +473,10 @@ window._declareWinner = async function(challengeId, winnerId) {
     });
     toast(`Vittoria! +${earned} XP 🏆`, 'success');
     playSound('trophy');
-  } else if (isDraw) {
-    const earned = await awardXP(Math.round(xpStake * 0.5), 'sfide');
-    toast(`Pareggio! +${earned} XP 🤝`, 'info');
-    playSound('tap');
   } else {
-    toast('Sconfitta registrata. Ci riproverai! 💪', 'info');
+    toast('Risultato registrato. Ci riproverai! 💪', 'info');
     playSound('error');
   }
 
   renderPvP();
-};
+}
