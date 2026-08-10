@@ -913,8 +913,9 @@ export const Feed = {
     return ok(posts);
   },
 
-async create(payload) {
+ async create(payload) {
     const hiddenCats = DB.users[CUR.id]?.privacySettings?.hiddenCategories || [];
+    console.log('[Privacy] categoria:', payload.category, 'nascoste:', hiddenCats);
     if (payload.category && hiddenCats.includes(payload.category)) {
       return ok(null);
     }
