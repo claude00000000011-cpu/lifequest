@@ -1,10 +1,13 @@
-// ============================================================
-// supabase.js — Inizializzazione client Supabase
-// ============================================================
-
+// js/supabase.js
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-const SUPABASE_URL = 'https://teeknyidgzvloitkajgi.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_4E0co4gCjsHNnloVZxkkTg_S288BZ3L';
+const SUPABASE_URL  = 'https://TUO-PROGETTO.supabase.co';   // <-- sostituisci
+const SUPABASE_ANON = 'eyJ...';                              // <-- anon key dal dashboard
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON, {
+  auth: {
+    persistSession:    true,
+    autoRefreshToken:  true,
+    detectSessionInUrl: false,
+  },
+});
