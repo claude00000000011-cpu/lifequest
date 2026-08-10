@@ -47,18 +47,64 @@ export async function renderLibri() {
   else if (_libriTab === 'readers')     await renderReaders();
 }
 
-// ── Catalogo ─────────────────────────────────────────────────
-
+// ── Mia Libreria ─────────────────────────────────────────────
 
 async function renderMyLibrary() {
   const container = document.getElementById('libri-content');
   if (!container) return;
-  const { renderBooks } = await import('./books.js');
-  // books.js usa screen-libri come container, quindi lo rendiamo direttamente
-  await renderBooks();
+
+  container.innerHTML = `<div class="feed-loading">Caricamento…</div>`;
+
+  const { ok, data } = await Books.list(CUR.id);
+  const list = ok ? data : (DB.books || []).filter(b => b.userId === CUR.id);
+
+  const reading   = list.filter(b => !b.completed);
+  const completed = list.filter(b =>  b.completed);
+
+  container.innerHTML = `
+    <div style="display:flex;justify-content:flex-end;margin-bottom:0.75rem">
+      <button class="btn-add" onclick="window._openAddBookModal?.()">+ Libro</button>
+    </div>
+    ${!list.length ? `
+      <div class="empty-state">
+        Nessun libro ancora.<br>
+        <small style="color:var(--text-3)">Premi + per aggiungerne uno!</small>
+      </div>` : ''}
+    ${reading.length ? `
+      <h3 class="section-title">📖 In lettura (${reading.length})</h3>
+      ${reading.map(b => myBookCard(b)).join('')}` : ''}
+    ${completed.length ? `
+      <h3 class="section-title">✅ Completati (${completed.length})</h3>
+      ${completed.map(b => myBookCard(b)).join('')}` : ''}
+  `;
 }
 
+function myBookCard(book) {
+  const pct = book.totalPages
+    ? Math.min(100, Math.round(((book.currentPage || 0) / book.totalPages) * 100))
+    : 0;
+  return `
+    <div class="book-card" onclick="window._openBook?.('${book.id}')" style="margin-bottom:0.75rem">
+      <div class="book-card__main">
+        <div class="book-cover book-cover--placeholder">
+          ${escHtml(book.title.slice(0, 2).toUpperCase())}
+        </div>
+        <div class="book-card__body">
+          <h3>${escHtml(book.title)}</h3>
+          <p style="color:var(--text-2);font-size:0.82rem">✍️ ${escHtml(book.author || '—')}</p>
+          ${!book.completed ? `
+            <div class="progress-bar" style="margin-top:0.4rem">
+              <div class="progress-bar__fill" style="width:${pct}%"></div>
+            </div>
+            <p style="font-size:0.75rem;color:var(--text-3)">${book.currentPage || 0} / ${book.totalPages || '?'} pag. (${pct}%)</p>
+          ` : `<p style="color:var(--success);font-size:0.82rem">✅ Completato</p>`}
+        </div>
+        <span style="align-self:center;color:var(--text-3)">›</span>
+      </div>
+    </div>`;
+}
 
+// ── Catalogo ─────────────────────────────────────────────────
 
 async function renderCatalog() {
   const container = document.getElementById('libri-content');
