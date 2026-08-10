@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="./css/style.css" />
   <link rel="stylesheet" href="./css/components.css" />
   <link rel="stylesheet" href="./css/animations.css" />
+  <link rel="stylesheet" href="./css/additions.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
@@ -349,8 +350,24 @@
     <div class="modal-sheet">
       <div class="modal-handle"></div>
       <div class="modal-title">📖 Aggiungi Libro</div>
-      <div class="modal-field"><label>Titolo</label><input id="book-title" type="text" placeholder="Titolo del libro" maxlength="100" /></div>
-      <div class="modal-field"><label>Autore</label><input id="book-author" type="text" placeholder="Nome autore" maxlength="80" /></div>
+
+
+      
+      <div class="modal-field">
+  <label>Titolo</label>
+  <div class="autocomplete-wrap">
+    <input id="book-title" type="text" placeholder="Titolo del libro" maxlength="100" autocomplete="off" />
+  </div>
+</div>
+<div class="modal-field">
+  <label>Autore</label>
+  <div class="autocomplete-wrap">
+    <input id="book-author" type="text" placeholder="Nome autore" maxlength="80" autocomplete="off" />
+  </div>
+</div>
+
+
+      
       <div class="modal-field">
         <label>Genere</label>
         <select id="book-genre">
@@ -381,8 +398,16 @@
   <div id="modal-log-reading" class="modal-overlay modal--hidden">
     <div class="modal-sheet">
       <div class="modal-handle"></div>
+
+
+      
       <div class="modal-title">📖 Sessione di Lettura</div>
+      <span id="reading-book-name" style="display:block;font-size:0.85rem;color:var(--text-2);margin-bottom:0.75rem;font-style:italic"></span>
+      
       <input id="reading-book-id" type="hidden" />
+
+
+      
       <div class="modal-field"><label>Pagine lette</label><input id="reading-pages" type="number" placeholder="es. 30" min="1" /></div>
       <div class="modal-actions">
         <button onclick="window._logReading?.()" class="btn-primary">Salva</button>
