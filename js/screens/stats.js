@@ -380,7 +380,7 @@ window._toggleLanguage = async function(lang) {
 window._doLogout = async function() {
   const { doLogout } = await import('../auth.js');
   doLogout();
-
+};
 
 window._togglePrivacyCategory = async function(category, hide) {
   const user = DB.users[CUR.id] || {};
@@ -394,7 +394,4 @@ window._togglePrivacyCategory = async function(category, hide) {
 
   await Users.update(CUR.id, { privacySettings });
   toast(hide ? `Attività "${category}" nascoste dal feed` : `Attività "${category}" visibili`, 'success');
-
-  
 };
-
