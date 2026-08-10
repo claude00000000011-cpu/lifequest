@@ -229,12 +229,9 @@ async follow(userId, targetId) {
       ? target.followers
       : [...(target.followers || []), userId];
 
-    const [r1, r2] = await Promise.all([
-      supabase.from('users').update({ following: newFollowing }).eq('id', userId),
-      supabase.from('users').update({ followers: newFollowers }).eq('id', targetId),
-    ]);
+    const r1 = await supabase.from('users').update({ following: newFollowing }).eq('id', userId);
+    const r2 = await supabase.from('users').update({ followers: newFollowers }).eq('id', targetId);
 
-    // LOG TEMPORANEO
     console.log('[follow] r1 error:', r1.error);
     console.log('[follow] r2 error:', r2.error);
     console.log('[follow] newFollowers:', newFollowers);
