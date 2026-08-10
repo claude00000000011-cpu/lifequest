@@ -8,7 +8,7 @@ import { escHtml, toast, timeAgo, debounce } from '../utils.js';
 import { playSound } from '../audio.js';
 import { openModal, closeModal } from '../modals.js';
 
-let _libriTab = 'catalog';
+let _libriTab = 'mylibrary';
 
 // Filtri discussioni
 let _discSearch     = '';
@@ -48,6 +48,17 @@ export async function renderLibri() {
 }
 
 // ── Catalogo ─────────────────────────────────────────────────
+
+
+async function renderMyLibrary() {
+  const container = document.getElementById('libri-content');
+  if (!container) return;
+  const { renderBooks } = await import('./books.js');
+  // books.js usa screen-libri come container, quindi lo rendiamo direttamente
+  await renderBooks();
+}
+
+
 
 async function renderCatalog() {
   const container = document.getElementById('libri-content');
