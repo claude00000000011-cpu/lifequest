@@ -1175,13 +1175,23 @@ export const Moderation = {
 
 export async function syncCloudDataOnLogin(userId) {
   try {
-    const [quests, books, sessions, exams, concepts, bookNotes] = await Promise.all([
+    const [quests, books, sessions, exams, concepts, bookNotes, feedPosts, comments] = await Promise.all([
       supabase.from('quests').select('*').eq('user_id', userId),
       supabase.from('books').select('*').eq('user_id', userId),
       supabase.from('study_sessions').select('*').eq('user_id', userId),
       supabase.from('exams').select('*').eq('user_id', userId),
       supabase.from('concepts').select('*').eq('user_id', userId),
       supabase.from('book_notes').select('*').eq('user_id', userId),
+      // Feed posts con likes dalla tabella dedicata
+      supabase.from('feed_posts')
+        .select('*, post_likes(user_id)')
+        .order('created_at', { ascending: false })
+        .limit(50),
+      // Commenti recenti
+      supabase.from('comments')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(200),
     ]);
 
     if (quests.data)    DB.quests        = quests.data.map(toCamel);
@@ -1190,6 +1200,22 @@ export async function syncCloudDataOnLogin(userId) {
     if (exams.data)     DB.exams         = exams.data.map(toCamel);
     if (concepts.data)  DB.concepts      = concepts.data.map(toCamel);
     if (bookNotes.data) DB.bookNotes     = bookNotes.data.map(toCamel);
+
+    // Feed posts: converti post_likes in array di user_id
+    if (feedPosts.data) {
+      DB.feedPosts = feedPosts.data.map(p => ({
+        ...toCamel(p),
+        likes: (p.post_likes || []).map(l => l.user_id),
+      }));
+    }
+
+    // Commenti: salva con username
+    if (comments.data) {
+      DB.comments = comments.data.map(c => ({
+        ...toCamel(c),
+        username: c.username || DB.users[c.user_id]?.username || 'Utente',
+      }));
+    }
 
     persist();
   } catch (e) {
