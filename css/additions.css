@@ -20,17 +20,9 @@
   white-space: nowrap;
 }
 .btn-sm:active { transform: scale(0.95); background: var(--surface-2); }
-.btn-sm.btn-primary {
-  background: var(--accent);
-  color: #fff;
-  border-color: var(--accent);
-}
+.btn-sm.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
 .btn-sm.btn-primary:active { background: var(--accent-dark); }
-.btn-sm.btn-danger {
-  background: rgba(220,38,38,0.12);
-  color: #f87171;
-  border-color: rgba(220,38,38,0.3);
-}
+.btn-sm.btn-danger { background: rgba(220,38,38,0.12); color: #f87171; border-color: rgba(220,38,38,0.3); }
 .btn-sm.btn-danger:active { background: rgba(220,38,38,0.25); }
 
 /* ── Btn icona piccolo ────────────────────────────────────── */
@@ -71,11 +63,7 @@
   margin-top: 0.5rem;
   animation: slideDown 0.18s ease;
 }
-.inline-input-row input {
-  flex: 1;
-  font-size: 0.85rem;
-  padding: 0.45rem 0.7rem;
-}
+.inline-input-row input { flex: 1; font-size: 0.85rem; padding: 0.45rem 0.7rem; }
 .inline-input-row button {
   padding: 0.45rem 0.7rem;
   background: var(--accent);
@@ -101,8 +89,6 @@
   transition: border-color var(--trans);
 }
 .exam-card--open { border-color: var(--accent); }
-.exam-card:active { border-color: var(--accent); }
-
 .exam-card__header {
   display: flex;
   align-items: flex-start;
@@ -111,27 +97,10 @@
   cursor: pointer;
   user-select: none;
 }
-.exam-card__title {
-  flex: 1;
-  min-width: 0;
-}
-.exam-card__title h3 {
-  font-size: 1rem;
-  font-weight: 700;
-  margin-bottom: 0.25rem;
-}
-.exam-card__meta {
-  flex: 1;
-  min-width: 0;
-  font-size: 0.78rem;
-}
-.exam-card__chevron {
-  font-size: 0.8rem;
-  color: var(--text-3);
-  flex-shrink: 0;
-  padding-top: 0.15rem;
-}
-
+.exam-card__title { flex: 1; min-width: 0; }
+.exam-card__title h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.25rem; }
+.exam-card__meta { flex: 1; min-width: 0; font-size: 0.78rem; }
+.exam-card__chevron { font-size: 0.8rem; color: var(--text-3); flex-shrink: 0; padding-top: 0.15rem; }
 .exam-card__body {
   border-top: 1px solid var(--border);
   padding: 0.85rem 1rem 1rem;
@@ -140,26 +109,12 @@
   gap: 1rem;
   animation: fadeIn 0.18s ease;
 }
-
-.exam-actions-row {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
+.exam-actions-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 
 /* ── Exam section (capitoli / nozioni) ───────────────────── */
 .exam-section { display: flex; flex-direction: column; gap: 0.4rem; }
-.exam-section__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-.exam-section__header h4 {
-  font-size: 0.88rem;
-  font-weight: 700;
-  color: var(--text-2);
-}
+.exam-section__header { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.exam-section__header h4 { font-size: 0.88rem; font-weight: 700; color: var(--text-2); }
 
 /* ── Chapter item ─────────────────────────────────────────── */
 .chapter-item {
@@ -174,27 +129,10 @@
   transition: opacity var(--trans);
 }
 .chapter-item--done { opacity: 0.5; }
-.chapter-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex: 1;
-  cursor: pointer;
-  font-size: 0.85rem;
-}
-.chapter-checkbox input[type="checkbox"] {
-  width: auto;
-  accent-color: var(--accent);
-  cursor: pointer;
-}
-.chapter-checkbox span {
-  color: var(--text);
-  line-height: 1.35;
-}
-.chapter-item--done .chapter-checkbox span {
-  text-decoration: line-through;
-  color: var(--text-3);
-}
+.chapter-checkbox { display: flex; align-items: center; gap: 0.5rem; flex: 1; cursor: pointer; font-size: 0.85rem; }
+.chapter-checkbox input[type="checkbox"] { width: auto; accent-color: var(--accent); cursor: pointer; }
+.chapter-checkbox span { color: var(--text); line-height: 1.35; }
+.chapter-item--done .chapter-checkbox span { text-decoration: line-through; color: var(--text-3); }
 
 /* ── Concept item ─────────────────────────────────────────── */
 .concept-item {
@@ -213,11 +151,7 @@
 .concept-item span { flex: 1; color: var(--text); }
 
 /* ── Empty mini ───────────────────────────────────────────── */
-.empty-mini {
-  font-size: 0.8rem;
-  color: var(--text-3);
-  padding: 0.35rem 0;
-}
+.empty-mini { font-size: 0.8rem; color: var(--text-3); padding: 0.35rem 0; }
 
 /* ── Session day group ────────────────────────────────────── */
 .session-day-group { margin-bottom: 1rem; }
@@ -246,7 +180,7 @@
   color: var(--text-2);
 }
 
-/* ── Book card riprogettata ───────────────────────────────── */
+/* ── Book card ────────────────────────────────────────────── */
 .book-card {
   display: flex;
   flex-direction: column;
@@ -258,18 +192,9 @@
   transition: border-color var(--trans);
 }
 .book-card--open { border-color: var(--accent); }
-.book-card__main {
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  padding: 0.85rem;
-  cursor: pointer;
-  user-select: none;
-}
+.book-card__main { display: flex; align-items: center; gap: 0.85rem; padding: 0.85rem; cursor: pointer; user-select: none; }
 .book-card__body { flex: 1; min-width: 0; }
 .book-card__body h3 { font-size: 0.9rem; font-weight: 700; margin-bottom: 0.2rem; }
-
-/* Detail panel del libro */
 .book-detail {
   border-top: 1px solid var(--border);
   padding: 0.85rem;
@@ -278,17 +203,8 @@
   gap: 0.85rem;
   animation: fadeIn 0.18s ease;
 }
-
-.book-actions-row {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-/* Sezione note libro */
+.book-actions-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .book-notes-section { display: flex; flex-direction: column; gap: 0.4rem; }
-.book-notes-section .exam-section__header { /* riusa lo stesso stile */ }
-
 .notes-list { display: flex; flex-direction: column; gap: 0.4rem; }
 .note-item {
   background: var(--bg-3);
@@ -300,12 +216,7 @@
   animation: fadeIn 0.15s ease;
 }
 .note-item p { color: var(--text); margin-bottom: 0.25rem; }
-.note-item__footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
+.note-item__footer { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
 .note-item__footer time { font-size: 0.72rem; color: var(--text-3); }
 
 /* ── Book reading progress ────────────────────────────────── */
@@ -318,16 +229,11 @@
   flex-direction: column;
   gap: 0.4rem;
 }
-.reading-progress-card__top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 0.82rem;
-}
+.reading-progress-card__top { display: flex; align-items: center; justify-content: space-between; font-size: 0.82rem; }
 .reading-progress-card__top strong { color: var(--accent-light); }
 .reading-progress-card__pct { color: var(--text-3); font-size: 0.78rem; }
 
-/* ── Book modal — reading-book-name ──────────────────────── */
+/* ── Book modal ───────────────────────────────────────────── */
 #reading-book-name {
   display: block;
   font-size: 0.85rem;
@@ -336,10 +242,26 @@
   font-style: italic;
 }
 
-/* ── Autocomplete dropdown ────────────────────────────────── */
-.autocomplete-wrap {
-  position: relative;
+/* ── Book hero (sub-screen libro) ────────────────────────── */
+.book-hero { display: flex; gap: 1rem; margin-bottom: 1.25rem; align-items: flex-start; }
+.book-hero__cover { flex-shrink: 0; width: 80px; }
+.book-hero__cover img { width: 80px; border-radius: var(--radius-sm); box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+.book-cover--lg { width: 80px; height: 110px; font-size: 1.4rem; }
+.book-hero__info { flex: 1; min-width: 0; }
+.book-hero__info h3 { font-size: 1rem; font-weight: 700; line-height: 1.3; margin-bottom: 0.25rem; }
+
+/* ── Session list ─────────────────────────────────────────── */
+.session-list { display: flex; flex-direction: column; gap: 0.4rem; }
+.session-item {
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.75rem;
+  animation: fadeIn 0.15s ease;
 }
+
+/* ── Autocomplete dropdown ────────────────────────────────── */
+.autocomplete-wrap { position: relative; }
 .autocomplete-dropdown {
   position: absolute;
   top: 100%;
@@ -367,14 +289,7 @@
 .autocomplete-item span   { color: var(--text-3); font-size: 0.75rem; }
 
 /* ── Notifiche ────────────────────────────────────────────── */
-.notif-btn {
-  position: relative;
-  background: none;
-  border: none;
-  font-size: 1.3rem;
-  cursor: pointer;
-  padding: 0.25rem;
-}
+.notif-btn { position: relative; background: none; border: none; font-size: 1.3rem; cursor: pointer; padding: 0.25rem; }
 .notif-badge {
   position: absolute;
   top: 0; right: 0;
@@ -388,7 +303,6 @@
   text-align: center;
   line-height: 1.4;
 }
-
 .notif-panel {
   background: var(--bg-2);
   border: 1px solid var(--border);
@@ -415,19 +329,9 @@
 .notif-item time { font-size: 0.72rem; color: var(--text-3); white-space: nowrap; }
 .notif-empty { text-align: center; color: var(--text-3); font-size: 0.85rem; padding: 0.5rem; }
 
-/* ── Discussion filters extra ─────────────────────────────── */
-.disc-filters {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
-}
-.disc-filters-row {
-  display: flex;
-  gap: 0.4rem;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
+/* ── Discussion filters ───────────────────────────────────── */
+.disc-filters { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.75rem; }
+.disc-filters-row { display: flex; gap: 0.4rem; overflow-x: auto; scrollbar-width: none; }
 .disc-filters-row::-webkit-scrollbar { display: none; }
 .disc-filter-select {
   width: 100%;
@@ -439,82 +343,15 @@
   font-size: 0.85rem;
 }
 
-/* ── Readers screen filtri ────────────────────────────────── */
-.readers-toolbar {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-  flex-wrap: wrap;
-}
-.readers-toolbar input {
-  flex: 1;
-  min-width: 140px;
-  font-size: 0.85rem;
-}
-.readers-toolbar select {
-  flex: 1;
-  min-width: 120px;
-  font-size: 0.85rem;
-}
+/* ── Readers toolbar ──────────────────────────────────────── */
+.readers-toolbar { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.readers-toolbar input  { flex: 1; min-width: 140px; font-size: 0.85rem; }
+.readers-toolbar select { flex: 1; min-width: 120px; font-size: 0.85rem; }
 
-/* ── Profile modal scrollabile ────────────────────────────── */
+/* ── Profile modal ────────────────────────────────────────── */
 .modal-card { overflow-y: auto; }
 
-
-PATCH 4 — CSS aggiuntivo in additions.css
-
-Aggiunge gli stili per la sub-screen e la session-list:
-
-css
-/* ── Book hero (sub-screen libro) ────────────────────────────── */
-.book-hero {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1.25rem;
-  align-items: flex-start;
-}
-.book-hero__cover {
-  flex-shrink: 0;
-  width: 80px;
-}
-.book-hero__cover img {
-  width: 80px;
-  border-radius: var(--radius-sm);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-}
-.book-cover--lg {
-  width: 80px;
-  height: 110px;
-  font-size: 1.4rem;
-}
-.book-hero__info {
-  flex: 1;
-  min-width: 0;
-}
-.book-hero__info h3 {
-  font-size: 1rem;
-  font-weight: 700;
-  line-height: 1.3;
-  margin-bottom: 0.25rem;
-}
-
-/* ── Session list ────────────────────────────────────────────── */
-.session-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-.session-item {
-  background: var(--bg-3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 0.5rem 0.75rem;
-  animation: fadeIn 0.15s ease;
-}
-
-
-
-/* ── Privacy section ─────────────────────────────────────────── */
+/* ── Privacy section ──────────────────────────────────────── */
 .privacy-section .toggle-row {
   display: flex;
   align-items: center;
@@ -522,72 +359,13 @@ css
   padding: 0.4rem 0;
   border-bottom: 1px solid var(--border);
 }
-.privacy-section .toggle-row:last-child {
-  border-bottom: none;
-}
-.privacy-section .toggle-row span {
-  font-size: 0.88rem;
-  color: var(--text);
-}
+.privacy-section .toggle-row:last-child { border-bottom: none; }
+.privacy-section .toggle-row span { font-size: 0.88rem; color: var(--text); }
 .privacy-section .toggle-row input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
+  width: 18px; height: 18px;
   accent-color: var(--accent);
-  cursor: pointer;
-  flex-shrink: 0;
+  cursor: pointer; flex-shrink: 0;
 }
-
-
-.challenge-card__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-  align-items: center;
-}
-
-.pvp-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.45rem 0.85rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--text);
-  transition: all var(--trans);
-  white-space: nowrap;
-  flex-shrink: 0;
-  min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.pvp-btn:active { background: var(--surface-2); transform: scale(0.96); }
-
-.pvp-btn--primary {
-  background: var(--accent);
-  color: #fff;
-  border-color: var(--accent);
-}
-.pvp-btn--primary:active { background: var(--accent-dark); }
-
-.pvp-waiting {
-  font-size: 0.82rem;
-  color: var(--text-3);
-  padding: 0.2rem 0;
-  width: 100%;
-}
-.pvp-result {
-  font-size: 0.85rem;
-  color: var(--success);
-  font-weight: 600;
-  width: 100%;
-}
-
-
 
 /* ── PvP — box ricerca codice ─────────────────────────────── */
 .pvp-code-box {
@@ -597,17 +375,8 @@ css
   padding: 0.85rem;
   margin-bottom: 1rem;
 }
-.pvp-code-label {
-  font-size: 0.85rem;
-  color: var(--text-2);
-  margin-bottom: 0.5rem;
-}
-.pvp-code-row {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-/* Input numero codice — visibile e compatto */
+.pvp-code-label { font-size: 0.85rem; color: var(--text-2); margin-bottom: 0.5rem; }
+.pvp-code-row { display: flex; gap: 0.5rem; align-items: center; }
 .pvp-code-input {
   flex: 1;
   min-width: 0;
@@ -619,18 +388,12 @@ css
   font-size: 0.95rem;
   font-weight: 600;
   letter-spacing: 0.1em;
-  /* rimuove le freccette spinner sui number input */
   -moz-appearance: textfield;
 }
 .pvp-code-input::-webkit-outer-spin-button,
 .pvp-code-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .pvp-code-input::placeholder { color: var(--text-3); font-weight: 400; }
-.pvp-code-input:focus {
-  outline: none;
-  border-color: var(--accent);
-}
-
-/* Bottone Cerca — NON a piena larghezza */
+.pvp-code-input:focus { outline: none; border-color: var(--accent); }
 .pvp-search-btn {
   flex-shrink: 0;
   padding: 0.55rem 1rem;
@@ -641,17 +404,12 @@ css
   font-weight: 700;
   white-space: nowrap;
   transition: all var(--trans);
-  /* override esplicito di width:100% da .btn-primary */
   width: auto !important;
 }
 .pvp-search-btn:active { background: var(--accent-dark); transform: scale(0.96); }
-
-/* Messaggi sotto la ricerca */
-.pvp-code-error    { font-size: 0.82rem; color: var(--danger);  margin-top: 0.4rem; }
-.pvp-code-warn     { font-size: 0.82rem; color: var(--warning); margin-top: 0.4rem; }
-.pvp-code-searching{ font-size: 0.82rem; color: var(--text-3);  margin-top: 0.4rem; }
-
-/* Card risultato trovato */
+.pvp-code-error     { font-size: 0.82rem; color: var(--danger);  margin-top: 0.4rem; }
+.pvp-code-warn      { font-size: 0.82rem; color: var(--warning); margin-top: 0.4rem; }
+.pvp-code-searching { font-size: 0.82rem; color: var(--text-3);  margin-top: 0.4rem; }
 .pvp-code-found {
   display: flex;
   align-items: center;
@@ -663,17 +421,10 @@ css
   padding: 0.65rem 0.85rem;
   margin-top: 0.5rem;
 }
-.pvp-code-found__title {
-  font-size: 0.88rem;
-  font-weight: 700;
-  margin-bottom: 0.2rem;
-}
-.pvp-code-found__meta {
-  font-size: 0.78rem;
-  color: var(--text-3);
-}
+.pvp-code-found__title { font-size: 0.88rem; font-weight: 700; margin-bottom: 0.2rem; }
+.pvp-code-found__meta  { font-size: 0.78rem; color: var(--text-3); }
 
-/* ── PvP — pulsanti nelle card ────────────────────────────── */
+/* ── PvP — card actions e pulsanti ───────────────────────── */
 .challenge-card__actions {
   display: flex;
   flex-wrap: wrap;
@@ -681,7 +432,6 @@ css
   margin-top: 0.65rem;
   align-items: center;
 }
-
 .pvp-btn {
   display: inline-flex;
   align-items: center;
@@ -696,26 +446,25 @@ css
   white-space: nowrap;
   flex-shrink: 0;
   transition: all var(--trans);
-  /* mai a piena larghezza */
   width: auto !important;
 }
 .pvp-btn:active { background: var(--surface-2); transform: scale(0.96); }
-
-.pvp-btn--primary {
-  background: var(--accent);
-  color: #fff;
-  border-color: var(--accent);
-}
+.pvp-btn--primary { background: var(--accent); color: #fff; border-color: var(--accent); }
 .pvp-btn--primary:active { background: var(--accent-dark); }
+.pvp-waiting { font-size: 0.82rem; color: var(--text-3); width: 100%; }
+.pvp-result  { font-size: 0.85rem; color: var(--success); font-weight: 600; width: 100%; }
 
-.pvp-waiting {
-  font-size: 0.82rem;
-  color: var(--text-3);
+/* ── PvP — box conferma vittoria ─────────────────────────── */
+.pvp-confirm-box {
+  background: rgba(220,38,38,0.07);
+  border: 1px solid rgba(220,38,38,0.25);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.75rem;
   width: 100%;
 }
-.pvp-result {
-  font-size: 0.85rem;
-  color: var(--success);
-  font-weight: 600;
-  width: 100%;
-}
+.pvp-confirm-msg { font-size: 0.85rem; color: var(--text); margin: 0 0 0.35rem 0; line-height: 1.4; }
+
+/* ── Badge colori (challenge status) ─────────────────────── */
+.badge--green  { background: rgba(22,163,74,0.15);  color: #4ade80; border: 1px solid rgba(22,163,74,0.3); }
+.badge--yellow { background: rgba(217,119,6,0.15);  color: #fbbf24; border: 1px solid rgba(217,119,6,0.3); }
+.badge--gray   { background: rgba(96,96,160,0.15);  color: var(--text-3); border: 1px solid var(--border); }
