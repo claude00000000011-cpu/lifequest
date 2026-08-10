@@ -3,8 +3,8 @@
  * Strategia: Cache-First per asset statici, Network-First per API.
  */
 
-const CACHE_NAME = 'lifequest-v1';
-const RUNTIME_CACHE = 'lifequest-runtime-v1';
+const CACHE_NAME = 'lifequest-v2';
+const RUNTIME_CACHE = 'lifequest-runtime-v2';
 
 // Asset da precachare all'installazione
 const PRECACHE_ASSETS = [
@@ -14,6 +14,7 @@ const PRECACHE_ASSETS = [
   './css/style.css',
   './css/components.css',
   './css/animations.css',
+  './css/additions.css',      // ← aggiunto
   './js/main.js',
   './js/config.js',
   './js/utils.js',
@@ -24,6 +25,7 @@ const PRECACHE_ASSETS = [
   './js/xp.js',
   './js/trophies.js',
   './js/modals.js',
+  './js/supabase.js',         // ← aggiunto
   './js/screens/home.js',
   './js/screens/quest.js',
   './js/screens/study.js',
@@ -40,7 +42,6 @@ const PRECACHE_ASSETS = [
   './assets/audio/levelup.mp3',
   './assets/audio/error.mp3',
 ];
-
 // ─── Install ──────────────────────────────────────────────────────────────────
 
 self.addEventListener('install', event => {
