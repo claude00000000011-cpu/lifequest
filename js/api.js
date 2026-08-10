@@ -218,12 +218,9 @@ export const Users = {
     return ok(data.map(toCamel));
   },
 
- async follow(userId, targetId) {
-    // ...
-    const [r1, r2] = await Promise.all([
-      supabase.from('users').update({ following: newFollowing }).eq('id', userId),
-      supabase.from('users').update({ followers: newFollowers }).eq('id', targetId),
-    ]);
+async follow(userId, targetId) {
+    const user   = DB.users[userId]   || {};
+    const target = DB.users[targetId] || {};
 
     const newFollowing = user.following?.includes(targetId)
       ? user.following
