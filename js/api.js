@@ -215,45 +215,34 @@ export const Users = {
     return ok(data.map(toCamel));
   },
 
-  // ── FOLLOW (corretto) ──────────────────────────────────────
-  // Prima aggiorna su Supabase, poi ricarica entrambi i profili
-  // dal cloud in modo che DB.users contenga i dati freschi.
   async follow(userId, targetId) {
     const user   = DB.users[userId]   || {};
     const target = DB.users[targetId] || {};
 
-    // Calcola i nuovi array (senza duplicati)
-    const newFollowing  = user.following?.includes(targetId)
+    const newFollowing = user.following?.includes(targetId)
       ? user.following
       : [...(user.following  || []), targetId];
-    const newFollowers  = target.followers?.includes(userId)
+    const newFollowers = target.followers?.includes(userId)
       ? target.followers
       : [...(target.followers || []), userId];
 
-    // Scrivi su Supabase
     const [r1, r2] = await Promise.all([
       supabase.from('users').update({ following: newFollowing }).eq('id', userId),
       supabase.from('users').update({ followers: newFollowers }).eq('id', targetId),
     ]);
 
-    if (r1.error || r2.error) {
-      // Fallback locale se Supabase non risponde
-      DB.users[userId]   = { ...user,   following: newFollowing };
-      DB.users[targetId] = { ...target, followers: newFollowers };
-      persist();
-      return ok(true);
-    }
+    // Aggiorna sempre DB locale (anche in caso di errore rete)
+    DB.users[userId]   = { ...user,   following: newFollowing };
+    DB.users[targetId] = { ...target, followers: newFollowers };
+    persist();
 
-    // Ricarica entrambi i profili dal cloud per avere i contatori aggiornati
-    await Promise.all([
-      Users.get(userId),
-      Users.get(targetId),
-    ]);
+    if (!r1.error && !r2.error) {
+      await Promise.all([Users.get(userId), Users.get(targetId)]);
+    }
 
     return ok(true);
   },
 
-  // ── UNFOLLOW (corretto) ────────────────────────────────────
   async unfollow(userId, targetId) {
     const user   = DB.users[userId]   || {};
     const target = DB.users[targetId] || {};
@@ -266,18 +255,13 @@ export const Users = {
       supabase.from('users').update({ followers: newFollowers }).eq('id', targetId),
     ]);
 
-    if (r1.error || r2.error) {
-      DB.users[userId]   = { ...user,   following: newFollowing };
-      DB.users[targetId] = { ...target, followers: newFollowers };
-      persist();
-      return ok(true);
-    }
+    DB.users[userId]   = { ...user,   following: newFollowing };
+    DB.users[targetId] = { ...target, followers: newFollowers };
+    persist();
 
-    // Ricarica entrambi i profili dal cloud
-    await Promise.all([
-      Users.get(userId),
-      Users.get(targetId),
-    ]);
+    if (!r1.error && !r2.error) {
+      await Promise.all([Users.get(userId), Users.get(targetId)]);
+    }
 
     return ok(true);
   },
@@ -373,12 +357,17 @@ export const Study = {
   async createExam(payload) {
     const { data, error } = await supabase
       .from('exams')
-      .insert({ user_id: CUR.id, name: payload.name, exam_date: payload.examDate || null, chapters: payload.chapters || [] })
+      .insert({
+        user_id:   CUR.id,
+        name:      payload.name,
+        exam_date: payload.examDate || null,
+        chapters:  [],
+      })
       .select()
       .single();
 
     if (error) {
-      const local = { id: uid(), userId: CUR.id, ...payload, createdAt: new Date().toISOString() };
+      const local = { id: uid(), userId: CUR.id, ...payload, chapters: [], createdAt: new Date().toISOString() };
       insert('exams', local);
       return ok(local);
     }
@@ -416,6 +405,97 @@ export const Study = {
     const s = toCamel(data);
     insert('studySessions', s);
     return ok(s);
+  },
+
+  // ── Capitoli ────────────────────────────────────────────────
+  async addChapter(examId, title) {
+    const chapter = {
+      id:        uid(),
+      examId,
+      title,
+      done:      false,
+      createdAt: new Date().toISOString(),
+    };
+
+    // Aggiorna array chapters nell'esame in Supabase
+    const exam = DB.exams.find(e => e.id === examId);
+    const newChapters = [...(exam?.chapters || []), chapter];
+
+    const { error } = await supabase
+      .from('exams')
+      .update({ chapters: newChapters })
+      .eq('id', examId);
+
+    update('exams', examId, { chapters: newChapters });
+    if (error) { persist(); }
+    return ok(chapter);
+  },
+
+  async toggleChapter(examId, chapterId) {
+    const exam = DB.exams.find(e => e.id === examId);
+    if (!exam) return fail('Esame non trovato');
+
+    const newChapters = (exam.chapters || []).map(c =>
+      c.id === chapterId ? { ...c, done: !c.done } : c
+    );
+
+    await supabase.from('exams').update({ chapters: newChapters }).eq('id', examId);
+    update('exams', examId, { chapters: newChapters });
+    return ok(true);
+  },
+
+  async deleteChapter(examId, chapterId) {
+    const exam = DB.exams.find(e => e.id === examId);
+    if (!exam) return fail('Esame non trovato');
+
+    const newChapters = (exam.chapters || []).filter(c => c.id !== chapterId);
+    await supabase.from('exams').update({ chapters: newChapters }).eq('id', examId);
+    update('exams', examId, { chapters: newChapters });
+    return ok(true);
+  },
+
+  // ── Nozioni ─────────────────────────────────────────────────
+  async addConcept(examId, text) {
+    const concept = {
+      id:        uid(),
+      examId,
+      userId:    CUR.id,
+      text,
+      createdAt: new Date().toISOString(),
+    };
+    insert('concepts', concept);
+
+    // Prova a salvare su Supabase (tabella concepts, opzionale)
+    supabase.from('concepts')
+      .insert({ id: concept.id, exam_id: examId, user_id: CUR.id, text, created_at: concept.createdAt })
+      .then(({ error }) => { if (error) console.warn('[Study] concept sync:', error.message); });
+
+    return ok(concept);
+  },
+
+  async deleteConcept(conceptId) {
+    remove('concepts', conceptId);
+    await supabase.from('concepts').delete().eq('id', conceptId);
+    return ok(true);
+  },
+
+  async getConcepts(examId) {
+    const { data, error } = await supabase
+      .from('concepts')
+      .select('*')
+      .eq('exam_id', examId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      return ok(DB.concepts.filter(c => c.examId === examId));
+    }
+
+    const concepts = data.map(toCamel);
+    // Merge in DB locale senza duplicati
+    const existing = new Set(DB.concepts.map(c => c.id));
+    concepts.forEach(c => { if (!existing.has(c.id)) DB.concepts.push(c); });
+    persist();
+    return ok(concepts);
   },
 };
 
@@ -522,6 +602,81 @@ export const Books = {
     const book = toCamel(data);
     insert('globalBooks', book);
     return ok(book);
+  },
+
+  // ── Note libro personali ─────────────────────────────────────
+  async addNote(bookId, text) {
+    const note = {
+      id:        uid(),
+      bookId,
+      userId:    CUR.id,
+      text,
+      createdAt: new Date().toISOString(),
+    };
+    insert('bookNotes', note);
+
+    supabase.from('book_notes')
+      .insert({ id: note.id, book_id: bookId, user_id: CUR.id, text, created_at: note.createdAt })
+      .then(({ error }) => { if (error) console.warn('[Books] note sync:', error.message); });
+
+    return ok(note);
+  },
+
+  async deleteNote(noteId) {
+    remove('bookNotes', noteId);
+    await supabase.from('book_notes').delete().eq('id', noteId);
+    return ok(true);
+  },
+
+  async getNotes(bookId) {
+    const { data, error } = await supabase
+      .from('book_notes')
+      .select('*')
+      .eq('book_id', bookId)
+      .eq('user_id', CUR.id)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      return ok((DB.bookNotes || []).filter(n => n.bookId === bookId && n.userId === CUR.id));
+    }
+
+    const notes = data.map(toCamel);
+    if (!DB.bookNotes) DB.bookNotes = [];
+    const existing = new Set(DB.bookNotes.map(n => n.id));
+    notes.forEach(n => { if (!existing.has(n.id)) DB.bookNotes.push(n); });
+    persist();
+    return ok(notes);
+  },
+
+  // ── Lettori per libro (catalogo globale) ─────────────────────
+  async getReadersOfBook(globalBookId) {
+    // Cerca tutti gli utenti che hanno questo libro (per titolo, via join)
+    const gb = DB.globalBooks.find(b => b.id === globalBookId);
+    if (!gb) return ok([]);
+
+    const { data, error } = await supabase
+      .from('books')
+      .select('user_id, title, author')
+      .ilike('title', gb.title)
+      .neq('user_id', CUR.id);
+
+    if (error) {
+      // Fallback locale
+      const readers = Object.values(DB.users).filter(u =>
+        u.id !== CUR.id &&
+        DB.books.some(b => b.userId === u.id && b.title.toLowerCase() === gb.title.toLowerCase())
+      );
+      return ok(readers);
+    }
+
+    const userIds = [...new Set(data.map(r => r.user_id))];
+    const readers = await Promise.all(userIds.map(async id => {
+      if (DB.users[id]) return DB.users[id];
+      const { ok: o, data: u } = await Users.get(id);
+      return o ? u : null;
+    }));
+
+    return ok(readers.filter(Boolean));
   },
 };
 
@@ -704,7 +859,7 @@ export const Feed = {
       category:  payload.category || null,
       xp_earned: payload.xpEarned || 0,
       likes:     [],
-      lang:      'it',
+      lang:      CUR.languages?.[0]?.slice(0, 2).toLowerCase() || 'it',
       ref_type:  payload.refType || null,
       ref_id:    payload.refId || null,
     };
@@ -760,6 +915,24 @@ export const Feed = {
     const c = { ...toCamel(data), username: CUR.username };
     insert('comments', c);
     return ok(c);
+  },
+
+  async deleteComment(commentId) {
+    const { error } = await supabase.from('comments').delete().eq('id', commentId);
+    remove('comments', commentId);
+    if (error) return fail(error.message);
+    return ok(true);
+  },
+
+  async deletePost(postId) {
+    // Elimina anche i commenti del post
+    await supabase.from('comments').delete().eq('post_id', postId);
+    DB.comments = DB.comments.filter(c => c.postId !== postId);
+
+    const { error } = await supabase.from('feed_posts').delete().eq('id', postId);
+    remove('feedPosts', postId);
+    if (error) return fail(error.message);
+    return ok(true);
   },
 };
 
@@ -826,6 +999,12 @@ export const Discussions = {
     return ok(data.map(r => ({ ...toCamel(r), username: DB.users[r.user_id]?.username || 'Utente' })));
   },
 
+  async deleteReply(replyId) {
+    await supabase.from('discussion_replies').delete().eq('id', replyId);
+    remove('discussionReplies', replyId);
+    return ok(true);
+  },
+
   async toggleLike(discussionId, userId) {
     const disc = findById('discussions', discussionId);
     const liked = disc?.likes?.includes(userId);
@@ -857,17 +1036,21 @@ export const Moderation = {
 
 export async function syncCloudDataOnLogin(userId) {
   try {
-    const [quests, books, sessions, exams] = await Promise.all([
+    const [quests, books, sessions, exams, concepts, bookNotes] = await Promise.all([
       supabase.from('quests').select('*').eq('user_id', userId),
       supabase.from('books').select('*').eq('user_id', userId),
       supabase.from('study_sessions').select('*').eq('user_id', userId),
       supabase.from('exams').select('*').eq('user_id', userId),
+      supabase.from('concepts').select('*').eq('user_id', userId),
+      supabase.from('book_notes').select('*').eq('user_id', userId),
     ]);
 
-    if (quests.data)   DB.quests        = quests.data.map(toCamel);
-    if (books.data)    DB.books         = books.data.map(toCamel);
-    if (sessions.data) DB.studySessions = sessions.data.map(toCamel);
-    if (exams.data)    DB.exams         = exams.data.map(toCamel);
+    if (quests.data)    DB.quests        = quests.data.map(toCamel);
+    if (books.data)     DB.books         = books.data.map(toCamel);
+    if (sessions.data)  DB.studySessions = sessions.data.map(toCamel);
+    if (exams.data)     DB.exams         = exams.data.map(toCamel);
+    if (concepts.data)  DB.concepts      = concepts.data.map(toCamel);
+    if (bookNotes.data) DB.bookNotes     = bookNotes.data.map(toCamel);
 
     persist();
   } catch (e) {
