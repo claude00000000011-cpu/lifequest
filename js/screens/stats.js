@@ -137,6 +137,23 @@ function renderMyStats() {
       <button onclick="window._openLangsModal?.()">✏️ Modifica</button>
     </div>
 
+<h3 class="section-title">🔒 Privacy</h3>
+    <div class="privacy-section" style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:1rem">
+      <p style="font-size:0.82rem;color:var(--text-3);margin-bottom:0.75rem">
+        Scegli cosa non vuoi mostrare nel feed pubblico:
+      </p>
+      ${['lettura','studio','routine','quest','sfide'].map(cat => {
+        const hidden = (user.privacySettings?.hiddenCategories || []).includes(cat);
+        const labels = { lettura:'📖 Attività libri', studio:'📚 Attività studio', routine:'⚡ Routine', quest:'⚔️ Quest', sfide:'🏆 Sfide PvP' };
+        return `
+          <label class="toggle-row" style="margin-bottom:0.5rem">
+            <span style="font-size:0.88rem">${labels[cat]}</span>
+            <input type="checkbox" ${hidden ? 'checked' : ''}
+                   onchange="window._togglePrivacyCategory?.('${cat}', this.checked)">
+          </label>`;
+      }).join('')}
+    </div>
+
     <div class="profile-actions">
       <label class="toggle-row">
         <span>Profilo pubblico</span>
@@ -363,4 +380,21 @@ window._toggleLanguage = async function(lang) {
 window._doLogout = async function() {
   const { doLogout } = await import('../auth.js');
   doLogout();
+
+
+window._togglePrivacyCategory = async function(category, hide) {
+  const user = DB.users[CUR.id] || {};
+  const current = user.privacySettings?.hiddenCategories || [];
+  const next = hide
+    ? [...new Set([...current, category])]
+    : current.filter(c => c !== category);
+
+  const privacySettings = { ...(user.privacySettings || {}), hiddenCategories: next };
+  DB.users[CUR.id].privacySettings = privacySettings;
+
+  await Users.update(CUR.id, { privacySettings });
+  toast(hide ? `Attività "${category}" nascoste dal feed` : `Attività "${category}" visibili`, 'success');
+
+  
 };
+
