@@ -876,18 +876,70 @@ export const Feed = {
     return ok(p);
   },
 
+
+
+
+
+  
   async toggleLike(postId, userId) {
-    const post = findById('feedPosts', postId);
-    const liked = post?.likes?.includes(userId);
+  console.log('[toggleLike] postId:', postId);
+  console.log('[toggleLike] feedPosts in DB:', DB.feedPosts.map(p => p.id));
+  
+  const post = findById('feedPosts', postId);
+  console.log('[toggleLike] post trovato:', post);
+  
+  if (!post) {
+    // Post non in DB locale — aggiorna direttamente Supabase
+    const { data: freshPost } = await supabase
+      .from('feed_posts')
+      .select('likes')
+      .eq('id', postId)
+      .single();
+      
+    if (!freshPost) return fail('Post non trovato');
+    
+    const liked = freshPost.likes?.includes(userId);
     const likes = liked
-      ? (post.likes || []).filter(id => id !== userId)
-      : [...(post?.likes || []), userId];
+      ? (freshPost.likes || []).filter(id => id !== userId)
+      : [...(freshPost.likes || []), userId];
 
-    await supabase.from('feed_posts').update({ likes }).eq('id', postId);
-    update('feedPosts', postId, { likes });
+    const { error } = await supabase
+      .from('feed_posts')
+      .update({ likes })
+      .eq('id', postId);
+
+    if (error) return fail(error.message);
     return ok({ liked: !liked, count: likes.length });
-  },
+  }
 
+  const liked = post?.likes?.includes(userId);
+  const likes = liked
+    ? (post.likes || []).filter(id => id !== userId)
+    : [...(post?.likes || []), userId];
+
+  const { error } = await supabase
+    .from('feed_posts')
+    .update({ likes })
+    .eq('id', postId);
+
+  if (error) {
+    console.error('[toggleLike] Supabase error:', error);
+    return fail(error.message);
+  }
+
+  update('feedPosts', postId, { likes });
+  return ok({ liked: !liked, count: likes.length });
+},
+
+
+
+
+
+
+
+
+
+  
   async getComments(postId) {
     const { data, error } = await supabase
       .from('comments')
