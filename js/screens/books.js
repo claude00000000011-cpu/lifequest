@@ -543,7 +543,7 @@ window._deleteBook = async function(bookId) {
 
   // Sync Supabase
   try {
-    const { supabase } = await import('../supabase.js');
+    const { supabase } = await import('../../supabase.js');
     await supabase.from('books').delete().eq('id', bookId);
     await supabase.from('book_notes').delete().eq('book_id', bookId);
     await supabase.from('reading_sessions').delete().eq('book_id', bookId);
