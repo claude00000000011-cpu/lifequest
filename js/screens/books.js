@@ -112,10 +112,13 @@ async function renderBookScreen(bookId, container) {
 
   const xpPerPage = (2 * (BOOK_DIFF_BONUS[(book.difficulty || 1) - 1] || 1)).toFixed(1);
 
-  // Sessioni di lettura di questo libro
-  const sessions = (DB.readingSessions || [])
-    .filter(s => s.bookId === bookId)
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  // Carica sessioni da Supabase
+await Books.getReadingSessions(bookId);
+
+// Sessioni di lettura di questo libro
+const sessions = (DB.readingSessions || [])
+  .filter(s => s.bookId === bookId)
+  .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   // Note
   await Books.getNotes(bookId);
