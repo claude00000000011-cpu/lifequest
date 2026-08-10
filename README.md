@@ -1,9 +1,9 @@
 LifeQuest -
-Guida all'utilizzo
+Guida all'utilizzo -
 LifeQuest trasforma le attività della vita quotidiana in un gioco di ruolo. Studiando, leggendo, completando obiettivi, mantenendo le proprie routine e partecipando alle sfide con altri utenti si ottengono XP, si sale di livello, si migliorano le proprie statistiche e si sbloccano trofei.
 L'app è organizzata in diverse sezioni accessibili dalla barra di navigazione in basso.
 
-1. Registrazione e accesso
+1. Registrazione e accesso -
 Al primo accesso è possibile creare un account oppure effettuare il login.
 Per registrarsi servono
 
