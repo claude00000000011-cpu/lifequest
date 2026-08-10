@@ -535,22 +535,25 @@ window._markBookDone = async function(bookId, auto = false) {
 window._deleteBook = async function(bookId) {
   if (!confirm('Rimuovere questo libro e tutte le sue note?')) return;
 
-  const { remove: rm, persist: p } = await import('../db.js');
-  rm('books', bookId);
+  // Rimuovi dal DB locale
+  DB.books = DB.books.filter(b => b.id !== bookId);
   if (DB.bookNotes)       DB.bookNotes       = DB.bookNotes.filter(n => n.bookId !== bookId);
   if (DB.readingSessions) DB.readingSessions = DB.readingSessions.filter(s => s.bookId !== bookId);
-  p();
+  persist();
 
   // Sync Supabase
-  import('../supabase.js').then(({ supabase }) => {
-    supabase.from('books').delete().eq('id', bookId);
-    supabase.from('book_notes').delete().eq('book_id', bookId);
-    supabase.from('reading_sessions').delete().eq('book_id', bookId);
-  }).catch(() => {});
+  try {
+    const { supabase } = await import('../supabase.js');
+    await supabase.from('books').delete().eq('id', bookId);
+    await supabase.from('book_notes').delete().eq('book_id', bookId);
+    await supabase.from('reading_sessions').delete().eq('book_id', bookId);
+  } catch(e) {}
 
   _currentBookId = null;
   playSound('tap');
   toast('Libro rimosso', 'info');
-  const { renderLibri } = await import('./libri.js');
-  await renderLibri();
+
+  // Torna alla lista usando i dati locali già aggiornati (senza ricaricare da Supabase)
+  const { switchLibriTab } = await import('./libri.js');
+  switchLibriTab('mylibrary');
 };
