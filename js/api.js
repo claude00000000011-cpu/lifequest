@@ -234,6 +234,12 @@ async follow(userId, targetId) {
       supabase.from('users').update({ followers: newFollowers }).eq('id', targetId),
     ]);
 
+    // LOG TEMPORANEO
+    console.log('[follow] r1 error:', r1.error);
+    console.log('[follow] r2 error:', r2.error);
+    console.log('[follow] newFollowers:', newFollowers);
+    console.log('[follow] targetId:', targetId);
+
     DB.users[userId]   = { ...user,   following: newFollowing };
     DB.users[targetId] = { ...target, followers: newFollowers };
     persist();
