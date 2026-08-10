@@ -205,12 +205,14 @@ window._joinByCode = async function() {
   if (!challenge) {
     try {
       const { supabase } = await import('../supabase.js');
-      const { data, error } = await supabase
-        .from('challenges')
-        .select('*')
-        .eq('join_code', raw)        // Supabase confronta come testo
-        .eq('status', 'open')
-        .maybeSingle();
+const { data: rows, error } = await supabase
+  .from('challenges')
+  .select('*')
+  .eq('join_code', raw)
+  .eq('status', 'open')
+  .limit(1);
+
+const data = rows?.[0] || null;
 
       if (error) console.warn('[PvP] Supabase search error:', error.message);
 
