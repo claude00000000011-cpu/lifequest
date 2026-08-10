@@ -779,7 +779,6 @@ export const Routines = {
 };
 
 // ── Challenges ───────────────────────────────────────────────
-
 export const Challenges = {
   async list(userId) {
     const { data, error } = await supabase
@@ -787,9 +786,7 @@ export const Challenges = {
       .select('*')
       .or(`creator_id.eq.${userId},opponent_id.eq.${userId}`)
       .order('created_at', { ascending: false });
-
     if (error) return ok(DB.challenges.filter(c => c.creatorId === userId || c.opponentId === userId));
-
     const challenges = data.map(toCamel);
     DB.challenges = [
       ...DB.challenges.filter(c => c.creatorId !== userId && c.opponentId !== userId),
@@ -806,36 +803,24 @@ export const Challenges = {
       .eq('is_public', true)
       .eq('status', 'open')
       .order('created_at', { ascending: false });
-
     if (error) return ok(DB.challenges.filter(c => c.isPublic && c.status === 'open'));
     return ok(data.map(toCamel));
   },
 
+  async findByCode(code) {
+    const { data, error } = await supabase
+      .from('challenges')
+      .select('*')
+      .eq('join_code', code)
+      .eq('status', 'open')
+      .limit(1);
+    if (error || !data?.length) return fail('Sfida non trovata');
+    const c = toCamel(data[0]);
+    if (!DB.challenges.find(x => x.id === c.id)) DB.challenges.push(c);
+    persist();
+    return ok(c);
+  },
 
-
-
-async findByCode(code) {
-  const { data, error } = await supabase
-    .from('challenges')
-    .select('*')
-    .eq('join_code', code)
-    .eq('status', 'open')
-    .limit(1);
-
-  if (error || !data?.length) return fail('Sfida non trovata');
-
-  const c = toCamel(data[0]);
-  if (!DB.challenges.find(x => x.id === c.id)) DB.challenges.push(c);
-  return ok(c);
-},
-
-
-
-
-
-
-
-  
   async create(payload) {
     const challenge = {
       creator_id: CUR.id,
@@ -848,14 +833,12 @@ async findByCode(code) {
       expires_at: payload.expiresAt || null,
       status:     'open',
     };
-
     const { data, error } = await supabase.from('challenges').insert(challenge).select().single();
     if (error) {
       const local = { id: uid(), createdAt: new Date().toISOString(), ...toCamel(challenge) };
       insert('challenges', local);
       return ok(local);
     }
-
     const c = toCamel(data);
     insert('challenges', c);
     return ok(c);
@@ -864,28 +847,56 @@ async findByCode(code) {
   async join(challengeId, userId) {
     const { data, error } = await supabase
       .from('challenges')
-      .update({ opponent_id: userId, status: 'active' })
+      .update({ opponent_id: userId, status: 'active', joined_at: new Date().toISOString() })
       .eq('id', challengeId)
       .select()
       .single();
-
     if (error) return fail(error.message);
     const c = toCamel(data);
-    update('challenges', challengeId, { opponentId: userId, status: 'active' });
+    update('challenges', challengeId, {
+      opponentId: userId,
+      status:     'active',
+      joinedAt:   c.joinedAt,
+    });
     return ok(c);
   },
 
+  // Dichiara il vincitore provvisorio — aspetta conferma dell'avversario
+  async claimWinner(challengeId, claimedWinnerId) {
+    // Ottimistic update locale immediato
+    update('challenges', challengeId, { claimedWinnerId });
+
+    const { error } = await supabase
+      .from('challenges')
+      .update({ claimed_winner_id: claimedWinnerId })
+      .eq('id', challengeId);
+    if (error) {
+      // Rollback
+      update('challenges', challengeId, { claimedWinnerId: null });
+      return fail(error.message);
+    }
+    return ok(null);
+  },
+
+  // Chiude la sfida con il vincitore definitivo (o pareggio se winnerId è null)
   async declareWinner(challengeId, winnerId) {
     const { data, error } = await supabase
       .from('challenges')
-      .update({ winner_id: winnerId, status: 'completed' })
+      .update({
+        winner_id:         winnerId,
+        status:            'completed',
+        claimed_winner_id: null,   // pulisce la claim provvisoria
+      })
       .eq('id', challengeId)
       .select()
       .single();
-
     if (error) return fail(error.message);
     const c = toCamel(data);
-    update('challenges', challengeId, { winnerId, status: 'completed' });
+    update('challenges', challengeId, {
+      winnerId:        c.winnerId,
+      status:          'completed',
+      claimedWinnerId: null,
+    });
     return ok(c);
   },
 };
