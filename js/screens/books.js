@@ -1,16 +1,18 @@
 // ============================================================
-// screens/books.js — Libreria personale, sessioni, note
+// screens/books.js — Libreria personale, segnalibro, note, autocomplete
 // ============================================================
 
-import { CUR, DB } from '../db.js';
+import { CUR, DB, persist } from '../db.js';
 import { Books, Feed } from '../api.js';
 import { awardXP } from '../xp.js';
-import { escHtml, diffStars, toast, pickImage } from '../utils.js';
+import { escHtml, diffStars, toast, debounce } from '../utils.js';
 import { playSound } from '../audio.js';
 import { openModal, closeModal } from '../modals.js';
 import { XP_BOOK_PER_PAGE, BOOK_DIFF_BONUS, BOOK_GENRE_STAT } from '../config.js';
 
-let _openBookId = null;  // quale libro ha il dettaglio aperto
+let _openBookId = null;
+
+// ── Render principale ─────────────────────────────────────────
 
 export async function renderBooks() {
   if (!CUR) return;
@@ -32,31 +34,25 @@ export async function renderBooks() {
       <h2>I miei Libri</h2>
       <button class="btn-add" onclick="window._openAddBookModal?.()">+ Libro</button>
     </div>
-
     ${!list.length ? `<div class="empty-state">
-      Nessun libro ancora. Aggiungine uno con il tasto +!<br>
-      <small style="color:var(--text-3)">Puoi anche trovare libri nel catalogo globale (tab Libri)</small>
+      Nessun libro ancora.<br>
+      <small style="color:var(--text-3)">Premi + per aggiungerne uno!</small>
     </div>` : ''}
-
     ${reading.length ? `
       <h3 class="section-title">📖 In lettura (${reading.length})</h3>
-      <div class="book-list">
-        ${reading.map(b => bookCard(b, false)).join('')}
-      </div>` : ''}
-
+      <div class="book-list">${reading.map(b => bookCard(b, false)).join('')}</div>` : ''}
     ${completed.length ? `
       <h3 class="section-title">✅ Completati (${completed.length})</h3>
-      <div class="book-list book-list--done">
-        ${completed.map(b => bookCard(b, true)).join('')}
-      </div>` : ''}
+      <div class="book-list book-list--done">${completed.map(b => bookCard(b, true)).join('')}</div>` : ''}
   `;
 
-  // Apri il dettaglio se era aperto prima del refresh
   if (_openBookId) {
-    const el = document.getElementById(`book-detail-${_openBookId}`);
-    if (el) el.style.display = 'block';
+    const detail = document.getElementById(`book-detail-${_openBookId}`);
+    if (detail) detail.style.display = 'block';
   }
 }
+
+// ── Render card ───────────────────────────────────────────────
 
 function bookCard(book, done = false) {
   const pct = book.totalPages
@@ -70,7 +66,7 @@ function bookCard(book, done = false) {
   const isOpen = _openBookId === book.id;
 
   return `
-    <div class="book-card" id="book-card-${book.id}">
+    <div class="book-card ${isOpen ? 'book-card--open' : ''}" id="book-card-${book.id}">
       <div class="book-card__main" onclick="window._toggleBookDetail?.('${book.id}')">
         ${cover}
         <div class="book-card__body">
@@ -81,29 +77,46 @@ function bookCard(book, done = false) {
             <span>${diffStars(book.difficulty)}</span>
           </div>
           ${!done ? `
-            <div class="progress-bar">
+            <div class="progress-bar" style="margin-top:0.4rem">
               <div class="progress-bar__fill" style="width:${pct}%"></div>
             </div>
-            <p class="book-progress">${book.currentPage || 0}/${book.totalPages} pag. (${pct}%)</p>
-          ` : `<p class="book-progress">✅ ${book.totalPages} pagine — ${book.completedAt || ''}</p>`}
+            <p class="book-progress">${book.currentPage || 0}/${book.totalPages || '?'} pag. (${pct}%)</p>
+          ` : `<p class="book-progress">✅ Completato — ${book.completedAt || ''}</p>`}
         </div>
-        <span style="align-self:center;color:var(--text-3)">${isOpen ? '▲' : '▼'}</span>
+        <span style="align-self:center;color:var(--text-3);flex-shrink:0">${isOpen ? '▲' : '▼'}</span>
       </div>
 
-      <!-- DETTAGLIO LIBRO -->
-      <div id="book-detail-${book.id}" style="display:${isOpen ? 'block' : 'none'}">
+      <!-- DETTAGLIO -->
+      <div id="book-detail-${book.id}" class="book-detail" style="display:${isOpen ? 'block' : 'none'}">
+
+        <!-- Azioni principali -->
         <div class="book-actions-row">
           ${!done ? `
             <button class="btn-sm btn-primary" onclick="window._openReadingModal?.('${book.id}')">📖 Leggi</button>
             <button class="btn-sm" onclick="window._markBookDone?.('${book.id}')">✅ Finito</button>
           ` : ''}
-          <button class="btn-sm btn-danger" onclick="window._deleteBook?.('${book.id}')">🗑️</button>
+          <button class="btn-sm btn-danger" onclick="window._deleteBook?.('${book.id}')">🗑 Rimuovi</button>
         </div>
 
-        <!-- NOTE PERSONALI -->
+        <!-- Progress segnalibro -->
+        ${!done && book.totalPages ? `
+          <div class="reading-progress-card">
+            <div class="reading-progress-card__top">
+              <strong>📍 Pagina ${book.currentPage || 0} di ${book.totalPages}</strong>
+              <span class="reading-progress-card__pct">${pct}% completato</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-bar__fill" style="width:${pct}%"></div>
+            </div>
+            <div style="font-size:0.75rem;color:var(--text-3);margin-top:0.2rem">
+              +${(2 * (BOOK_DIFF_BONUS[book.difficulty - 1] || 1)).toFixed(1)} XP per pagina
+            </div>
+          </div>` : ''}
+
+        <!-- Note personali -->
         <div class="book-notes-section">
           <div class="exam-section__header">
-            <h4>📝 Le mie note</h4>
+            <h4>📝 Note personali</h4>
             <button class="btn-add-inline" onclick="window._openAddNoteInline?.('${book.id}')">+ Nota</button>
           </div>
           <div id="book-notes-${book.id}">
@@ -121,8 +134,7 @@ function bookCard(book, done = false) {
 
 function renderNotesList(bookId) {
   const notes = (DB.bookNotes || []).filter(n => n.bookId === bookId && n.userId === CUR.id);
-  if (!notes.length) return `<p class="empty-mini">Nessuna nota ancora. Aggiungine una!</p>`;
-
+  if (!notes.length) return `<p class="empty-mini">Nessuna nota. Aggiungine una!</p>`;
   return `<div class="notes-list">
     ${notes.map(n => `
       <div class="note-item" data-note-id="${n.id}">
@@ -138,11 +150,20 @@ function renderNotesList(bookId) {
 // ── Azioni ────────────────────────────────────────────────────
 
 window._toggleBookDetail = async function(bookId) {
+  _openBookId = (_openBookId === bookId) ? null : bookId;
+
+  document.querySelectorAll('[id^="book-detail-"]').forEach(el => {
+    const id = el.id.replace('book-detail-', '');
+    el.style.display = (id === bookId && _openBookId === bookId) ? 'block' : 'none';
+  });
+  document.querySelectorAll('[id^="book-card-"]').forEach(card => {
+    const id = card.id.replace('book-card-', '');
+    card.classList.toggle('book-card--open', id === bookId && _openBookId === bookId);
+    const chevron = card.querySelector('.book-card__main > span:last-child');
+    if (chevron) chevron.textContent = (id === bookId && _openBookId === bookId) ? '▲' : '▼';
+  });
+
   if (_openBookId === bookId) {
-    _openBookId = null;
-  } else {
-    _openBookId = bookId;
-    // Carica note dal cloud in background
     Books.getNotes(bookId).then(({ ok, data }) => {
       if (ok) {
         const el = document.getElementById(`book-notes-${bookId}`);
@@ -150,40 +171,23 @@ window._toggleBookDetail = async function(bookId) {
       }
     });
   }
-  // Toggle display senza ri-renderizzare tutto
-  document.querySelectorAll('[id^="book-detail-"]').forEach(el => {
-    const id = el.id.replace('book-detail-', '');
-    el.style.display = id === bookId && _openBookId === bookId ? 'block' : 'none';
-  });
-  // Aggiorna chevron
-  document.querySelectorAll('[id^="book-card-"]').forEach(card => {
-    const id = card.id.replace('book-card-', '');
-    const chevron = card.querySelector('span[style*="align-self"]');
-    if (chevron) chevron.textContent = (id === bookId && _openBookId === bookId) ? '▲' : '▼';
-  });
 };
 
 window._openAddNoteInline = function(bookId) {
   const row = document.getElementById(`note-input-${bookId}`);
-  if (row) {
-    row.style.display = 'flex';
-    document.getElementById(`note-text-${bookId}`)?.focus();
-  }
+  if (row) { row.style.display = 'flex'; document.getElementById(`note-text-${bookId}`)?.focus(); }
 };
 
 window._addBookNote = async function(bookId) {
   const input = document.getElementById(`note-text-${bookId}`);
   const text  = input?.value.trim();
   if (!text) return;
-
   const { ok } = await Books.addNote(bookId, text);
   if (!ok) return toast('Errore nel salvataggio', 'error');
-
   input.value = '';
   document.getElementById(`note-input-${bookId}`).style.display = 'none';
   playSound('tap');
   toast('Nota salvata! 📝', 'success');
-
   const el = document.getElementById(`book-notes-${bookId}`);
   if (el) el.innerHTML = renderNotesList(bookId);
 };
@@ -196,14 +200,11 @@ window._deleteBookNote = async function(noteId, bookId) {
 };
 
 window._deleteBook = async function(bookId) {
-  if (!confirm('Eliminare questo libro e tutte le sue note?')) return;
-  const { remove } = await import('../db.js');
-  remove('books', bookId);
-  // Rimuovi note locali
+  if (!confirm('Rimuovere questo libro e tutte le sue note?')) return;
+  const { remove: rm, persist: p } = await import('../db.js');
+  rm('books', bookId);
   if (DB.bookNotes) DB.bookNotes = DB.bookNotes.filter(n => n.bookId !== bookId);
-  const { persist } = await import('../db.js');
-  persist();
-  // Sync cloud
+  p();
   const { supabase } = await import('../supabase.js').catch(() => ({ supabase: null }));
   if (supabase) {
     supabase.from('books').delete().eq('id', bookId);
@@ -215,7 +216,111 @@ window._deleteBook = async function(bookId) {
   renderBooks();
 };
 
-window._openAddBookModal = function() { openModal('modal-add-book'); };
+// ── Aggiungi libro con autocomplete ───────────────────────────
+
+window._openAddBookModal = async function() {
+  // Pre-carica catalogo globale per autocomplete
+  if (!DB.globalBooks?.length) await Books.getGlobalCatalog();
+  openModal('modal-add-book');
+
+  // Attiva autocomplete dopo apertura modale
+  setTimeout(() => {
+    setupBookAutocomplete('book-title', 'book-author', 'book-title-dropdown');
+    setupAuthorAutocomplete('book-author', 'book-author-dropdown');
+  }, 150);
+};
+
+function setupBookAutocomplete(titleId, authorId, dropdownId) {
+  const input = document.getElementById(titleId);
+  if (!input) return;
+
+  // Crea wrapper se non esiste
+  if (!document.getElementById(dropdownId)) {
+    const wrap = input.parentNode;
+    wrap.style.position = 'relative';
+    const dd = document.createElement('div');
+    dd.id = dropdownId;
+    dd.className = 'autocomplete-dropdown';
+    dd.style.display = 'none';
+    wrap.appendChild(dd);
+  }
+
+  input.addEventListener('input', debounce(() => {
+    const q   = input.value.trim().toLowerCase();
+    const dd  = document.getElementById(dropdownId);
+    if (!dd) return;
+
+    if (q.length < 2) { dd.style.display = 'none'; return; }
+
+    const matches = (DB.globalBooks || []).filter(b =>
+      b.title?.toLowerCase().includes(q)
+    ).slice(0, 8);
+
+    if (!matches.length) { dd.style.display = 'none'; return; }
+
+    dd.style.display = 'block';
+    dd.innerHTML = matches.map(b => `
+      <div class="autocomplete-item" onclick="window._selectBookFromCatalog?.('${b.id}')">
+        <strong>${escHtml(b.title)}</strong>
+        <span>${escHtml(b.author || '—')} · ${escHtml(b.genre || '')}</span>
+      </div>`).join('');
+  }, 200));
+
+  // Chiudi dropdown cliccando fuori
+  document.addEventListener('click', e => {
+    const dd = document.getElementById(dropdownId);
+    if (dd && !dd.contains(e.target) && e.target !== input) dd.style.display = 'none';
+  }, { once: false });
+}
+
+function setupAuthorAutocomplete(authorId, dropdownId) {
+  const input = document.getElementById(authorId);
+  if (!input) return;
+
+  if (!document.getElementById(dropdownId)) {
+    const wrap = input.parentNode;
+    wrap.style.position = 'relative';
+    const dd = document.createElement('div');
+    dd.id = dropdownId;
+    dd.className = 'autocomplete-dropdown';
+    dd.style.display = 'none';
+    wrap.appendChild(dd);
+  }
+
+  input.addEventListener('input', debounce(() => {
+    const q  = input.value.trim().toLowerCase();
+    const dd = document.getElementById(dropdownId);
+    if (!dd || q.length < 2) { if (dd) dd.style.display = 'none'; return; }
+
+    const authors = [...new Set(
+      (DB.globalBooks || [])
+        .map(b => b.author)
+        .filter(a => a?.toLowerCase().includes(q))
+    )].slice(0, 6);
+
+    if (!authors.length) { dd.style.display = 'none'; return; }
+
+    dd.style.display = 'block';
+    dd.innerHTML = authors.map(a => `
+      <div class="autocomplete-item" onclick="document.getElementById('${authorId}').value='${escHtml(a)}';this.parentNode.style.display='none'">
+        <strong>${escHtml(a)}</strong>
+      </div>`).join('');
+  }, 200));
+}
+
+window._selectBookFromCatalog = function(globalBookId) {
+  const gb = DB.globalBooks.find(b => b.id === globalBookId);
+  if (!gb) return;
+  const titleEl  = document.getElementById('book-title');
+  const authorEl = document.getElementById('book-author');
+  const genreEl  = document.getElementById('book-genre');
+  if (titleEl)  titleEl.value  = gb.title;
+  if (authorEl) authorEl.value = gb.author || '';
+  if (genreEl)  genreEl.value  = gb.genre  || 'narrativa';
+  // Chiudi dropdown
+  const dd = document.getElementById('book-title-dropdown');
+  if (dd) dd.style.display = 'none';
+};
 
 window._addBook = async function() {
   const title      = document.getElementById('book-title')?.value.trim();
@@ -227,50 +332,71 @@ window._addBook = async function() {
   if (!title)      return toast('Inserisci il titolo', 'error');
   if (!totalPages) return toast('Inserisci il numero di pagine', 'error');
 
+  // Aggiungi al catalogo globale se non esiste già
+  const exists = (DB.globalBooks || []).some(b =>
+    b.title?.toLowerCase() === title.toLowerCase());
+  if (!exists) {
+    await Books.addToGlobalCatalog({ title, author, genre });
+  }
+
   const { ok, error } = await Books.create({ title, author, genre, difficulty, totalPages });
   if (!ok) return toast(error || 'Errore', 'error');
 
   playSound('quest');
-  toast('Libro aggiunto! 📖', 'success');
+  toast(`"${title}" aggiunto! 📖`, 'success');
   closeModal('modal-add-book');
-  document.getElementById('book-title').value = '';
-  document.getElementById('book-author').value = '';
-  document.getElementById('book-pages').value = '';
+  ['book-title','book-author','book-pages'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
   renderBooks();
 };
 
+// ── Modal lettura (segnalibro) ────────────────────────────────
+
 window._openReadingModal = function(bookId) {
+  const book = DB.books.find(b => b.id === bookId);
+  if (!book) return;
+
   const el = document.getElementById('reading-book-id');
   if (el) el.value = bookId;
 
-  // Mostra il nome del libro nel modal
-  const book = DB.books.find(b => b.id === bookId);
   const labelEl = document.getElementById('reading-book-name');
-  if (labelEl && book) labelEl.textContent = book.title;
+  if (labelEl) labelEl.textContent = `"${book.title}" — pagina attuale: ${book.currentPage || 0}/${book.totalPages}`;
+
+  // Aggiorna placeholder dell'input pagine
+  const pagesInput = document.getElementById('reading-pages');
+  if (pagesInput) {
+    pagesInput.placeholder = `es. ${Math.min((book.currentPage || 0) + 20, book.totalPages)}`;
+    pagesInput.max = book.totalPages;
+  }
 
   openModal('modal-log-reading');
 };
 
+// FIX segnalibro: le pagine inserite sono la pagina TARGET (fino a dove hai letto)
+// oppure il numero di pagine lette nella sessione. Usiamo "pagine lette nella sessione".
 window._logReading = async function() {
-  const bookId = document.getElementById('reading-book-id')?.value;
-  const pages  = parseInt(document.getElementById('reading-pages')?.value || '0');
+  const bookId   = document.getElementById('reading-book-id')?.value;
+  const pagesRaw = parseInt(document.getElementById('reading-pages')?.value || '0');
 
-  if (!pages || pages < 1) return toast('Inserisci le pagine lette', 'error');
+  if (!pagesRaw || pagesRaw < 1) return toast('Inserisci le pagine lette', 'error');
 
   const book = DB.books.find(b => b.id === bookId);
   if (!book) return toast('Libro non trovato', 'error');
 
-  const diffBonus = BOOK_DIFF_BONUS[book.difficulty - 1] || 1;
-  const baseXP    = Math.round(pages * XP_BOOK_PER_PAGE * diffBonus);
-  const statKey   = BOOK_GENRE_STAT[book.genre] || 'cultura';
-  const earned    = await awardXP(baseXP, statKey === 'cultura' ? 'lettura' : 'studio');
+  const diffBonus = BOOK_DIFF_BONUS[(book.difficulty || 1) - 1] || 1;
+  const baseXP    = Math.round(pagesRaw * XP_BOOK_PER_PAGE * diffBonus);
+  const statCat   = BOOK_GENRE_STAT[book.genre] ? 'lettura' : 'lettura';
+  const earned    = await awardXP(baseXP, statCat);
 
-  const newPage = Math.min(book.totalPages, (book.currentPage || 0) + pages);
+  // Aggiorna segnalibro: newPage = currentPage + pagesRead, capped a totalPages
+  const newPage = Math.min(book.totalPages || 9999, (book.currentPage || 0) + pagesRaw);
   await Books.updateProgress(bookId, newPage);
-  await Books.logReading({ bookId, pagesRead: pages, xpEarned: earned });
+  await Books.logReading({ bookId, pagesRead: pagesRaw, xpEarned: earned });
 
   await Feed.create({
-    content:  `📚 Letto ${pages} pagine di "${book.title}"`,
+    content:  `📚 Letto ${pagesRaw} pagine di "${book.title}" (p. ${newPage}/${book.totalPages})`,
     category: 'lettura',
     xpEarned: earned,
     refType:  'book',
@@ -278,11 +404,11 @@ window._logReading = async function() {
   });
 
   playSound('xp');
-  toast(`+${earned} XP — ${pages} pagine lette!`, 'success');
+  toast(`+${earned} XP — sei a pagina ${newPage}! 📍`, 'success');
   closeModal('modal-log-reading');
   document.getElementById('reading-pages').value = '';
 
-  if (newPage >= book.totalPages) {
+  if (newPage >= (book.totalPages || 0) && book.totalPages > 0) {
     await window._markBookDone?.(bookId, true);
   } else {
     renderBooks();
@@ -291,14 +417,12 @@ window._logReading = async function() {
 
 window._markBookDone = async function(bookId, auto = false) {
   if (!auto && !confirm('Segnare il libro come completato?')) return;
-
   const book = DB.books.find(b => b.id === bookId);
   if (!book) return;
-
   const { ok } = await Books.markDone(bookId);
   if (!ok) return toast('Errore', 'error');
 
-  const bonus  = Math.round(book.totalPages * 0.2);
+  const bonus  = Math.round((book.totalPages || 100) * 0.2);
   const earned = await awardXP(bonus, 'lettura');
 
   await Feed.create({
