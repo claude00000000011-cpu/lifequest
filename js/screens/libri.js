@@ -308,6 +308,9 @@ async function renderReaders() {
     return;
   }
 
+  const { data: allUsers } = await Users.getLeaderboard().catch(() => ({ data: [] }));
+  if (allUsers?.length) allUsers.forEach(u => { if (!DB.users[u.id]) DB.users[u.id] = u; });
+
   const myTitles = new Set(myBooks.map(b => b.title.toLowerCase()));
   const allLangs = [...new Set(Object.values(DB.users).flatMap(u => u.languages || []))].filter(Boolean);
 
