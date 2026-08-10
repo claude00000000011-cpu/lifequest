@@ -559,7 +559,7 @@ export const Books = {
     return ok(b);
   },
 
-  async logReading(payload) {
+ async logReading(payload) {
     const { data, error } = await supabase
       .from('reading_sessions')
       .insert({
@@ -571,18 +571,33 @@ export const Books = {
       })
       .select()
       .single();
-
     if (error) {
       const local = { id: uid(), userId: CUR.id, ...payload, readAt: today(), createdAt: new Date().toISOString() };
       insert('readingSessions', local);
       return ok(local);
     }
-
     const s = toCamel(data);
     insert('readingSessions', s);
     return ok(s);
   },
 
+  async getReadingSessions(bookId) {
+    const { data, error } = await supabase
+      .from('reading_sessions')
+      .select('*')
+      .eq('book_id', bookId)
+      .eq('user_id', CUR.id)
+      .order('created_at', { ascending: false });
+
+    if (error) return ok((DB.readingSessions || []).filter(s => s.bookId === bookId));
+
+    const sessions = data.map(toCamel);
+    if (!DB.readingSessions) DB.readingSessions = [];
+    const existing = new Set(DB.readingSessions.map(s => s.id));
+    sessions.forEach(s => { if (!existing.has(s.id)) DB.readingSessions.push(s); });
+    persist();
+    return ok(sessions);
+  },
   async getGlobalCatalog(query = '') {
     let q = supabase
       .from('global_books')
