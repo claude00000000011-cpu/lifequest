@@ -181,8 +181,6 @@ function challengeCard(c, isPublic) {
     </div>`;
 }
 
-// ── Cerca per codice ──────────────────────────────────────────
-
 window._joinByCode = async function() {
   const input    = document.getElementById('join-code-input');
   const resultEl = document.getElementById('join-code-result');
@@ -196,49 +194,15 @@ window._joinByCode = async function() {
 
   resultEl.innerHTML = `<p class="pvp-code-searching">🔍 Ricerca in corso…</p>`;
 
-  // 1. Cerca in locale (come stringa, per sicurezza)
+  // 1. Cerca in locale
   let challenge = DB.challenges.find(
     c => String(c.joinCode) === raw && c.status === 'open'
   );
 
-  // 2. Se non trovata localmente, cerca su Supabase
+  // 2. Cerca su Supabase tramite api.js (nessun import diretto di supabase)
   if (!challenge) {
-    try {
-      const { supabase } = await import('../supabase.js');
-const { data: rows, error } = await supabase
-  .from('challenges')
-  .select('*')
-  .eq('join_code', raw)
-  .eq('status', 'open')
-  .limit(1);
-
-const data = rows?.[0] || null;
-
-      if (error) console.warn('[PvP] Supabase search error:', error.message);
-
-      if (data) {
-        challenge = {
-          id:         data.id,
-          creatorId:  data.creator_id,
-          opponentId: data.opponent_id,
-          title:      data.title,
-          rules:      data.rules,
-          stakeXP:    data.stake_xp,
-          type:       data.type,
-          isPublic:   data.is_public,
-          joinCode:   data.join_code,
-          status:     data.status,
-          expiresAt:  data.expires_at,
-          createdAt:  data.created_at,
-        };
-        // Salva in locale per uso successivo
-        if (!DB.challenges.find(c => c.id === challenge.id)) {
-          DB.challenges.push(challenge);
-        }
-      }
-    } catch (e) {
-      console.warn('[PvP] Import supabase failed:', e);
-    }
+    const { ok: found, data } = await Challenges.findByCode(raw);
+    if (found && data) challenge = data;
   }
 
   if (!challenge) {
@@ -248,17 +212,15 @@ const data = rows?.[0] || null;
   }
 
   if (challenge.creatorId === CUR.id) {
-    resultEl.innerHTML =
-      `<p class="pvp-code-warn">Sei tu il creatore di questa sfida!</p>`;
+    resultEl.innerHTML = `<p class="pvp-code-warn">Sei tu il creatore di questa sfida!</p>`;
     return;
   }
   if (challenge.opponentId === CUR.id) {
-    resultEl.innerHTML =
-      `<p class="pvp-code-warn">Hai già accettato questa sfida.</p>`;
+    resultEl.innerHTML = `<p class="pvp-code-warn">Hai già accettato questa sfida.</p>`;
     return;
   }
 
-  const xp = challenge.stakeXP || challenge.stake_xp || 0;
+  const xp = challenge.stakeXP || 0;
   resultEl.innerHTML = `
     <div class="pvp-code-found">
       <div>
