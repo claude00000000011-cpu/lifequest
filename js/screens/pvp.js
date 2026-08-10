@@ -1,12 +1,13 @@
 // ============================================================
 // screens/pvp.js — Sfide PvP tra utenti
-// FIX: sfida creata visibile subito + pulsanti dentro il riquadro
+// FIX: input codice visibile, btn Cerca non a piena larghezza,
+//      ricerca su Supabase funzionante, stakeXP letto correttamente
 // ============================================================
 
-import { CUR, DB, insert, update } from '../db.js';
+import { CUR, DB } from '../db.js';
 import { Challenges, Feed } from '../api.js';
 import { awardXP } from '../xp.js';
-import { escHtml, toast, today } from '../utils.js';
+import { escHtml, toast } from '../utils.js';
 import { playSound } from '../audio.js';
 import { openModal, closeModal } from '../modals.js';
 
@@ -38,26 +39,30 @@ export async function renderPvP() {
     </div>
 
     ${_pvpTab === 'active' ? `
-      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius);padding:0.85rem;margin-bottom:1rem">
-        <p style="font-size:0.85rem;color:var(--text-2);margin-bottom:0.5rem">🔑 Hai un codice sfida privata?</p>
-        <div style="display:flex;gap:0.5rem">
-          <input type="text" id="join-code-input" placeholder="Codice (4 cifre)"
-                 maxlength="4" style="flex:1;font-size:0.9rem">
-          <button class="btn-sm btn-primary" onclick="window._joinByCode?.()">Cerca</button>
+      <div class="pvp-code-box">
+        <p class="pvp-code-label">🔑 Hai un codice sfida privata?</p>
+        <div class="pvp-code-row">
+          <input
+            type="number"
+            id="join-code-input"
+            placeholder="Codice a 4 cifre"
+            min="1000" max="9999"
+            class="pvp-code-input"
+          />
+          <button class="pvp-search-btn" onclick="window._joinByCode?.()">Cerca</button>
         </div>
-        <div id="join-code-result" style="margin-top:0.5rem"></div>
+        <div id="join-code-result"></div>
       </div>` : ''}
 
     <div id="pvp-list"><div class="empty-state" style="padding:2rem">Caricamento…</div></div>
   `;
 
   if (_pvpTab === 'active') {
-    // FIX: usa anche DB.challenges locale come fallback, poi merge con cloud
     const { ok, data } = await Challenges.list(CUR.id);
     const cloud = ok ? data : [];
 
-    // Merge: prendi sfide cloud + sfide locali non ancora su cloud
-    const cloudIds = new Set(cloud.map(c => c.id));
+    // Merge con sfide locali non ancora sincronizzate
+    const cloudIds  = new Set(cloud.map(c => c.id));
     const localOnly = DB.challenges.filter(
       c => (c.creatorId === CUR.id || c.opponentId === CUR.id) && !cloudIds.has(c.id)
     );
@@ -72,13 +77,17 @@ export async function renderPvP() {
   }
 }
 
+// ── Render lista ──────────────────────────────────────────────
+
 function renderChallengeList(challenges, containerId, isPublic) {
   const container = document.getElementById(containerId);
   if (!container) return;
 
   if (!challenges.length) {
     container.innerHTML = `<div class="empty-state">
-      ${isPublic ? 'Nessuna sfida pubblica aperta.' : 'Nessuna sfida ancora. Creane una con il pulsante in alto!'}
+      ${isPublic
+        ? 'Nessuna sfida pubblica aperta al momento.'
+        : 'Nessuna sfida ancora.<br>Creane una con <strong>+ Crea</strong> in alto!'}
     </div>`;
     return;
   }
@@ -89,7 +98,7 @@ function renderChallengeList(challenges, containerId, isPublic) {
 function challengeCard(c, isPublic) {
   const creator    = DB.users[c.creatorId];
   const opponent   = c.opponentId ? DB.users[c.opponentId] : null;
-  const isCreator  = c.creatorId === CUR.id;
+  const isCreator  = c.creatorId  === CUR.id;
   const isOpponent = c.opponentId === CUR.id;
   const alreadyIn  = isCreator || isOpponent;
   const canJoin    = isPublic && !alreadyIn && c.status === 'open';
@@ -105,43 +114,44 @@ function challengeCard(c, isPublic) {
   }[c.status] || '';
 
   const typeIcon = { athletic: '🏋️', mental: '🧠', mixed: '⚔️' }[c.type] || '⚔️';
+  const xp = c.stakeXP || c.stake_xp || 0;
 
-  // Costruisce i pulsanti azione come array, poi li unisce
   const actionBtns = [];
 
   if (canJoin) {
     actionBtns.push(`
-      <button class="pvp-btn pvp-btn--primary" onclick="window._joinChallenge?.('${c.id}')">
+      <button class="pvp-btn pvp-btn--primary"
+              onclick="window._joinChallenge?.('${c.id}')">
         ⚔️ Unisciti
       </button>`);
   }
 
   if (alreadyIn && c.status === 'open') {
-    actionBtns.push(`
-      <p class="pvp-waiting">⏳ In attesa di un avversario…</p>`);
+    actionBtns.push(`<p class="pvp-waiting">⏳ In attesa di un avversario…</p>`);
   }
 
   if (canDeclare) {
     actionBtns.push(`
-      <button class="pvp-btn pvp-btn--primary" onclick="window._declareWinner?.('${c.id}','${CUR.id}')">
+      <button class="pvp-btn pvp-btn--primary"
+              onclick="window._declareWinner?.('${c.id}','${CUR.id}')">
         🏆 Ho vinto
       </button>`);
     if (otherUser) {
       actionBtns.push(`
-        <button class="pvp-btn" onclick="window._declareWinner?.('${c.id}','${otherUserId}')">
+        <button class="pvp-btn"
+                onclick="window._declareWinner?.('${c.id}','${otherUserId}')">
           🏳 Ha vinto @${escHtml(otherUser.username)}
         </button>`);
     }
     actionBtns.push(`
-      <button class="pvp-btn" onclick="window._declareWinner?.('${c.id}','draw')">
+      <button class="pvp-btn"
+              onclick="window._declareWinner?.('${c.id}','draw')">
         🤝 Pareggio
       </button>`);
   }
 
   if (c.status === 'completed') {
-    const winnerName = c.winnerId
-      ? (DB.users[c.winnerId]?.username || 'N/D')
-      : null;
+    const winnerName = c.winnerId ? (DB.users[c.winnerId]?.username || 'N/D') : null;
     actionBtns.push(`
       <p class="pvp-result">
         🏆 ${winnerName ? `@${escHtml(winnerName)} ha vinto` : 'Pareggio'}
@@ -160,79 +170,102 @@ function challengeCard(c, isPublic) {
         ${opponent
           ? `<span>🆚 @${escHtml(opponent.username)}</span>`
           : '<span>🆚 In attesa avversario</span>'}
-        <span>💰 ${c.stakeXP || c.stake_xp || 0} XP</span>
+        ${xp > 0 ? `<span>💰 ${xp} XP</span>` : ''}
         ${c.expiresAt ? `<span>📅 ${c.expiresAt}</span>` : ''}
-        ${c.joinCode && isCreator ? `<span>🔑 Codice: <strong>${c.joinCode}</strong></span>` : ''}
+        ${c.joinCode && isCreator
+          ? `<span>🔑 Codice: <strong>${c.joinCode}</strong></span>` : ''}
       </div>
-      ${actionBtns.length ? `<div class="challenge-card__actions">${actionBtns.join('')}</div>` : ''}
+      ${actionBtns.length
+        ? `<div class="challenge-card__actions">${actionBtns.join('')}</div>`
+        : ''}
     </div>`;
 }
 
-// ── Cerca sfida per codice ────────────────────────────────────
+// ── Cerca per codice ──────────────────────────────────────────
 
 window._joinByCode = async function() {
-  const code    = document.getElementById('join-code-input')?.value.trim();
+  const input    = document.getElementById('join-code-input');
   const resultEl = document.getElementById('join-code-result');
+  const raw      = input?.value?.toString().trim() || '';
 
-  if (!code || code.length !== 4) {
-    if (resultEl) resultEl.innerHTML = `<p style="color:var(--danger);font-size:0.82rem">Inserisci un codice di 4 cifre.</p>`;
+  if (!raw || raw.length !== 4 || isNaN(raw)) {
+    if (resultEl) resultEl.innerHTML =
+      `<p class="pvp-code-error">Inserisci un codice di esattamente 4 cifre.</p>`;
     return;
   }
 
-  if (resultEl) resultEl.innerHTML = `<p style="color:var(--text-3);font-size:0.82rem">Ricerca in corso…</p>`;
+  resultEl.innerHTML = `<p class="pvp-code-searching">🔍 Ricerca in corso…</p>`;
 
-  // 1. Cerca in locale
-  let challenge = DB.challenges.find(c => c.joinCode === code && c.status === 'open');
+  // 1. Cerca in locale (come stringa, per sicurezza)
+  let challenge = DB.challenges.find(
+    c => String(c.joinCode) === raw && c.status === 'open'
+  );
 
-  // 2. Se non trovata, cerca su Supabase
+  // 2. Se non trovata localmente, cerca su Supabase
   if (!challenge) {
-    const { supabase } = await import('../../supabase.js');
-    const { data } = await supabase
-      .from('challenges')
-      .select('*')
-      .eq('join_code', code)
-      .eq('status', 'open')
-      .maybeSingle();
+    try {
+      const { supabase } = await import('../../supabase.js');
+      const { data, error } = await supabase
+        .from('challenges')
+        .select('*')
+        .eq('join_code', raw)        // Supabase confronta come testo
+        .eq('status', 'open')
+        .maybeSingle();
 
-    if (data) {
-      // Converti snake_case in camelCase manualmente
-      challenge = {
-        id:         data.id,
-        creatorId:  data.creator_id,
-        opponentId: data.opponent_id,
-        title:      data.title,
-        rules:      data.rules,
-        stakeXP:    data.stake_xp,
-        type:       data.type,
-        isPublic:   data.is_public,
-        joinCode:   data.join_code,
-        status:     data.status,
-        expiresAt:  data.expires_at,
-        createdAt:  data.created_at,
-      };
+      if (error) console.warn('[PvP] Supabase search error:', error.message);
+
+      if (data) {
+        challenge = {
+          id:         data.id,
+          creatorId:  data.creator_id,
+          opponentId: data.opponent_id,
+          title:      data.title,
+          rules:      data.rules,
+          stakeXP:    data.stake_xp,
+          type:       data.type,
+          isPublic:   data.is_public,
+          joinCode:   data.join_code,
+          status:     data.status,
+          expiresAt:  data.expires_at,
+          createdAt:  data.created_at,
+        };
+        // Salva in locale per uso successivo
+        if (!DB.challenges.find(c => c.id === challenge.id)) {
+          DB.challenges.push(challenge);
+        }
+      }
+    } catch (e) {
+      console.warn('[PvP] Import supabase failed:', e);
     }
   }
 
   if (!challenge) {
-    if (resultEl) resultEl.innerHTML = `<p style="color:var(--danger);font-size:0.82rem">Nessuna sfida trovata con codice "${escHtml(code)}".</p>`;
+    resultEl.innerHTML =
+      `<p class="pvp-code-error">Nessuna sfida trovata con codice "${escHtml(raw)}".</p>`;
     return;
   }
 
   if (challenge.creatorId === CUR.id) {
-    if (resultEl) resultEl.innerHTML = `<p style="color:var(--warning);font-size:0.82rem">Sei tu il creatore di questa sfida!</p>`;
+    resultEl.innerHTML =
+      `<p class="pvp-code-warn">Sei tu il creatore di questa sfida!</p>`;
     return;
   }
   if (challenge.opponentId === CUR.id) {
-    if (resultEl) resultEl.innerHTML = `<p style="color:var(--warning);font-size:0.82rem">Hai già accettato questa sfida.</p>`;
+    resultEl.innerHTML =
+      `<p class="pvp-code-warn">Hai già accettato questa sfida.</p>`;
     return;
   }
 
-  if (resultEl) resultEl.innerHTML = `
-    <div style="background:var(--bg-3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.65rem;margin-top:0.5rem">
-      <p style="font-size:0.88rem;font-weight:700;margin-bottom:0.25rem">⚔️ ${escHtml(challenge.title)}</p>
-      <p style="font-size:0.8rem;color:var(--text-3);margin-bottom:0.5rem">💰 ${challenge.stakeXP} XP in palio</p>
-      <button class="btn-sm btn-primary" onclick="window._joinChallenge?.('${challenge.id}')">
-        Accetta sfida
+  const xp = challenge.stakeXP || challenge.stake_xp || 0;
+  resultEl.innerHTML = `
+    <div class="pvp-code-found">
+      <div>
+        <p class="pvp-code-found__title">⚔️ ${escHtml(challenge.title)}</p>
+        ${xp > 0 ? `<p class="pvp-code-found__meta">💰 ${xp} XP in palio</p>` : ''}
+      </div>
+      <button class="pvp-btn pvp-btn--primary"
+              onclick="window._joinChallenge?.('${challenge.id}')">
+        Accetta
       </button>
     </div>`;
 };
@@ -248,13 +281,16 @@ window._openCreateChallengeModal = function() {
 window._createChallenge = async function() {
   const title    = document.getElementById('ch-title')?.value.trim();
   const rules    = document.getElementById('ch-rules')?.value.trim();
-  const stakeXP  = parseInt(document.getElementById('ch-stake')?.value || '50');
-  const type     = document.getElementById('ch-type')?.value || 'mixed';
+  // FIX: leggi stakeXP correttamente e dai 50 come default se vuoto
+  const stakeRaw = document.getElementById('ch-stake')?.value;
+  const stakeXP  = stakeRaw ? parseInt(stakeRaw, 10) : 50;
+  const type     = document.getElementById('ch-type')?.value    || 'mixed';
   const isPublic = document.getElementById('ch-public')?.checked !== false;
   const expires  = document.getElementById('ch-expires')?.value || null;
 
   if (!title) return toast('Inserisci un titolo alla sfida', 'error');
-  if (isNaN(stakeXP) || stakeXP < 1) return toast('XP in palio deve essere almeno 1', 'error');
+  if (isNaN(stakeXP) || stakeXP < 1)
+    return toast('XP in palio deve essere almeno 1', 'error');
 
   const { ok, data, error } = await Challenges.create({
     title, rules, stakeXP, type, isPublic, expiresAt: expires,
@@ -269,18 +305,15 @@ window._createChallenge = async function() {
     : `🔑 Sfida privata creata! Codice: ${data.joinCode}`;
   toast(msg, 'success');
 
-  // Reset form
+  // Reset campi
   ['ch-title', 'ch-rules'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
-  const stake = document.getElementById('ch-stake');
-  if (stake) stake.value = '50';
+  const stakeEl = document.getElementById('ch-stake');
+  if (stakeEl) stakeEl.value = '50';
 
   closeModal('modal-create-challenge');
-
-  // FIX: vai subito su "Le mie Sfide" e assicurati che la nuova sfida
-  // sia in DB.challenges prima del re-render (insert la mette già lì)
   _pvpTab = 'active';
   renderPvP();
 };
@@ -288,12 +321,14 @@ window._createChallenge = async function() {
 window._joinChallenge = async function(challengeId) {
   const existing = DB.challenges.find(c => c.id === challengeId);
   if (existing) {
-    if (existing.creatorId  === CUR.id) return toast('Sei il creatore di questa sfida', 'error');
-    if (existing.opponentId === CUR.id) return toast('Hai già accettato questa sfida', 'error');
+    if (existing.creatorId  === CUR.id)
+      return toast('Sei il creatore di questa sfida', 'error');
+    if (existing.opponentId === CUR.id)
+      return toast('Hai già accettato questa sfida', 'error');
   }
 
   const { ok, error } = await Challenges.join(challengeId, CUR.id);
-  if (!ok) return toast(error || 'Errore nell\'accettare la sfida', 'error');
+  if (!ok) return toast(error || "Errore nell'accettare la sfida", 'error');
 
   playSound('challenge');
   toast('Ti sei unito alla sfida! ⚔️', 'success');
@@ -308,7 +343,7 @@ window._declareWinner = async function(challengeId, winnerId) {
   if (!confirm('Confermi il risultato? Questa azione non è reversibile.')) return;
 
   const isDraw = winnerId === 'draw';
-  const { ok } = await Challenges.declareWinner(challengeId, isDraw ? null : winnerId);
+  const { ok }  = await Challenges.declareWinner(challengeId, isDraw ? null : winnerId);
   if (!ok) return toast('Errore nella dichiarazione del vincitore', 'error');
 
   const xpStake = challenge.stakeXP || challenge.stake_xp || 50;
