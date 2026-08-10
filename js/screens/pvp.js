@@ -319,7 +319,6 @@ window._joinByCode = async function() {
 };
 
 // ── Azioni ────────────────────────────────────────────────────
-
 window._switchPvPTab = switchPvPTab;
 
 window._openCreateChallengeModal = function() {
@@ -329,24 +328,14 @@ window._openCreateChallengeModal = function() {
 window._createChallenge = async function() {
   const title    = document.getElementById('ch-title')?.value.trim();
   const rules    = document.getElementById('ch-rules')?.value.trim();
-  const stakeRaw = document.getElementById('ch-stake')?.value;
-  const stakeXP  = stakeRaw ? parseInt(stakeRaw, 10) : 50;
-  const type     = document.getElementById('ch-type')?.value    || 'mixed';
+  const type     = document.getElementById('ch-type')?.value || 'mixed';
   const isPublic = document.getElementById('ch-public')?.checked !== false;
   const expires  = document.getElementById('ch-expires')?.value || null;
 
   if (!title) return toast('Inserisci un titolo alla sfida', 'error');
-  if (isNaN(stakeXP) || stakeXP < 1)
-    return toast('XP in palio deve essere almeno 1', 'error');
-
-  // Applica cap XP già in fase di creazione
-  const cappedXP = xpCap(stakeXP);
-  if (cappedXP < stakeXP) {
-    toast(`XP ridotti a ${cappedXP} (cap livello ${calcLevel(CUR.xp || 0)})`, 'info');
-  }
 
   const { ok, data, error } = await Challenges.create({
-    title, rules, stakeXP: cappedXP, type, isPublic, expiresAt: expires,
+    title, rules, stakeXP: 50, type, isPublic, expiresAt: expires,
   });
 
   if (!ok) return toast(error || 'Errore nella creazione', 'error');
@@ -362,8 +351,6 @@ window._createChallenge = async function() {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
-  const stakeEl = document.getElementById('ch-stake');
-  if (stakeEl) stakeEl.value = '50';
 
   closeModal('modal-create-challenge');
   _pvpTab = 'active';
@@ -371,7 +358,6 @@ window._createChallenge = async function() {
 };
 
 window._joinChallenge = async function(challengeId) {
-  // Controllo limite giornaliero
   const joinsToday = dailyJoinsCount();
   if (joinsToday >= MAX_DAILY_JOINS) {
     return toast(`Hai già accettato ${MAX_DAILY_JOINS} sfide oggi!`, 'error');
