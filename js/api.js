@@ -913,7 +913,11 @@ export const Feed = {
     return ok(posts);
   },
 
-  async create(payload) {
+async create(payload) {
+    const hiddenCats = DB.users[CUR.id]?.privacySettings?.hiddenCategories || [];
+    if (payload.category && hiddenCats.includes(payload.category)) {
+      return ok(null);
+    }
     const post = {
       user_id:   CUR.id,
       content:   payload.content,
