@@ -444,27 +444,36 @@ export async function getDailyLimits(userId) {
  * @param {'pve_count'|'pvp_count'|'dungeon_count'|'help_sent'} field
  */
 export async function incrementDailyLimit(userId, field) {
-  const bc    = DB.battleCharacters[userId];
+  const bc = DB.battleCharacters[userId];
   if (!bc) return;
+
+  const allowedFields = [
+    'pve_count',
+    'pvp_count',
+    'dungeon_count',
+    'help_sent',
+  ];
+
+  if (!allowedFields.includes(field)) {
+    console.warn('[Battle] Campo daily limit non valido:', field);
+    return;
+  }
+
   const today = new Date().toISOString().slice(0, 10);
 
-  await supabase.rpc('increment_daily_limit', {
-    p_character_id: bc.id,
-    p_date:         today,
-    p_field:        field,
-  }).catch(() => {
-    // Fallback: upsert manuale se la RPC non esiste ancora
-    supabase
-      .from('daily_limits')
-      .upsert({ character_id: bc.id, date: today }, { onConflict: 'character_id,date' })
-      .then(() => {
-        supabase
-          .from('daily_limits')
-          .update({ [field]: supabase.rpc('coalesce_increment', { col: field }) })
-          .eq('character_id', bc.id)
-          .eq('date', today);
-      });
-  });
+  try {
+    const { error } = await supabase.rpc('increment_daily_limit', {
+      p_character_id: bc.id,
+      p_date: today,
+      p_field: field,
+    });
+
+    if (error) {
+      console.warn('[Battle] incrementDailyLimit RPC error:', error.message);
+    }
+  } catch (err) {
+    console.warn('[Battle] incrementDailyLimit failed:', err);
+  }
 }
 
 // ── Caricamento dati da Supabase ──────────────────────────────
