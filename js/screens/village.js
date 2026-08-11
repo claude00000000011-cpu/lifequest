@@ -901,19 +901,51 @@ window._learnAbility = async function(abilityId) {
 // Entra nel dungeon
 window._enterDungeon = async function(tier) {
   const result = await startDungeon(CUR.id, tier);
-  if (!result.ok) return toast(result.error || 'Errore', 'error');
+
+  if (!result.ok) {
+    return toast(result.error || 'Errore', 'error');
+  }
+
+  const { getCurrentEnemy } = await import('../battle/dungeon.js');
+  const enemy = getCurrentEnemy();
+
+  if (!enemy) {
+    return toast('Nessun nemico trovato nella stanza.', 'error');
+  }
+
   playSound('challenge');
   toast(`Sei entrato nel dungeon Tier ${tier}! Buona fortuna. ⚔️`, 'success');
-  // In Fase B: apre la battle_screen con il dungeon attivo
-  import('./battle_screen.js').then(m => m.renderBattleScreen?.()).catch(() => {
-    toast('Battle screen disponibile dalla Fase B completa.', 'info');
+
+  import('./battle_screen.js').then(m => {
+    m.renderBattleScreen?.(enemy, {
+      tier,
+      dungeon: true
+    });
+  }).catch(err => {
+    console.error('[Village] Errore apertura battle screen:', err);
+    toast('Errore nell\'apertura della battaglia.', 'error');
   });
 };
 
 // Continua dungeon in corso
 window._resumeDungeon = async function() {
-  import('./battle_screen.js').then(m => m.renderBattleScreen?.()).catch(() => {
-    toast('Battle screen disponibile dalla Fase B.', 'info');
+  const { getCurrentEnemy, getActiveDungeon } = await import('../battle/dungeon.js');
+  const enemy = getCurrentEnemy();
+
+  if (!enemy) {
+    return toast('Nessun nemico trovato nella stanza corrente.', 'error');
+  }
+
+  const activeDungeon = getActiveDungeon();
+
+  import('./battle_screen.js').then(m => {
+    m.renderBattleScreen?.(enemy, {
+      tier: activeDungeon?.tier || 1,
+      dungeon: true
+    });
+  }).catch(err => {
+    console.error('[Village] Errore apertura battle screen:', err);
+    toast('Errore nell\'apertura della battaglia.', 'error');
   });
 };
 
