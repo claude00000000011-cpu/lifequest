@@ -1230,7 +1230,6 @@ export const Moderation = {
   },
 };
 
-// ── Sync post-login ──────────────────────────────────────────
 export async function syncCloudDataOnLogin(userId) {
   try {
     const [freshProfile, quests, books, sessions, exams, concepts, bookNotes, feedPosts, comments] = await Promise.all([
@@ -1250,36 +1249,35 @@ export async function syncCloudDataOnLogin(userId) {
         .order('created_at', { ascending: false })
         .limit(200),
     ]);
-
     if (freshProfile.data) {
       DB.users[userId] = { ...DB.users[userId], ...toCamel(freshProfile.data) };
       persist();
     }
-
     if (quests.data)    DB.quests        = quests.data.map(toCamel);
     if (books.data)     DB.books         = books.data.map(toCamel);
     if (sessions.data)  DB.studySessions = sessions.data.map(toCamel);
     if (exams.data)     DB.exams         = exams.data.map(toCamel);
     if (concepts.data)  DB.concepts      = concepts.data.map(toCamel);
     if (bookNotes.data) DB.bookNotes     = bookNotes.data.map(toCamel);
-
-    // Feed posts: converti post_likes in array di user_id
     if (feedPosts.data) {
       DB.feedPosts = feedPosts.data.map(p => ({
         ...toCamel(p),
         likes: (p.post_likes || []).map(l => l.user_id),
       }));
     }
-
-    // Commenti: salva con username
     if (comments.data) {
       DB.comments = comments.data.map(c => ({
         ...toCamel(c),
         username: c.username || DB.users[c.user_id]?.username || 'Utente',
       }));
     }
-
     persist();
+
+    // Sync personaggio battle (fire-and-forget)
+    import('./battle/character.js').then(({ syncBattleCharacter }) => {
+      syncBattleCharacter(userId);
+    });
+
   } catch (e) {
     console.warn('[Sync] Errore sync:', e);
   }
