@@ -8,10 +8,12 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.map(key => {
-        console.log('[SW] Eliminazione cache:', key);
-        return caches.delete(key);
-      }))
+      Promise.all(
+        keys.map(key => {
+          console.log('[SW] Eliminazione cache:', key);
+          return caches.delete(key);
+        })
+      )
     ).then(() => self.clients.claim())
   );
 });
@@ -19,13 +21,29 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
-  // Supabase: lascia passare direttamente, nessuna cache
-  if (url.hostname.includes('supabase.co')) return;
+  // Supabase passa sempre direttamente alla rete
+  if (url.hostname.includes('supabase.co')) {
+    return;
+  }
 
-  // Tutto il resto: network first, nessuna cache
   event.respondWith(
-    fetch(event.request).catch(() =>
-      caches.match(event.request)
-    )
+    fetch(event.request).catch(async () => {
+      const cached = await caches.match(event.request);
+
+      if (cached) {
+        return cached;
+      }
+
+      return new Response(
+        'Risorsa non disponibile offline',
+        {
+          status: 503,
+          statusText: 'Service Unavailable',
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8'
+          }
+        }
+      );
+    })
   );
 });
