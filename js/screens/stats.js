@@ -695,9 +695,9 @@ window._adminFullHeal = async function() {
   renderAdminPanel();
 };
 
-window._adminResetDailyCap = function() {
+window._adminResetDailyCap = async function() {
   if (!isAdmin()) return;
-  const { persist, setCUR } = require('../db.js');
+  const { setCUR, persist } = await import('../db.js');
   const user = DB.users[CUR.id];
   if (!user) return;
   DB.users[CUR.id] = { ...user, dailyXP: { date: '1970-01-01' } };
