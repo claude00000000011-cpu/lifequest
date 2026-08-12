@@ -408,30 +408,32 @@ export const COOP = {
 // [foglio 📈 Progressione]
 
 export const PROGRESSION = {
-  tutorialFights:       5,
-  startingGold:         50,
-  starterItem:          1,
+  tutorialFights:  5,        // combattimenti iniziali per il tutorial
+  startingGold:    50,       // gold con cui si inizia il gioco
+  starterItem:     1,        // oggetto iniziale assegnato al nuovo personaggio
 
   UNLOCKS: {
-    classChoice:        5,
-    pvpArena:           5,
-    guilds:             10,
-    goldBoxes:          15,
-    dungeon3:           20,
-    evolution:          20,
-    guildWar:           20,
-    mythicBoxes:        30,
-    ultimateAbility:    30,
-    dungeon5:           50,
+    classChoice:      1,     // lv.1  — si sceglie subito la classe
+    pvpArena:         5,     // lv.5  — si sblocca l'arena PvP
+    guilds:           15,    // lv.15 — si possono creare/unirsi alle gilde
+    goldBoxes:        20,    // lv.20 — si sbloccano le casse gold
+    dungeon3:         30,    // lv.30 — si sblocca il dungeon Tier 3
+    dungeon4:         60,    // lv.60 — si sblocca il dungeon Tier 4
+    dungeon5:         100,   // lv.100 — si sblocca il dungeon Tier 5
+    evolution:        25,    // lv.25 — si sblocca l'evoluzione della classe
+    guildWar:         30,    // lv.30 — si sbloccano le guerre tra gilde
+    mythicBoxes:      50,    // lv.50 — si sbloccano le casse mythic
+    ultimateAbility:  40,    // lv.40 — si sblocca l'abilità ultimate della classe
   },
 
-  dungeonLevelCap:      3,  // Non puoi entrare in dungeon di tier superiore di N
-  pvpLevelCap:          5,  // Non puoi sfidare chi ha più di N livelli sopra
+  dungeonLevelCap:  2,       // non puoi entrare in un tier più di 2 sopra il tuo range
+  pvpLevelCap:      10,      // non puoi sfidare chi ha più di 10 livelli sopra di te
 
   PVP_SEASON_REWARDS: {
-    top1pct:  { gold: 500, legendaryItem: true },
-    top10pct: { gold: 200, legendaryItem: false },
-    top50pct: { gold: 80,  legendaryItem: false },
+    top1pct:  { gold: 500, legendaryItem: true  }, // top 1%  della stagione
+    top10pct: { gold: 200, legendaryItem: false }, // top 10% della stagione
+    top50pct: { gold: 80,  legendaryItem: false }, // top 50% della stagione
   },
-  pvpSeasonReset:       0.50, // 50% dei PR mantenuti a fine stagione
+
+  pvpSeasonReset: 0.50, // a fine stagione si mantiene il 50% dei punti PvP
 };
