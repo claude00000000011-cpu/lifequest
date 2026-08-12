@@ -3,7 +3,7 @@
 // Layout verticale: Nemico 40% | Log 20% | Azioni 40%
 // ============================================================
 
-// DOPO:
+
 import { CUR, DB, persist }    from '../db.js';
 import { escHtml, toast }       from '../utils.js';
 import { playSound }            from '../audio.js';
@@ -20,6 +20,15 @@ let _enemyData   = null;
 let _dungeonCtx  = null;
 let _animLock    = false;
 
+function _lockNav(lock) {
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.disabled = lock;
+    btn.style.opacity = lock ? '0.4' : '';
+    btn.style.pointerEvents = lock ? 'none' : '';
+  });
+}
+
+
 // Navigazione verso il villaggio (usata da overlay fine battaglia)
 window._gotoVillage = function() {
   _lockNav(false);
@@ -30,6 +39,7 @@ window._gotoVillage = function() {
 export async function renderBattleScreen(enemyData, dungeonCtx = {}) {
   if (!CUR) return;
   _enemyData  = enemyData;
+_lockNav(true);
   _dungeonCtx = dungeonCtx;
 
   const container = document.getElementById('screen-battle');
@@ -299,23 +309,71 @@ async function _onBattleEnd(container, state) {
 }
 
 function _showEndOverlay(container, won, gold, xp = 0, item = null) {
-  const root    = container.querySelector('#battle-root');
+  const root = container.querySelector('#battle-root');
   if (!root) return;
   const overlay = document.createElement('div');
   overlay.className = `battle-end-overlay ${won ? 'battle-win' : won === null ? '' : 'battle-loss'}`;
+
+  const isDungeon = !!_dungeonCtx?.dungeon;
+
   overlay.innerHTML = `
     <div class="battle-end-content">
       <div class="battle-end-icon">${won === null ? '🏃' : won ? '🏆' : '💀'}</div>
       <div class="battle-end-title">${won === null ? 'Fuggito' : won ? 'Vittoria!' : 'Sconfitta'}</div>
-      ${gold > 0  ? `<div class="battle-rewards">💰 +${gold} Gold</div>` : ''}
-      ${xp   > 0  ? `<div class="battle-rewards">⚡ +${xp} XP</div>` : ''}
-      ${item       ? `<div class="battle-rewards">🎁 ${escHtml(item.name)}</div>` : ''}
-      <button class="btn-primary" id="btn-back-from-battle" style="margin-top:0.75rem">← Villaggio</button>
+      ${gold > 0 ? `<div class="battle-rewards">💰 +${gold} Gold</div>` : ''}
+      ${xp   > 0 ? `<div class="battle-rewards">⚡ +${xp} XP</div>`   : ''}
+      ${item      ? `<div class="battle-rewards">🎁 ${escHtml(item.name)}</div>` : ''}
+      <div id="battle-end-btn-area" style="margin-top:0.75rem">
+        <button class="btn-primary" id="btn-back-from-battle">← Villaggio</button>
+      </div>
     </div>
   `;
+
+  // Bottone "Villaggio" — sempre presente come fallback
   overlay.querySelector('#btn-back-from-battle')?.addEventListener('click', () => {
     window._gotoVillage?.();
   });
+
+  // Se siamo in un dungeon e abbiamo vinto, gestisci avanzamento stanza
+  if (isDungeon && won) {
+    const btnArea = overlay.querySelector('#battle-end-btn-area');
+    const advance = advanceRoom();
+
+    if (advance.isDungeonComplete) {
+      // Era l'ultima stanza (boss) — completa il dungeon
+      completeDungeon(CUR.id).then(result => {
+        if (btnArea) {
+          btnArea.innerHTML = `
+            <div class="battle-rewards" style="color:var(--gold)">
+              🏰 Dungeon completato! +${result.goldTotal}G · +${result.xpBonus}XP
+            </div>
+            <button class="btn-primary" id="btn-dungeon-done">🏆 Torna al Villaggio</button>
+          `;
+          btnArea.querySelector('#btn-dungeon-done')?.addEventListener('click', () => {
+            window._gotoVillage?.();
+          });
+        }
+      });
+    } else {
+      // Ci sono altre stanze — mostra pulsante "Prossima stanza"
+      const nextEnemy = getCurrentEnemy();
+      if (btnArea && nextEnemy) {
+        btnArea.innerHTML = `
+          <button class="btn-primary" id="btn-next-room">⚔️ Stanza ${advance.nextRoom?.index} →</button>
+          <button class="btn-secondary" id="btn-flee-dungeon" style="margin-top:0.5rem">🏃 Abbandona</button>
+        `;
+        btnArea.querySelector('#btn-next-room')?.addEventListener('click', () => {
+          overlay.remove();
+          renderBattleScreen(nextEnemy, _dungeonCtx);
+        });
+        btnArea.querySelector('#btn-flee-dungeon')?.addEventListener('click', () => {
+          import('../battle/dungeon.js').then(m => m.abandonDungeon());
+          window._gotoVillage?.();
+        });
+      }
+    }
+  }
+
   root.appendChild(overlay);
   _animLock = false;
 }
