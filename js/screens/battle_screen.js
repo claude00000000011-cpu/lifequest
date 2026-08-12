@@ -64,8 +64,15 @@ function _renderUI(container) {
 
   const tier = _dungeonCtx?.tier || 1;
   const heroClass = DB.battleCharacters?.[CUR.id]?.class_id || 'warrior';
-  const bgUrl = `assets/battle/sfondi/battaglia_${tier}.png`;
-  const heroLoopGif = `assets/battle/classes/${heroClass}_loop.gif`;
+
+
+
+         
+  const bgUrl = `/lifequest/assets/battle/sfondi/battaglia_${tier}.png`;
+const heroLoopGif = `/lifequest/assets/battle/classes/${heroClass}_loop.gif`;
+
+
+         
 
   container.innerHTML = `
     <div class="battle-screen" id="battle-root">
