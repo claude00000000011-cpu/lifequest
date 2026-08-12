@@ -236,7 +236,7 @@ async function _handleAction(container, action, payload, abilityData = null) {
     _setDisabled(container, false);
     // Ricostruisci tasti abilità (per cooldown)
     const abl = (DB.characterAbilities[CUR.id] || [])
-      .map(la => DB.battleAbilities.find(ab => ab.id === la.ability_id))
+      .map(la => (DB.battleAbilities || []).find(ab => ab.id === la.ability_id))
       .filter(Boolean).filter(ab => ab.type !== 'passive').slice(0, 4);
     const ba = container.querySelector('#battle-actions');
     if (ba) ba.innerHTML = _buildButtons(abl);
