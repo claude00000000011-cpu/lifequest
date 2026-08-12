@@ -781,7 +781,6 @@ window._loadEconomySummary = async function() {
 };
 
 // Chiamato dopo il render mappa
-setTimeout(() => window._loadEconomySummary?.(), 100);
 
 // Scelta classe
 window._selectClass = async function(classId) {
