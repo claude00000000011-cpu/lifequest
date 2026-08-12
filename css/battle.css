@@ -50,8 +50,24 @@
 .battle-enemy-name { font-size:1.1rem; font-weight:700; color:#f1f5f9; }
 .boss-badge        { background:var(--card-legendary); color:#000; font-size:.65rem; font-weight:800; padding:2px 8px; border-radius:99px; }
 
-.battle-enemy-art  { width:120px; height:120px; display:flex; align-items:center; justify-content:center; }
-.battle-enemy-art img { max-width:100%; max-height:100%; object-fit:contain; image-rendering:pixelated; }
+.battle-enemy-art {
+  width: 200px; height: 200px;
+  display: flex; align-items: center; justify-content: center;
+}
+.battle-enemy-art img {
+  max-width: 100%; max-height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  mix-blend-mode: multiply;
+  background: transparent;
+}
+
+
+
+
+
+
+
 .enemy-art-fallback { font-size:4rem; display:flex; align-items:center; justify-content:center; }
 
 /* ── Barre HP/MP ──────────────────────────────────────────── */
