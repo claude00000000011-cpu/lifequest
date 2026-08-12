@@ -3,6 +3,7 @@
 // Layout verticale: Nemico 40% | Log 20% | Azioni 40%
 // ============================================================
 
+// DOPO:
 import { CUR, DB, persist }    from '../db.js';
 import { escHtml, toast }       from '../utils.js';
 import { playSound }            from '../audio.js';
@@ -11,12 +12,19 @@ import { calcBattleStats, getBattleChar, getDailyLimits,
 import { initBattle, processPlayerAction, calcPveRewards } from '../battle/engine.js';
 import { awardXP }              from '../xp.js';
 import { COMBAT, DUNGEONS }     from '../battle/config.js';
+import { advanceRoom, completeDungeon,
+         defeatEnemy, getCurrentEnemy } from '../battle/dungeon.js';
 
 let _battleState = null;
 let _enemyData   = null;
 let _dungeonCtx  = null;
 let _animLock    = false;
 
+// Navigazione verso il villaggio (usata da overlay fine battaglia)
+window._gotoVillage = function() {
+  _lockNav(false);
+  import('./village.js').then(m => m.renderVillage());
+};
 // ── Entry point ───────────────────────────────────────────────
 
 export async function renderBattleScreen(enemyData, dungeonCtx = {}) {
