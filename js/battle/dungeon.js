@@ -1,0 +1,396 @@
+// ============================================================
+// js/battle/dungeon.js — Gestione Dungeon LifeQuest
+// Genera stanze, seleziona nemici, gestisce il flusso del dungeon.
+// Salva lo stato di avanzamento su Supabase.
+// ============================================================
+
+import { supabase }                    from '../../supabase.js';
+import { DB, CUR, persist }            from '../db.js';
+import { DUNGEONS, COMBAT, PROGRESSION }from './config.js';
+import { calcPveRewards, rollItemRarity }from './engine.js';
+import { updateGold, getBattleChar,
+         incrementDailyLimit,
+         getDailyLimits }              from './character.js';
+import { calcLevel }                   from '../xp.js';
+import { awardXP }                     from '../xp.js';
+
+// ── Cache sessione dungeon corrente ───────────────────────────
+// (persiste in memoria durante la sessione, non su localStorage)
+let _activeDungeon = null;
+
+/**
+ * Struttura di una sessione dungeon attiva:
+ * {
+ *   tier, config, rooms, currentRoom, totalRooms,
+ *   bossRoom, goldEarned, itemsDropped, sessionId
+ * }
+ */
+
+// ── Accesso al Dungeon ────────────────────────────────────────
+
+/**
+ * Controlla se l'utente può accedere al dungeon tier N.
+ * @param {string} userId
+ * @param {number} tier
+ * @returns {{ canEnter: boolean, reason?: string }}
+ */
+export async function checkDungeonAccess(userId, tier) {
+  const user  = DB.users[userId];
+  if (!user) return { canEnter: false, reason: 'Utente non trovato' };
+
+  const level = calcLevel(user.xp || 0);
+
+  // Tier 1 e 2 disponibili in Fase B
+  if (tier > 2) {
+    return { canEnter: false, reason: `Il dungeon Tier ${tier} non è ancora disponibile.` };
+  }
+
+  const config = DUNGEONS[tier - 1];
+  if (level < config.minLevel) {
+    return { canEnter: false, reason: `Servono ${config.minLevel} livelli (sei ${level}).` };
+  }
+
+  // Cap dungeon: non più di PROGRESSION.dungeonLevelCap tier sopra il proprio livello
+  const allowedMaxTier = Math.floor(level / 10) + 1 + PROGRESSION.dungeonLevelCap;
+  if (tier > allowedMaxTier) {
+    return { canEnter: false, reason: 'Questo dungeon è troppo avanzato per il tuo livello.' };
+  }
+
+  // Limite giornaliero
+  const limits = await getDailyLimits(userId);
+  if (limits && limits.dungeon_count >= COMBAT.dailyDungeonLimit) {
+    return {
+      canEnter: false,
+      reason:   `Hai già completato ${COMBAT.dailyDungeonLimit} dungeon oggi. Torna domani!`,
+    };
+  }
+
+  return { canEnter: true };
+}
+
+// ── Generazione Dungeon ───────────────────────────────────────
+
+/**
+ * Avvia una nuova sessione dungeon.
+ * @param {string} userId
+ * @param {number} tier  — 1 o 2 (Fase B)
+ * @returns {{ ok: boolean, dungeon?, error? }}
+ */
+export async function startDungeon(userId, tier) {
+  const access = await checkDungeonAccess(userId, tier);
+  if (!access.canEnter) return { ok: false, error: access.reason };
+
+  const config  = DUNGEONS[tier - 1];
+  const level   = calcLevel(DB.users[userId]?.xp || 0);
+  const bc      = getBattleChar(userId);
+  if (!bc) return { ok: false, error: 'Personaggio battle non trovato. Ricarica la pagina.' };
+
+  // Genera le stanze
+  const rooms = generateRooms(tier, config, level);
+
+  // Crea il record su Supabase
+  const { data: session, error } = await supabase
+    .from('dungeon_progress')
+    .insert({
+      character_id:  bc.id,
+      dungeon_tier:  tier,
+      session_date:  new Date().toISOString().slice(0, 10),
+      rooms_cleared: 0,
+      boss_defeated: false,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.warn('[Dungeon] startDungeon error:', error.message);
+  }
+
+  _activeDungeon = {
+    tier,
+    config,
+    rooms,
+    currentRoom:  0,
+    totalRooms:   rooms.length,
+    goldEarned:   0,
+    itemsDropped: [],
+    sessionId:    session?.id || null,
+    userId,
+  };
+
+  return { ok: true, dungeon: _activeDungeonSummary() };
+}
+
+/**
+ * Genera la lista di stanze per un dungeon.
+ * Struttura: [stanza1, stanza2, stanza3, boss]
+ */
+function generateRooms(tier, config, playerLevel) {
+  const rooms = [];
+  const normalRooms = config.normalRooms;
+
+  // Stanze normali
+  for (let i = 0; i < normalRooms; i++) {
+    const count = config.enemiesMin + Math.floor(
+      Math.random() * (config.enemiesMax - config.enemiesMin + 1)
+    );
+    rooms.push({
+      type:    'normal',
+      index:   i + 1,
+      enemies: selectEnemies(tier, false, count, playerLevel),
+      cleared: false,
+    });
+  }
+
+  // Stanza boss
+  rooms.push({
+    type:    'boss',
+    index:   normalRooms + 1,
+    enemies: selectEnemies(tier, true, 1, playerLevel),
+    cleared: false,
+  });
+
+  return rooms;
+}
+
+/**
+ * Seleziona i nemici per una stanza dal catalogo locale.
+ */
+function selectEnemies(tier, isBoss, count, playerLevel) {
+  const pool = (DB.battleEnemies || []).filter(
+    e => e.tier === tier && e.is_boss === isBoss
+  );
+
+  if (!pool.length) {
+    // Fallback: crea un nemico procedurale se il seed non è ancora caricato
+    return Array(count).fill(null).map((_, i) => generateProceduralEnemy(tier, isBoss, playerLevel, i));
+  }
+
+  const selected = [];
+  for (let i = 0; i < count; i++) {
+    selected.push({ ...pool[Math.floor(Math.random() * pool.length)] });
+  }
+  return selected;
+}
+
+/**
+ * Genera un nemico procedurale quando il DB non è disponibile.
+ * Usato solo come fallback.
+ */
+function generateProceduralEnemy(tier, isBoss, playerLevel, index) {
+  const config    = DUNGEONS[tier - 1];
+  const scaling   = 1 + Math.max(0, playerLevel - config.minLevel) * config.scalingPerLevel;
+  const bossMultH = isBoss ? config.bossHpMult   : 1;
+  const bossMultA = isBoss ? config.bossAttackMult: 1;
+
+  return {
+    id:           `proc_t${tier}_${isBoss ? 'boss' : 'normal'}_${index}`,
+    name:         isBoss ? `Boss del Dungeon ${tier}` : `Nemico T${tier}`,
+    tier,
+    is_boss:      isBoss,
+    hp_base:      Math.floor(config.enemyHpBase     * bossMultH * scaling),
+    attack_base:  Math.floor(config.enemyAttackBase  * bossMultA * scaling),
+    defense_base: Math.floor(config.enemyDefenseBase * scaling),
+    speed_base:   5,
+    gold_min:     isBoss ? config.goldBoss       : config.goldPerEnemy,
+    gold_max:     isBoss ? config.goldBoss * 2   : config.goldPerEnemy * 2,
+    drop_rate_pct: isBoss ? config.dropRateBoss * 100 : config.dropRateNormal * 100,
+    icon_path:    null,
+    has_immunity: isBoss,
+    buff_chance_pct: isBoss ? 20 : 0,
+    phase2_hp_threshold: 50,
+    phase2_attack_bonus: 25,
+  };
+}
+
+// ── Navigazione Stanze ────────────────────────────────────────
+
+/**
+ * Ritorna la stanza corrente del dungeon attivo.
+ */
+export function getCurrentRoom() {
+  if (!_activeDungeon) return null;
+  return _activeDungeon.rooms[_activeDungeon.currentRoom] || null;
+}
+
+/**
+ * Ritorna il primo nemico vivo della stanza corrente.
+ */
+export function getCurrentEnemy() {
+  const room = getCurrentRoom();
+  if (!room) return null;
+  return room.enemies.find(e => !e._defeated) || null;
+}
+
+/**
+ * Segna un nemico come sconfitto e raccoglie le ricompense.
+ * @param {string} userId
+ * @param {Object} enemyData — dati nemico appena sconfitto
+ * @returns {{ gold, itemRarity, isRoomCleared, isBoss }}
+ */
+export async function defeatEnemy(userId, enemyData) {
+  if (!_activeDungeon) return null;
+
+  const bc       = getBattleChar(userId);
+  const stats    = DB.battleCharacters[userId];
+  const luck     = stats?.luck_pct || 3;
+  const tier     = _activeDungeon.tier;
+
+  // Segna il nemico
+  const room   = _activeDungeon.rooms[_activeDungeon.currentRoom];
+  const target = room.enemies.find(e => e.id === enemyData.id && !e._defeated);
+  if (target) target._defeated = true;
+
+  // Ricompense
+  const rewards = calcPveRewards(enemyData, luck, tier);
+  _activeDungeon.goldEarned += rewards.gold;
+
+  if (rewards.itemRarity) {
+    _activeDungeon.itemsDropped.push({ rarity: rewards.itemRarity, enemyId: enemyData.id });
+  }
+
+  // Tutti i nemici della stanza sconfitti?
+  const roomCleared = room.enemies.every(e => e._defeated);
+  if (roomCleared) {
+    room.cleared = true;
+
+    // Aggiorna progress su Supabase
+    if (_activeDungeon.sessionId) {
+      await supabase
+        .from('dungeon_progress')
+        .update({ rooms_cleared: _activeDungeon.currentRoom + 1 })
+        .eq('id', _activeDungeon.sessionId);
+    }
+  }
+
+  return {
+    gold:          rewards.gold,
+    itemRarity:    rewards.itemRarity,
+    isRoomCleared: roomCleared,
+    isBoss:        enemyData.is_boss,
+  };
+}
+
+/**
+ * Avanza alla stanza successiva.
+ * @returns {{ ok: boolean, nextRoom?, isDungeonComplete? }}
+ */
+export function advanceRoom() {
+  if (!_activeDungeon) return { ok: false };
+
+  const nextIndex = _activeDungeon.currentRoom + 1;
+
+  if (nextIndex >= _activeDungeon.totalRooms) {
+    // Dungeon completato!
+    return { ok: true, isDungeonComplete: true };
+  }
+
+  _activeDungeon.currentRoom = nextIndex;
+  return { ok: true, nextRoom: _activeDungeon.rooms[nextIndex], isDungeonComplete: false };
+}
+
+/**
+ * Completa il dungeon e assegna le ricompense finali.
+ * @param {string} userId
+ * @returns {{ goldTotal, xpBonus, itemsDropped, ok }}
+ */
+export async function completeDungeon(userId) {
+  if (!_activeDungeon) return { ok: false, error: 'Nessun dungeon attivo.' };
+
+  const tier   = _activeDungeon.tier;
+  const config = DUNGEONS[tier - 1];
+  const bc     = getBattleChar(userId);
+
+  // Bonus completamento
+  const goldTotal = _activeDungeon.goldEarned + config.goldBonus;
+  const xpBonus   = config.xpBonus;
+
+  // Aggiorna Gold
+  await updateGold(userId, goldTotal, 'dungeon', _activeDungeon.sessionId);
+
+  // Assegna XP bonus
+  await awardXP(xpBonus, 'sfide');
+
+  // Salva completion su Supabase
+  if (_activeDungeon.sessionId) {
+    await supabase
+      .from('dungeon_progress')
+      .update({
+        boss_defeated: true,
+        rooms_cleared: _activeDungeon.totalRooms,
+        gold_earned:   goldTotal,
+        completed_at:  new Date().toISOString(),
+      })
+      .eq('id', _activeDungeon.sessionId);
+  }
+
+  // Incrementa contatore giornaliero
+  await incrementDailyLimit(userId, 'dungeon_count');
+  await incrementDailyLimit(userId, 'pve_count');
+
+  const result = {
+    ok:           true,
+    goldTotal,
+    xpBonus,
+    itemsDropped: _activeDungeon.itemsDropped,
+    tier,
+  };
+
+  _activeDungeon = null;
+  return result;
+}
+
+/**
+ * Abbandona il dungeon senza ricompense completamento.
+ * Il Gold già racconto è perso (non salvato).
+ */
+export function abandonDungeon() {
+  _activeDungeon = null;
+}
+
+// ── Storico ───────────────────────────────────────────────────
+
+/**
+ * Carica lo storico dei dungeon completati da Supabase.
+ * @param {string} userId
+ * @param {number} [limit]
+ */
+export async function loadDungeonHistory(userId, limit = 20) {
+  const bc = getBattleChar(userId);
+  if (!bc) return [];
+
+  const { data, error } = await supabase
+    .from('dungeon_progress')
+    .select('*')
+    .eq('character_id', bc.id)
+    .eq('boss_defeated', true)
+    .order('completed_at', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.warn('[Dungeon] loadDungeonHistory:', error.message);
+    return [];
+  }
+
+  return data || [];
+}
+
+// ── Helper ────────────────────────────────────────────────────
+
+function _activeDungeonSummary() {
+  if (!_activeDungeon) return null;
+  return {
+    tier:        _activeDungeon.tier,
+    totalRooms:  _activeDungeon.totalRooms,
+    currentRoom: _activeDungeon.currentRoom,
+    rooms:       _activeDungeon.rooms.map(r => ({
+      type:    r.type,
+      index:   r.index,
+      cleared: r.cleared,
+      enemies: r.enemies.map(e => ({ id: e.id, name: e.name, is_boss: e.is_boss })),
+    })),
+  };
+}
+
+export function getActiveDungeon() {
+  return _activeDungeon ? _activeDungeonSummary() : null;
+}

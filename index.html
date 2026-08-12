@@ -20,6 +20,7 @@
   <link rel="stylesheet" href="./css/components.css" />
   <link rel="stylesheet" href="./css/animations.css" />
   <link rel="stylesheet" href="./css/additions.css" />
+  <link rel="stylesheet" href="./css/battle.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
@@ -178,43 +179,56 @@
       <div id="screen-stats"></div>
     </div>
 
+    <!-- BATTAGLIA -->
+    <div class="screen screen--hidden" data-screen="battle">
+      <div id="screen-battle"></div>
+    </div>
 
-
-
-    
     <!-- BOTTOM NAV -->
-    <nav class="bottom-nav">
+    <nav class="bottom-nav" id="bottom-nav">
       <button class="nav-btn nav-btn--active" data-tab="home">
         <span class="nav-icon">🏠</span>
         <span>Home</span>
       </button>
+
       <button class="nav-btn" data-tab="quest">
-        <span class="nav-icon">⚔️</span>
+        <span class="nav-icon">📋</span>
         <span>Quest</span>
       </button>
+
       <button class="nav-btn" data-tab="study">
         <span class="nav-icon">📚</span>
         <span>Studio</span>
       </button>
+
       <button class="nav-btn" data-tab="routine">
         <span class="nav-icon">⚡</span>
         <span>Routine</span>
       </button>
+
       <button class="nav-btn" data-tab="pvp">
         <span class="nav-icon">🏆</span>
         <span>Sfide</span>
       </button>
+
       <button class="nav-btn" data-tab="libri">
         <span class="nav-icon">📖</span>
         <span>Libri</span>
       </button>
+
       <button class="nav-btn" data-tab="social">
         <span class="nav-icon">👥</span>
         <span>Social</span>
       </button>
+
       <button class="nav-btn" data-tab="stats">
         <span class="nav-icon">📊</span>
         <span>Stats</span>
+      </button>
+
+      <button class="nav-btn" data-tab="battle">
+        <span class="nav-icon">🏰</span>
+        <span>Battaglia</span>
       </button>
     </nav>
 
@@ -320,56 +334,51 @@
   </div>
 
   <!-- Crea Sfida PvP -->
-<div id="modal-create-challenge" class="modal-overlay modal--hidden">
-  <div class="modal-sheet">
-    <div class="modal-handle"></div>
-    <div class="modal-title">⚔️ Nuova Sfida PvP</div>
-    <div class="modal-field"><label>Titolo</label><input id="ch-title" type="text" placeholder="es. Chi fa più pushup?" maxlength="80" /></div>
-    <div class="modal-field"><label>Regole (opzionale)</label><textarea id="ch-rules" placeholder="Descrivi le regole…" maxlength="300" rows="3"></textarea></div>
-    <div class="modal-field">
-      <label>Tipo</label>
-      <select id="ch-type">
-        <option value="mixed">⚔️ Misto</option>
-        <option value="athletic">🏋️ Atletico</option>
-        <option value="mental">🧠 Mentale</option>
-      </select>
-    </div>
-    <div class="modal-field"><label>Scadenza (opzionale)</label><input id="ch-expires" type="date" /></div>
-    <div class="modal-field">
-      <label class="toggle-row">
-        <span>Sfida pubblica</span>
-        <input id="ch-public" type="checkbox" checked />
-      </label>
-    </div>
-    <div class="modal-actions">
-      <button onclick="window._createChallenge?.()" class="btn-primary">Crea Sfida</button>
-      <button class="btn-secondary" onclick="closeModal('modal-create-challenge')">Annulla</button>
+  <div id="modal-create-challenge" class="modal-overlay modal--hidden">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-title">⚔️ Nuova Sfida PvP</div>
+      <div class="modal-field"><label>Titolo</label><input id="ch-title" type="text" placeholder="es. Chi fa più pushup?" maxlength="80" /></div>
+      <div class="modal-field"><label>Regole (opzionale)</label><textarea id="ch-rules" placeholder="Descrivi le regole…" maxlength="300" rows="3"></textarea></div>
+      <div class="modal-field">
+        <label>Tipo</label>
+        <select id="ch-type">
+          <option value="mixed">⚔️ Misto</option>
+          <option value="athletic">🏋️ Atletico</option>
+          <option value="mental">🧠 Mentale</option>
+        </select>
+      </div>
+      <div class="modal-field"><label>Scadenza (opzionale)</label><input id="ch-expires" type="date" /></div>
+      <div class="modal-field">
+        <label class="toggle-row">
+          <span>Sfida pubblica</span>
+          <input id="ch-public" type="checkbox" checked />
+        </label>
+      </div>
+      <div class="modal-actions">
+        <button onclick="window._createChallenge?.()" class="btn-primary">Crea Sfida</button>
+        <button class="btn-secondary" onclick="closeModal('modal-create-challenge')">Annulla</button>
+      </div>
     </div>
   </div>
-</div>
+
   <!-- Aggiungi Libro personale -->
   <div id="modal-add-book" class="modal-overlay modal--hidden">
     <div class="modal-sheet">
       <div class="modal-handle"></div>
       <div class="modal-title">📖 Aggiungi Libro</div>
-
-
-      
       <div class="modal-field">
-  <label>Titolo</label>
-  <div class="autocomplete-wrap">
-    <input id="book-title" type="text" placeholder="Titolo del libro" maxlength="100" autocomplete="off" />
-  </div>
-</div>
-<div class="modal-field">
-  <label>Autore</label>
-  <div class="autocomplete-wrap">
-    <input id="book-author" type="text" placeholder="Nome autore" maxlength="80" autocomplete="off" />
-  </div>
-</div>
-
-
-      
+        <label>Titolo</label>
+        <div class="autocomplete-wrap">
+          <input id="book-title" type="text" placeholder="Titolo del libro" maxlength="100" autocomplete="off" />
+        </div>
+      </div>
+      <div class="modal-field">
+        <label>Autore</label>
+        <div class="autocomplete-wrap">
+          <input id="book-author" type="text" placeholder="Nome autore" maxlength="80" autocomplete="off" />
+        </div>
+      </div>
       <div class="modal-field">
         <label>Genere</label>
         <select id="book-genre">
@@ -400,16 +409,9 @@
   <div id="modal-log-reading" class="modal-overlay modal--hidden">
     <div class="modal-sheet">
       <div class="modal-handle"></div>
-
-
-      
       <div class="modal-title">📖 Sessione di Lettura</div>
       <span id="reading-book-name" style="display:block;font-size:0.85rem;color:var(--text-2);margin-bottom:0.75rem;font-style:italic"></span>
-      
       <input id="reading-book-id" type="hidden" />
-
-
-      
       <div class="modal-field"><label>Pagine lette</label><input id="reading-pages" type="number" placeholder="es. 30" min="1" /></div>
       <div class="modal-actions">
         <button onclick="window._logReading?.()" class="btn-primary">Salva</button>

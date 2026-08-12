@@ -33,6 +33,7 @@ export async function gotoTab(tabId) {
     case 'libri':   return (await import('./libri.js')).renderLibri();
     case 'social':  return (await import('./social.js')).renderFriendsScreen();
     case 'stats':   return (await import('./stats.js')).renderStats();
+    case 'battle': return (await import('./village.js')).renderVillage();
   }
 }
 
