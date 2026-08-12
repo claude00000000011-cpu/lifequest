@@ -79,14 +79,17 @@ export async function renderVillage() {
   }[_villageTab] || 'village-bg-map';
 
   container.className = bgClass;
-  container.innerHTML = `
+container.innerHTML = `
     ${renderVillageHeader(bc, user, level)}
     ${renderVillageTabs(bc, level)}
     <div id="village-content" class="village-content">
       ${await renderVillageTabContent(bc, user, level)}
     </div>
   `;
-}
+  // Carica economia dopo che il DOM è pronto
+  if (_villageTab === 'map') {
+    setTimeout(() => window._loadEconomySummary?.(), 50);
+  }
 
 // ════════════════════════════════════════════════════════════
 // HEADER
