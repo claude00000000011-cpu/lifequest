@@ -47,18 +47,18 @@
 
 .battle-enemy-sprite {
   position: absolute;
-  top: 8%;
+  top: 15%;
   right: 8%;
-  width: 160px;
-  height: 160px;
+  width: 220px;
+  height: 220px;
 }
 
 .battle-hero-sprite {
   position: absolute;
-  bottom: 18%;
+  bottom: 10%;
   left: 4%;
-  width: 140px;
-  height: 140px;
+  width: 220px;
+  height: 220px;
 }
 
 .battle-enemy-sprite img,
@@ -67,7 +67,6 @@
   height: 100%;
   object-fit: contain;
   image-rendering: pixelated;
-  mix-blend-mode: multiply;
 }
 
 .battle-enemy-info {
