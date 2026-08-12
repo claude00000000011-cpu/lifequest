@@ -11,7 +11,10 @@ import { Users } from './api.js';
 // ── Livelli ──────────────────────────────────────────────────
 
 export function xpForLevel(lvl) {
-  return Math.floor(100 * Math.pow(lvl, 1.5));
+  // Curva ibrida: lineare nei primi 100 livelli, poi rallenta
+  if (lvl <= 100)  return Math.floor(80  * Math.pow(lvl, 1.4));
+  if (lvl <= 500)  return Math.floor(60  * Math.pow(lvl, 1.5));
+  return               Math.floor(40  * Math.pow(lvl, 1.6));
 }
 
 export function calcLevel(xp) {
