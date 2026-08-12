@@ -472,11 +472,17 @@ window._logReading = async function() {
   const book = DB.books.find(b => b.id === bookId);
   if (!book) return toast('Libro non trovato', 'error');
 
-  const diffBonus = BOOK_DIFF_BONUS[(book.difficulty || 1) - 1] || 1;
-  const baseXP    = Math.round(pagesRaw * XP_BOOK_PER_PAGE * diffBonus);
-  const earned    = await awardXP(baseXP, 'lettura');
+  // Cap: max 50 pagine per sessione contano per XP
+  const pagesForXP = Math.min(pagesRaw, 50);
+  const diffBonus  = BOOK_DIFF_BONUS[(book.difficulty || 1) - 1] || 1;
 
-  // Aggiorna segnalibro
+  // XP base — lo scaling per livello lo fa awardXP internamente
+  const baseXP = Math.round(pagesForXP * XP_BOOK_PER_PAGE * diffBonus);
+
+  // Passa le pagine come "unità" per il cap giornaliero (max 300 pag/giorno)
+  const earned = await awardXP(baseXP, 'lettura', pagesForXP);
+
+  // Aggiorna segnalibro (si avanza di tutte le pagine lette, non solo quelle capped)
   const newPage = Math.min(book.totalPages || 9999, (book.currentPage || 0) + pagesRaw);
   await Books.updateProgress(bookId, newPage);
   await Books.logReading({ bookId, pagesRead: pagesRaw, xpEarned: earned });
@@ -490,15 +496,14 @@ window._logReading = async function() {
   });
 
   playSound('xp');
-  toast(`+${earned} XP — pagina ${newPage}! 📍`, 'success');
+  const capMsg = pagesRaw > 50 ? ` (${pagesRaw - 50} pag. oltre il cap, non contano per XP)` : '';
+  toast(`+${earned} XP — pagina ${newPage}!${capMsg} 📍`, 'success');
   closeModal('modal-log-reading');
   document.getElementById('reading-pages').value = '';
 
-  // Completa automaticamente se finito
   if (book.totalPages > 0 && newPage >= book.totalPages) {
     await window._markBookDone?.(bookId, true);
   } else {
-    // Re-render sub-screen aggiornata
     const container = document.getElementById('screen-libri') ||
                       document.getElementById('screen-books');
     if (container && _currentBookId === bookId) {
@@ -507,6 +512,7 @@ window._logReading = async function() {
   }
 };
 
+// Nessun XP al completamento — solo aggiorna il segnalibro
 window._markBookDone = async function(bookId, auto = false) {
   if (!auto && !confirm('Segnare il libro come completato?')) return;
   const book = DB.books.find(b => b.id === bookId);
@@ -515,19 +521,16 @@ window._markBookDone = async function(bookId, auto = false) {
   const { ok } = await Books.markDone(bookId);
   if (!ok) return toast('Errore', 'error');
 
-  const bonus  = Math.round((book.totalPages || 100) * 0.2);
-  const earned = await awardXP(bonus, 'lettura');
-
   await Feed.create({
     content:  `🏆 Ho finito "${book.title}" di ${book.author || '?'}!`,
     category: 'lettura',
-    xpEarned: earned,
+    xpEarned: 0,
     refType:  'book',
     refId:    bookId,
   });
 
   playSound('trophy');
-  toast(`📚 Libro completato! +${earned} XP bonus!`, 'success');
+  toast(`📚 Libro completato! Ottimo lavoro! 🏆`, 'success');
   _currentBookId = null;
   renderBooks();
 };
