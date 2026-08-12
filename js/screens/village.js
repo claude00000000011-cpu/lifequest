@@ -222,6 +222,8 @@ function renderVillageMap(bc, level) {
       </div>
     </div>
   `;
+  // Chiama dopo che il DOM è stato inserito
+  setTimeout(() => window._loadEconomySummary?.(), 50);
 }
 
 // ── PORTO (Dungeon) ───────────────────────────────────────────
