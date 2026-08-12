@@ -92,4 +92,24 @@ export const BOOK_GENRES = [
 // (definiti in trophies.js, qui solo i tipi per reference)
 export const TROPHY_CATEGORIES = [
   'quest','streak','level','xp','books','routine','pvp','social',
+
+  
+  
 ];
+
+
+// ── Sistema XP Scaling ───────────────────────────────────────
+// XP base moltiplicato per (1 + livello * LVL_SCALE_FACTOR)
+export const LVL_SCALE_FACTOR = 0.08;
+
+// Cap giornaliero per categoria: numero massimo di "unità" che danno XP
+export const DAILY_XP_CAPS = {
+  lettura:    { maxUnits: 300,  unitLabel: 'pagine' },  // 6 sessioni × 50 pag
+  studio:     { maxUnits: 180,  unitLabel: 'minuti' },  // 3 sessioni × 60 min
+  fitness:    { maxUnits: 120,  unitLabel: 'minuti' },
+  meditazione:{ maxUnits: 60,   unitLabel: 'minuti' },
+  routine:    { maxUnits: 3,    unitLabel: 'volte'  },  // per singolo item
+  sociale:    { maxUnits: 3,    unitLabel: 'azioni' },
+  creatività: { maxUnits: 3,    unitLabel: 'azioni' },
+  sfide:      { maxUnits: 9999, unitLabel: ''       },  // nessun cap (dal gioco)
+};
