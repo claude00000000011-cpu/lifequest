@@ -53,12 +53,11 @@
   width: 200px; height: 200px;
   display: flex; align-items: center; justify-content: center;
 }
-.battle-enemy-art img {
-  max-width: 100%; max-height: 100%;
-  object-fit: contain;
-  image-rendering: pixelated;
-  mix-blend-mode: multiply;
-  background: transparent;
+.battle-enemy-art {
+  width: 200px; height: 200px;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at center, #1a1a35 60%, transparent 100%);
+  border-radius: 50%;
 }
 .enemy-art-fallback { font-size:4rem; display:flex; align-items:center; justify-content:center; }
 /* ── Barre HP/MP ──────────────────────────────────────────── */
