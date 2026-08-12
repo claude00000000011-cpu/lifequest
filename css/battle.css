@@ -170,3 +170,69 @@
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration:.01ms !important; transition-duration:.01ms !important; }
 }
+
+
+
+/* ── Sfondi schermate villaggio ───────────────────────────── */
+#screen-battle {
+  min-height: 100dvh;
+}
+
+.village-bg-map {
+  background-image: url('../assets/battle/sfondi/villaggio.png');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+.village-bg-port {
+  background-image: url('../assets/battle/sfondi/porto.png');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+.village-bg-merchant {
+  background-image: url('../assets/battle/sfondi/mercante.png');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+.village-bg-academy {
+  background-image: url('../assets/battle/sfondi/accademia.png');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+.village-bg-inventory {
+  background-image: url('../assets/battle/sfondi/zaino.png');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+/* Overlay scuro per leggibilità testo sopra gli sfondi */
+.village-bg-map::before,
+.village-bg-port::before,
+.village-bg-merchant::before,
+.village-bg-academy::before,
+.village-bg-inventory::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Assicura che il contenuto stia sopra l'overlay */
+.village-bg-map > *,
+.village-bg-port > *,
+.village-bg-merchant > *,
+.village-bg-academy > *,
+.village-bg-inventory > * {
+  position: relative;
+  z-index: 1;
+}

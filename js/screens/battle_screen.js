@@ -56,8 +56,8 @@ export async function renderBattleScreen(enemyData, dungeonCtx = {}) {
 
 function _renderUI(container) {
   const s = _battleState;
-  const learnedAbilities = (DB.characterAbilities[CUR.id] || [])
-    .map(la => DB.battleAbilities.find(ab => ab.id === la.ability_id))
+const learnedAbilities = (DB.characterAbilities[CUR.id] || [])
+    .map(la => (DB.battleAbilities || []).find(ab => ab.id === la.ability_id))
     .filter(Boolean)
     .filter(ab => ab.type !== 'passive')
     .slice(0, 4);
