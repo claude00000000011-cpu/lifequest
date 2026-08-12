@@ -64,14 +64,16 @@ window._doRoutine = async function(routineId) {
   const routine = [...ROUTINE_ITEMS, ...DB.routines].find(r => r.id === routineId);
   if (!routine) return;
 
+  // Max 1 volta al giorno per item (già gestito dal cap DAILY_XP_CAPS.routine)
   const todayLogs = DB.routineLogs.filter(
     r => r.userId === CUR.id && r.routineId === routineId && r.doneAt === today()
   );
-  if (todayLogs.length >= MAX_DAILY) {
-    return toast(`Hai già fatto questa routine ${MAX_DAILY} volte oggi!`, 'info');
+  if (todayLogs.length >= 1) {
+    return toast('Hai già fatto questa routine oggi!', 'info');
   }
 
-  const earned = await awardXP(routine.xpValue, routine.category);
+  // Passa 1 come unità (una routine = 1 "slot" del cap giornaliero per item)
+  const earned = await awardXP(routine.xpValue, routine.category, 1);
 
   const { ok } = await Routines.log({ routineId, xpEarned: earned });
   if (!ok) return toast('Errore nel salvataggio', 'error');
