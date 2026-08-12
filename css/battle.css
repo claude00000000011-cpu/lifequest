@@ -29,8 +29,8 @@
 
 .battle-enemy-zone {
   flex:0 0 40%; display:flex; flex-direction:column;
-  align-items:center; justify-content:center; gap:6px;
-  padding:12px 16px 8px;
+  align-items:center; justify-content:center; gap:4px;
+  padding:8px 16px 6px;
   border-bottom:1px solid var(--battle-border);
   background:linear-gradient(180deg, #0a0a18 0%, var(--battle-bg) 100%);
 }
@@ -49,11 +49,17 @@
 /* ── Nemico ───────────────────────────────────────────────── */
 .battle-enemy-name { font-size:1.1rem; font-weight:700; color:#f1f5f9; }
 .boss-badge        { background:var(--card-legendary); color:#000; font-size:.65rem; font-weight:800; padding:2px 8px; border-radius:99px; }
-
-.battle-enemy-art  { width:120px; height:120px; display:flex; align-items:center; justify-content:center; }
-.battle-enemy-art img { max-width:100%; max-height:100%; object-fit:contain; image-rendering:pixelated; }
+.battle-enemy-art {
+  width: 200px; height: 200px;
+  display: flex; align-items: center; justify-content: center;
+}
+.battle-enemy-art {
+  width: 200px; height: 200px;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at center, #1a1a35 60%, transparent 100%);
+  border-radius: 50%;
+}
 .enemy-art-fallback { font-size:4rem; display:flex; align-items:center; justify-content:center; }
-
 /* ── Barre HP/MP ──────────────────────────────────────────── */
 .battle-hp-row, .battle-mana-row {
   display:flex; align-items:center; gap:6px; width:100%; max-width:320px;
