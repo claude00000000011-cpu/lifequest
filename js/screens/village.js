@@ -29,8 +29,7 @@ import { ECONOMY, PROGRESSION,
 // ── Stato navigazione villaggio ───────────────────────────────
 let _villageTab = 'map';  // 'map'|'merchant'|'port'|'smith'|'academy'|'oracle'|'inventory'
 
-export function switchVillageTab(t) { _villageTab = t; (); }
-
+export function switchVillageTab(t) { _villageTab = t; renderVillage(); }
 // ════════════════════════════════════════════════════════════
 // ENTRY POINT
 // ════════════════════════════════════════════════════════════
