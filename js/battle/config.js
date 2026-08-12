@@ -106,9 +106,9 @@ export const COMBAT = {
   pvpMinPoints:         0,
 
   // Limiti giornalieri (reset mezzanotte UTC)
-  dailyPveLimit:        10,
-  dailyPvpLimit:        5,
-  dailyDungeonLimit:    3,
+  dailyPveLimit:        9999,
+  dailyPvpLimit:        9999,
+  dailyDungeonLimit:    9999,
   resetHourUTC:         0,
 };
 
