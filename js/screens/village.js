@@ -29,7 +29,7 @@ import { ECONOMY, PROGRESSION,
 // ── Stato navigazione villaggio ───────────────────────────────
 let _villageTab = 'map';  // 'map'|'merchant'|'port'|'smith'|'academy'|'oracle'|'inventory'
 
-export function switchVillageTab(t) { _villageTab = t; renderVillage(); }
+export function switchVillageTab(t) { _villageTab = t; (); }
 
 // ════════════════════════════════════════════════════════════
 // ENTRY POINT
@@ -69,7 +69,17 @@ export async function renderVillage() {
     return;
   }
 
-  // Rendering della tab corrente
+// Rendering della tab corrente
+  const bgClass = {
+    map:       'village-bg-map',
+    port:      'village-bg-port',
+    merchant:  'village-bg-merchant',
+    inventory: 'village-bg-inventory',
+    academy:   'village-bg-academy',
+    smith:     'village-bg-map',
+  }[_villageTab] || 'village-bg-map';
+
+  container.className = bgClass;
   container.innerHTML = `
     ${renderVillageHeader(bc, user, level)}
     ${renderVillageTabs(bc, level)}
