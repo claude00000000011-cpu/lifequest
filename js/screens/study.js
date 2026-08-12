@@ -455,10 +455,16 @@ window._logSession = async function() {
   if (!minutes || minutes < 1) return toast('Inserisci i minuti di studio', 'error');
   if (focus < 1 || focus > 10) return toast('Focus deve essere tra 1 e 10', 'error');
 
-  const baseXP = Math.round(minutes * 0.5 * (focus / 5));
-  const earned = await awardXP(baseXP, 'studio');
+  // Cap: max 180 minuti al giorno contano per XP
+  const minsForXP = Math.min(minutes, 180);
+  const baseXP    = Math.round(minsForXP * 0.5 * (focus / 5));
 
-  const { ok } = await Study.logSession({ examId: examId || null, minutes, focusScore: focus, xpEarned: earned, notes });
+  // Passa i minuti come unità per il cap giornaliero
+  const earned = await awardXP(baseXP, 'studio', minsForXP);
+
+  const { ok } = await Study.logSession({
+    examId: examId || null, minutes, focusScore: focus, xpEarned: earned, notes,
+  });
   if (!ok) return toast('Errore nel salvataggio', 'error');
 
   const exam = examId ? DB.exams.find(e => e.id === examId) : null;
