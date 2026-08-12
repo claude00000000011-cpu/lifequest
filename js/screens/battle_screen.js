@@ -56,33 +56,68 @@ export async function renderBattleScreen(enemyData, dungeonCtx = {}) {
 
 function _renderUI(container) {
   const s = _battleState;
-const learnedAbilities = (DB.characterAbilities[CUR.id] || [])
+  const learnedAbilities = (DB.characterAbilities[CUR.id] || [])
     .map(la => (DB.battleAbilities || []).find(ab => ab.id === la.ability_id))
     .filter(Boolean)
     .filter(ab => ab.type !== 'passive')
     .slice(0, 4);
 
+  const tier = _dungeonCtx?.tier || 1;
+  const heroClass = DB.battleCharacters?.[CUR.id]?.class_id || 'warrior';
+  const bgUrl = `assets/battle/sfondi/battaglia_${tier}.png`;
+  const heroLoopGif = `assets/battle/classes/${heroClass}_loop.gif`;
+
   container.innerHTML = `
     <div class="battle-screen" id="battle-root">
 
-      <!-- ZONA NEMICO (40%) -->
-      <section class="battle-enemy-zone">
-        <div class="battle-enemy-name">${escHtml(s.enemy.name)}${s.enemy.isBoss ? ' <span class="boss-badge">BOSS</span>' : ''}</div>
-        <div class="battle-enemy-art">
+      <!-- ZONA SCENA (45%) -->
+      <section class="battle-enemy-zone" style="background-image:url('${bgUrl}'); background-size:cover; background-position:center;">
+
+        <!-- Info nemico in alto a sinistra -->
+        <div class="battle-enemy-info">
+          <div class="battle-enemy-name">${escHtml(s.enemy.name)}${s.enemy.isBoss ? ' <span class="boss-badge">BOSS</span>' : ''}</div>
+          <div class="battle-bar-row">
+            <span class="battle-bar-label" style="color:var(--dmg-color)">HP</span>
+            <div class="battle-bar-track"><div class="hp-fill enemy-hp-fill" id="enemy-hp-fill" style="width:100%"></div></div>
+            <span class="battle-bar-value" id="enemy-hp-val">${s.enemy.hp}/${s.enemy.hpMax}</span>
+          </div>
+          <div id="enemy-status" class="enemy-status-effects"></div>
+        </div>
+
+        <!-- Sprite nemico in alto a destra -->
+        <div class="battle-enemy-sprite">
           <img src="${escHtml(_enemyData.icon_path || '')}"
                alt="${escHtml(s.enemy.name)}"
-               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-          <div class="enemy-art-fallback" style="display:none">👾</div>
+               id="enemy-sprite"
+               onerror="this.style.display='none'">
         </div>
-        <div class="battle-hp-row">
-          <span class="hp-label">HP</span>
-          <div class="hp-track"><div class="hp-fill enemy-hp-fill" id="enemy-hp-fill" style="width:100%"></div></div>
-          <span class="hp-value" id="enemy-hp-val">${s.enemy.hp}/${s.enemy.hpMax}</span>
+
+        <!-- Sprite eroe in basso a sinistra -->
+        <div class="battle-hero-sprite">
+          <img src="${escHtml(heroLoopGif)}"
+               alt="Eroe"
+               id="hero-sprite"
+               onerror="this.style.display='none'">
         </div>
-        <div id="enemy-status" class="enemy-status-effects"></div>
+
+        <!-- Info eroe in basso a destra -->
+        <div class="battle-hero-info-overlay">
+          <div class="battle-bar-row">
+            <span class="battle-bar-label" style="color:var(--hp-bar)">HP</span>
+            <div class="battle-bar-track"><div class="hp-fill" id="hero-hp-fill" style="width:100%"></div></div>
+            <span class="battle-bar-value" id="hero-hp-val">${s.player.hp}/${s.player.hpMax}</span>
+          </div>
+          <div class="battle-bar-row">
+            <span class="battle-bar-label" style="color:var(--mana-bar)">MP</span>
+            <div class="battle-bar-track"><div class="mana-fill" id="hero-mana-fill" style="width:100%"></div></div>
+            <span class="battle-bar-value" id="hero-mana-val">${s.player.mana}/${s.player.manaMax}</span>
+          </div>
+          <div id="hero-status" class="hero-status-effects"></div>
+        </div>
+
       </section>
 
-      <!-- ZONA LOG (20%) -->
+      <!-- ZONA LOG (15%) -->
       <section class="battle-log-zone" aria-live="polite">
         <div class="battle-log" id="battle-log">
           <div class="log-entry log-start">${escHtml(s.log[0] || '')}</div>
@@ -91,19 +126,6 @@ const learnedAbilities = (DB.characterAbilities[CUR.id] || [])
 
       <!-- ZONA AZIONI (40%) -->
       <section class="battle-actions-zone">
-        <div class="battle-hero-info">
-          <div class="battle-hp-row">
-            <span class="hp-label" style="color:var(--hp-bar)">HP</span>
-            <div class="hp-track"><div class="hp-fill" id="hero-hp-fill" style="width:100%"></div></div>
-            <span class="hp-value" id="hero-hp-val">${s.player.hp}/${s.player.hpMax}</span>
-          </div>
-          <div class="battle-hp-row" style="margin-top:4px">
-            <span class="hp-label" style="color:var(--mana-bar)">MP</span>
-            <div class="hp-track"><div class="mana-fill" id="hero-mana-fill" style="width:100%"></div></div>
-            <span class="hp-value" id="hero-mana-val">${s.player.mana}/${s.player.manaMax}</span>
-          </div>
-          <div id="hero-status" class="hero-status-effects" style="margin-top:6px"></div>
-        </div>
         <div class="battle-turn-info">Turno <span id="battle-turn">1</span>/10</div>
         <div class="battle-actions" id="battle-actions">
           ${_buildButtons(learnedAbilities)}
@@ -119,7 +141,6 @@ const learnedAbilities = (DB.characterAbilities[CUR.id] || [])
 
   _bindEvents(container, learnedAbilities);
 }
-
 function _buildButtons(abilities) {
   const base = [
     { action:'attack',  label:'⚔️ Attacca' },
