@@ -1215,6 +1215,7 @@ window._openPlayerProfile = async function(userId) {
     .eq('user_b', userB)
     .maybeSingle();
   const alreadyFriend = !!friendship;
+  console.log('[Profile Debug]', { userId, curId: CUR.id, alreadyFriend, sameUser: userId === CUR.id });
   const todayStr = new Date().toISOString().slice(0, 10);
   const summonKey = `summon_${userId}_${todayStr}`;
   const summonCount = parseInt(localStorage.getItem(summonKey) || '0');
