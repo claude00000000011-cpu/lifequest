@@ -288,7 +288,9 @@ await supabase
 
 DB.battleCharacters[userId] = { ...bc, ...patch };
 persist();
+}  // ← chiude _updateDerivedStats
 
+// ── Scelta Classe ─────────────────────────────────────────────
 // ── Scelta Classe ─────────────────────────────────────────────
 
 /**
