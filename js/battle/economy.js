@@ -434,8 +434,16 @@ export async function buyFromMerchant(userId, itemId) {
  * Ritira l'oggetto gratuito dell'Oracolo (1 al giorno).
  */
 export async function claimOracleFreeItem(userId) {
-  const key = `oracleFreeClaimed_${today()}`;
-  if (DB[key]?.[userId]) return { ok: false, error: 'Hai già ritirato l\'oggetto di oggi.' };
+  // 1. Inizializza la struttura se non esiste
+  if (!DB.oracleClaims) DB.oracleClaims = {};
+  
+  const todayStr = today();
+  const lastClaim = DB.oracleClaims[userId];
+
+  // 2. Controllo stringa data (YYYY-MM-DD)
+  if (lastClaim === todayStr) {
+    return { ok: false, error: 'Hai già ritirato l\'oggetto di oggi.' };
+  }
 
   const item = DB.merchantFreeItem;
   if (!item) return { ok: false, error: 'Nessun oggetto disponibile oggi.' };
@@ -443,10 +451,11 @@ export async function claimOracleFreeItem(userId) {
   const bc = getBattleChar(userId);
   if (!bc) return { ok: false, error: 'Personaggio non trovato' };
 
+  // 3. Esegui il ritiro
   await addToInventory(userId, bc.id, item.id);
 
-  if (!DB[key]) DB[key] = {};
-  DB[key][userId] = true;
+  // 4. Aggiorna stato e salva
+  DB.oracleClaims[userId] = todayStr;
   persist();
 
   return { ok: true, item };
