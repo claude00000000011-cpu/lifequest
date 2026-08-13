@@ -272,11 +272,10 @@ export const EQUIPMENT_DEGRADATION = {
 export const SMITH = {
   upgradeMaxLevel:     5,
   upgradeBonusPct:     0.10,
-  upgradeCost: { common: 80, rare: 200, epic: 500 },
+  upgradeCost: { common: 80, uncommon: 120, rare: 200, epic: 500, legendary: 900, mythic: 1500 },
   fusionSuccessRate:   0.60,
   fusionMaterialsRequired: 2,
 };
- 
 export const ECONOMY = {
   goldNormalMin:     5,
   goldNormalMax:     15,
@@ -294,7 +293,7 @@ export const ECONOMY = {
     wood:  { cost: 50,   pity: 10, rarityTarget: 'uncommon'  },
     iron:  { cost: 150,  pity: 10, rarityTarget: 'rare'      },
     gold:  { cost: 400,  pity: 10, rarityTarget: 'epic'      },
-    mythic:{ cost: 1000, pity: 10, rarityTarget: 'legendary' },
+   mythic:{ cost: 2500, pity: 10, rarityTarget: 'legendary' },
   },
  
   BOX_RATES: {
@@ -323,9 +322,9 @@ export const ABILITY_VALUES = {
   damagePct:        [80, 110, 150, 200, 280],
   cooldownTurns:    [0,  0,  2,  3,  4],
   buffDuration:     [2,  2,  3,  3,  4],
-  passiveStatPct:   [5,  10, 16, 24, 35],
+  passiveStatPct:   [5,  10, 15, 20, 25],
   passiveCritPct:   [2,  4,  6,  9,  14],
-  passiveDmgRedux:  [3,  6,  10, 15, 22],
+  passiveDmgRedux:  [3,  6,  9,  12, 15],
   ultimateDmgPct:   [0,  0,  0,  0,  500],
   ultimateMana:     [0,  0,  0,  0,  80],
   ultimateCooldown: [0,  0,  0,  0,  3],
@@ -375,15 +374,20 @@ export const COOP = {
   supporterResponseHours:  12,
   goldForSupport:          20,
   goldBonusIfWin:          15,
-  reputationPerSupport:    5,
+  reputationPerSupport:    20,
   maxReputation:           9999,
-  REP_THRESHOLDS: { ally: 50, protector: 200, legend: 500 },
+  REP_THRESHOLDS: { 
+    acquaintance: 100, 
+    ally:         300, 
+    protector:    800, 
+    hero:         2000, 
+    legend:       5000 
+  },
   legendDailyGold:         10,
   protectorGuildBonus:     0.03,
   buffDurationFights:      1,
   supportAttackBonus:      0.15,
 };
- 
 export const PROGRESSION = {
   tutorialFights: 5,
   startingGold:   50,
