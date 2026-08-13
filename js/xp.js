@@ -38,11 +38,26 @@ export function rankTitle(lvl) {
 // ── Scaling livello ──────────────────────────────────────────
 
 /**
- * Moltiplicatore XP basato sul livello corrente.
- * lv.1 → ×1.08 | lv.10 → ×1.8 | lv.50 → ×5 | lv.100 → ×9 | lv.500 → ×41
+ * Moltiplicatore XP basato sul livello — curva logaritmica.
+ * lv.1 → ×1.15 | lv.10 → ×1.65 | lv.50 → ×2.06 | lv.100 → ×2.21
+ * Mai oltre ×2.5 anche a livelli altissimi → no snowball.
  */
 export function levelScaleMult(level) {
-  return 1 + (level * LVL_SCALE_FACTOR);
+  return 1 + Math.log2(Math.max(1, level)) * 0.15;
+}
+
+/**
+ * Streak e level scaling ora sono SEPARATI e non si moltiplicano tra loro.
+ * Il bonus streak è additivo, non moltiplicativo.
+ * Prima: earned = base * levelMult * streakMult  → esponenziale
+ * Ora:   earned = base * levelMult + base * streakBonus → lineare
+ */
+export function streakMult(streak = 0) {
+  if (streak >= 30) return 1.25;  // era 1.5
+  if (streak >= 14) return 1.15;  // era 1.35
+  if (streak >= 7)  return 1.08;  // era 1.2
+  if (streak >= 3)  return 1.04;  // era 1.1
+  return 1;
 }
 
 // ── Streak ───────────────────────────────────────────────────
@@ -131,7 +146,6 @@ export function getDailyUnitsLeft(category, unitsPerAction = 1) {
  */
 export async function awardXP(baseXP, category = null, units = null) {
   if (!CUR) return 0;
-
   let user = DB.users[CUR.id];
   if (!user) return 0;
 
@@ -144,7 +158,6 @@ export async function awardXP(baseXP, category = null, units = null) {
   user = updatedUser;
 
   if (remaining <= 0) {
-    // Cap raggiunto — salva il dailyXP aggiornato ma non dare XP
     DB.users[CUR.id] = user;
     setCUR(user);
     persist();
@@ -153,17 +166,18 @@ export async function awardXP(baseXP, category = null, units = null) {
   }
 
   // 3. Ricalcola baseXP proporzionalmente se solo alcune unità sono rimaste
-  const ratio   = units ? (remaining / unitsToConsume) : 1;
+  const ratio      = units ? (remaining / unitsToConsume) : 1;
   const cappedBase = Math.round(baseXP * ratio);
 
-  // 4. Scaling per livello corrente
-  const level   = calcLevel(user.xp || 0);
+  // 4. Scaling logaritmico per livello
+  const level     = calcLevel(user.xp || 0);
   const scaleMult = levelScaleMult(level);
 
-  // 5. Streak multiplier
-  const sMult   = streakMult(user.streak);
+  // 5. Streak bonus — additivo, non moltiplicativo sul level scaling
+  const sMult       = streakMult(user.streak);
+  const streakBonus = Math.round(cappedBase * (sMult - 1));
+  const earned      = Math.round(cappedBase * scaleMult) + streakBonus;
 
-  const earned  = Math.round(cappedBase * scaleMult * sMult);
   if (earned <= 0) return 0;
 
   // 6. Applica XP
@@ -172,7 +186,7 @@ export async function awardXP(baseXP, category = null, units = null) {
   const newLevel  = calcLevel(newXP);
 
   // 7. Aggiorna stat di categoria
-  const stats   = { ...user.stats };
+  const stats  = { ...user.stats };
   const statKey = CAT_STAT[category] || null;
   if (statKey && stats[statKey] !== undefined) {
     stats[statKey] += earned;
@@ -203,12 +217,12 @@ export async function awardXP(baseXP, category = null, units = null) {
 
   // 9. Sync cloud
   Users.update(CUR.id, {
-    xp:        newXP,
-    level:     newLevel,
-    streak:    updated.streak,
-    lastActive:updated.lastActive,
+    xp:         newXP,
+    level:      newLevel,
+    streak:     updated.streak,
+    lastActive: updated.lastActive,
     stats,
-    dailyXP:   updated.dailyXP,
+    dailyXP:    updated.dailyXP,
   });
 
   import('./trophies.js').then(({ checkTrophies }) => checkTrophies());
