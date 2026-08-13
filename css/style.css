@@ -356,7 +356,7 @@ html, body {
   padding: 0;
   padding-bottom: env(safe-area-inset-bottom);
   overscroll-behavior: none;
-  touch-action: none;
+   touch-action: pan-x;
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: none;
