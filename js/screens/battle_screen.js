@@ -188,14 +188,14 @@ function _buildButtons(abilities) {
 
 function _buildItemButtons() {
   const usable = (DB.battleInventory?.[CUR.id] || []).filter(inv => {
-    const item = DB.battleItems.find(i => i.id === inv.item_id);
+    const item = (DB.battleItems || []).find(i => i.id === inv.item_id);
     return item?.slot === 'consumable';
   }).slice(0, 4);
   if (!usable.length) return '';
   const used = _battleState.itemsUsedCount;
   return `<div class="items-label">Oggetti (${3 - used} rimasti)</div>` +
     usable.map(inv => {
-      const item = DB.battleItems.find(i => i.id === inv.item_id);
+      const item = (DB.battleItems || []).find(i => i.id === inv.item_id);
       return `<button class="btn-battle-item" data-item-id="${escHtml(inv.item_id)}"
                       ${used >= 3 ? 'disabled' : ''}>
                 🧪 ${escHtml(item?.name || 'Oggetto')}
