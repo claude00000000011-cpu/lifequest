@@ -1096,31 +1096,27 @@ async function renderFriends() {
 }
 
 // ── CHAT DI GIOCO ─────────────────────────────────────────────
-
 async function renderGameChat() {
   const { supabase } = await import('../../supabase.js');
-// Carica amici per DM
-const { data: friendRows } = await supabase
-  .from('game_friends')
-  .select('user_a, user_b, ua:users!game_friends_user_a_fkey(id,username), ub:users!game_friends_user_b_fkey(id,username)')
-  .or(`user_a.eq.${CUR.id},user_b.eq.${CUR.id}`);
 
-const friends = (friendRows || []).map(row =>
-  row.user_a === CUR.id ? row.ub : row.ua
-).filter(Boolean);
- const { data: messages } = await supabase
-  .from('game_chat')
-  .select('id, user_id, username, message, created_at, recipient_id')
-  .or(`recipient_id.is.null,recipient_id.eq.${CUR.id},user_id.eq.${CUR.id}`)
-  .order('created_at', { ascending: true })
-  .limit(100);
-         
+  // Carica amici per DM
+  const { data: friendRows } = await supabase
+    .from('game_friends')
+    .select('user_a, user_b, ua:users!game_friends_user_a_fkey(id,username), ub:users!game_friends_user_b_fkey(id,username)')
+    .or(`user_a.eq.${CUR.id},user_b.eq.${CUR.id}`);
+
+  const friends = (friendRows || []).map(row =>
+    row.user_a === CUR.id ? row.ub : row.ua
+  ).filter(Boolean);
+
   // Pulizia messaggi > 24h
   await supabase.rpc('cleanup_game_chat');
 
+  // Carica messaggi (globali + DM che mi riguardano)
   const { data: messages } = await supabase
     .from('game_chat')
-    .select('id, user_id, username, message, created_at')
+    .select('id, user_id, username, message, created_at, recipient_id')
+    .or(`recipient_id.is.null,recipient_id.eq.${CUR.id},user_id.eq.${CUR.id}`)
     .order('created_at', { ascending: true })
     .limit(100);
 
@@ -1132,23 +1128,16 @@ const friends = (friendRows || []).map(row =>
           ? '<div class="empty-note" style="padding:1rem">Nessun messaggio. Di\' qualcosa!</div>'
           : messages.map(m => {
               const isMe = m.user_id === CUR.id;
+              const isDM = m.recipient_id !== null;
               return `
-                <div class="chat-msg ${isMe ? 'chat-msg--me' : ''}">
-
-
-
-
-                
-               <span class="chat-msg__user"
-      style="color:${isMe ? 'var(--rpg-gold)' : 'var(--rpg-gray)'};
-             ${!isMe ? 'cursor:pointer;text-decoration:underline dotted' : ''}"
-      ${!isMe ? `onclick="window._addGameFriend?.('${m.user_id}', '${escHtml(m.username)}')"
-                 title="Aggiungi @${escHtml(m.username)} agli amici"` : ''}>
-  @${escHtml(m.username)}
-</span>
-
-
-                  
+                <div class="chat-msg ${isMe ? 'chat-msg--me' : ''} ${isDM ? 'chat-msg--dm' : ''}">
+                  <span class="chat-msg__user"
+                        style="color:${isMe ? 'var(--rpg-gold)' : 'var(--rpg-gray)'};
+                               ${!isMe ? 'cursor:pointer;text-decoration:underline dotted' : ''}"
+                        ${!isMe ? `onclick="window._addGameFriend?.('${m.user_id}', '${escHtml(m.username)}')"
+                                   title="Aggiungi @${escHtml(m.username)} agli amici"` : ''}>
+                    @${escHtml(m.username)}${isDM ? ' 🔒' : ''}
+                  </span>
                   <span class="chat-msg__text">${escHtml(m.message)}</span>
                   <span class="chat-msg__time">${new Date(m.created_at).toLocaleTimeString('it-IT', {hour:'2-digit',minute:'2-digit'})}</span>
                 </div>
@@ -1156,36 +1145,29 @@ const friends = (friendRows || []).map(row =>
             }).join('')}
       </div>
 
-
-
-
-
-
-
-
-      
-     <div class="chat-input-area">
-  <div class="chat-dm-row">
-    <span style="font-family:var(--font-pixel);font-size:0.32rem;color:var(--rpg-gray);white-space:nowrap">
-      A:
-    </span>
-    <select id="chat-dm-select" style="flex:1;font-family:var(--font-pixel);font-size:0.32rem;
-            background:var(--rpg-panel2);color:var(--rpg-white);border:2px solid var(--rpg-border);padding:4px">
-      <option value="">🌐 Tutti (globale)</option>
-      ${(friends || []).map(f =>
-        `<option value="${f.id}">@${escHtml(f.username)}</option>`
-      ).join('')}
-    </select>
-  </div>
-  <input type="text" id="chat-input" placeholder="Scrivi un messaggio…" maxlength="200"
-         style="width:100%;font-family:var(--font-pixel);font-size:0.38rem;background:var(--rpg-panel2);
-                color:var(--rpg-white);border:2px solid var(--rpg-border);padding:8px;box-sizing:border-box"
-         onkeydown="if(event.key==='Enter') window._sendChatMessage?.()">
-  <button class="btn-sm btn-primary" style="width:100%" onclick="window._sendChatMessage?.()">
-    Invia
-  </button>
-</div>
+      <div class="chat-input-area">
+        <div class="chat-dm-row">
+          <span style="font-family:var(--font-pixel);font-size:0.32rem;color:var(--rpg-gray);white-space:nowrap">A:</span>
+          <select id="chat-dm-select" style="flex:1;font-family:var(--font-pixel);font-size:0.32rem;
+                  background:var(--rpg-panel2);color:var(--rpg-white);border:2px solid var(--rpg-border);padding:4px">
+            <option value="">🌐 Tutti (globale)</option>
+            ${(friends || []).map(f =>
+              `<option value="${f.id}">@${escHtml(f.username)}</option>`
+            ).join('')}
+          </select>
+        </div>
+        <input type="text" id="chat-input" placeholder="Scrivi un messaggio…" maxlength="200"
+               style="width:100%;font-family:var(--font-pixel);font-size:0.38rem;background:var(--rpg-panel2);
+                      color:var(--rpg-white);border:2px solid var(--rpg-border);padding:8px;box-sizing:border-box"
+               onkeydown="if(event.key==='Enter') window._sendChatMessage?.()">
+        <button class="btn-sm btn-primary" style="width:100%" onclick="window._sendChatMessage?.()">
+          Invia
+        </button>
+      </div>
+    </div>
   `;
+
+
 }
 
 
