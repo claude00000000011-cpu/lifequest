@@ -97,8 +97,6 @@ function calcEnemyScaling(enemyData, playerLevel, playerAtk = 10, playerDef = 10
 
 
  
-}
- 
 function getDungeonConfig(tier) {
   // Importazione inline per evitare circular dep con config.js
   const DUNGEONS_LOCAL = [
