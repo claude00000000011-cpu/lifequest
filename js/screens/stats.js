@@ -402,47 +402,7 @@ window._togglePrivacyCategory = async function(category, hide) {
   toast(hide ? `Attività "${category}" nascoste dal feed` : `Attività "${category}" visibili`, 'success');
 };
 
-// ════════════════════════════════════════════════════════════
-// PANNELLO ADMIN — solo per alexandervertigo
-// ════════════════════════════════════════════════════════════
 
-export function isAdmin() {
-  return CUR?.username === 'alexandervertigo';
-}
-
-export function switchStatsTab(t) { _statsTab = t; renderStats(); }
-
-export async function renderStats() {
-  if (!CUR) return;
-  const container = document.getElementById('screen-stats');
-  if (!container) return;
-
-  const tabs = [
-    { id: 'mine',        label: '👤 Profilo'   },
-    { id: 'leaderboard', label: '🏆 Classifica' },
-    { id: 'calendar',    label: '📅 Calendario' },
-    ...(isAdmin() ? [{ id: 'admin', label: '⚙️ Admin' }] : []),
-  ];
-
-  container.innerHTML = `
-    <div class="screen-header"><h2>Statistiche</h2></div>
-    <div class="tab-row">
-      ${tabs.map(t => `
-        <button class="tab-btn ${_statsTab === t.id ? 'tab-btn--active' : ''}"
-                onclick="window._switchStatsTab?.('${t.id}')">
-          ${t.label}
-        </button>`).join('')}
-    </div>
-    <div id="stats-content">Caricamento…</div>
-  `;
-
-  switch (_statsTab) {
-    case 'mine':        return renderMyStats();
-    case 'leaderboard': return renderLeaderboard();
-    case 'calendar':    return renderPersonalCalendar();
-    case 'admin':       return isAdmin() ? renderAdminPanel() : renderMyStats();
-  }
-}
 
 // ── Render pannello admin ─────────────────────────────────────
 
