@@ -100,7 +100,7 @@ _lockNav(true);
     };
   }
 
-  _battleState = initBattle(stats, enemyData, stats.level);
+   _battleState = initBattle(stats, enemyData, stats.level, null, stats.defense);
   _renderUI(container);
 
 
