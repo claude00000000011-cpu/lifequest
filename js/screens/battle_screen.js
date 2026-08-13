@@ -552,7 +552,15 @@ async function _onBattleEnd(container, state) {
     await incrementDailyLimit(CUR.id, 'pve_count');
   }
 
-   // Salva gli HP rimasti dopo la battaglia
+
+
+
+
+
+
+
+         
+  // Salva gli HP rimasti dopo la battaglia
   const { error: hpError } = await supabase
     .from('battle_characters')
     .update({
@@ -574,6 +582,14 @@ async function _onBattleEnd(container, state) {
 
   _showEndOverlay(container, won, goldEarned, 0, itemDropped);
 }
+
+
+
+
+
+
+
+
 
 
 
