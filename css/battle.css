@@ -1904,8 +1904,14 @@
   align-self: flex-end;
 }
 
-.chat-input-row {
+.chat-input-area {
   display: flex;
-  gap: 6px;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.chat-dm-row {
+  display: flex;
   align-items: center;
+  gap: 6px;
 }
