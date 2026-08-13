@@ -602,12 +602,19 @@ async function renderSmith(bc) {
                   </div>
 
                   <!-- Bottone -->
-                  <button class="btn-sm ${check.canEnhance ? 'btn-primary' : ''}"
-                          ${!check.canEnhance ? 'disabled' : ''}
-                          title="${!check.canEnhance ? escHtml(check.reason || '') : `Potenzia a ⭐${lvl + 1}`}"
-                          onclick="window._enhanceItem?.('${entry.id}')">
-                    ⬆️ +1
-                  </button>
+                  <div class="enhance-item__footer">
+                    ${!cost?.onlyGold ? `
+                      <div class="enhance-copies ${copies >= (cost?.copiesNeeded || 0) ? 'copies-ok' : 'copies-missing'}">
+                        📦 ${copies}/${cost?.copiesNeeded || '?'} copie
+                      </div>
+                    ` : `<div class="enhance-copies copies-ok">💰 Solo Gold</div>`}
+                    <button class="btn-sm ${check.canEnhance ? 'btn-primary' : ''}"
+                            ${!check.canEnhance ? 'disabled' : ''}
+                            title="${!check.canEnhance ? escHtml(check.reason || '') : `Potenzia a ⭐${lvl + 1}`}"
+                            onclick="window._enhanceItem?.('${entry.id}')">
+                      ⬆️ +1
+                    </button>
+                  </div>
 
                 </div>
               `;
