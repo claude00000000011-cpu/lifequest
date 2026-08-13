@@ -140,14 +140,36 @@ function rollFromBoxRates(rates) {
  * Seleziona un oggetto casuale dal catalogo locale filtrato per rarità.
  * Esclude consumabili (non droppano dalle casse).
  */
+// ── loadItems ─────────────────────────────────────────────────
+// Carica il catalogo globale da Supabase (solo item attivi, non consumabili).
+// Usa cache locale: non rifà la query se già popolata.
+export async function loadItems(forceRefresh = false) {
+  if (DB.battleItems?.length && !forceRefresh) return DB.battleItems;
+
+  const { data, error } = await supabase
+    .from('battle_items')
+    .select('*')
+    .eq('is_active', true)
+    .neq('slot', 'consumable'); // consumabili gestiti separatamente
+
+  if (error) {
+    console.warn('[Economy] loadItems error:', error.message);
+    return DB.battleItems || [];
+  }
+
+  DB.battleItems = data || [];
+  persist();
+  return DB.battleItems;
+}
+
+// ── selectRandomItemByRarity ───────────────────────────────────
+// Sceglie un item da DB.battleItems filtrato per rarità.
+// Esclude consumabili. Fallback procedurale se catalogo vuoto.
 function selectRandomItemByRarity(rarity) {
   const pool = (DB.battleItems || []).filter(
     i => i.rarity === rarity && i.slot !== 'consumable'
   );
-  if (!pool.length) {
-    // Fallback: oggetto procedurale
-    return generateProceduralItem(rarity);
-  }
+  if (!pool.length) return generateProceduralItem(rarity);
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
@@ -575,10 +597,12 @@ export async function processDrop(userId, rarity) {
   const bc = getBattleChar(userId);
   if (!bc) return { ok: false };
 
-  // Filtra per classe del personaggio (usa item senza restriction O compatibili)
+  // Filtra per classe del personaggio:
+  // item senza class_restriction = disponibile per tutti
+  // item con class_restriction = solo se include la classe del personaggio
   const classId = bc.class_id;
   const pool = (DB.battleItems || []).filter(i => {
-    if (i.rarity !== rarity) return false;
+    if (i.rarity !== rarity || i.slot === 'consumable') return false;
     if (!i.class_restriction || i.class_restriction.length === 0) return true;
     return i.class_restriction.includes(classId);
   });
