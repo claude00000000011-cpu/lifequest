@@ -1115,7 +1115,7 @@ async function renderFriends() {
                 <div style="flex:1;font-family:var(--font-pixel);font-size:0.42rem">
                   @${escHtml(f.username)}
                 </div>
-                <button class="btn-sm" onclick="window._viewUserProfile?.('${f.id}')">Profilo</button>
+                <button class="btn-sm" onclick="window._openPlayerProfile?.('${f.id}')">Profilo</button>
                 <button class="btn-sm btn-danger" onclick="window._removeGameFriend?.('${f.id}')">Rimuovi</button>
               </div>
             `).join('')}
