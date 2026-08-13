@@ -287,9 +287,41 @@ export async function sellItem(userId, inventoryId) {
 // MERCANTE
 // ════════════════════════════════════════════════════════════
 
+// UUID reali dei consumabili (da Supabase battle_items)
+const CONSUMABLE_IDS = {
+  pozione_hp_piccola: 'c043e4da-feae-49fc-b3a0-c8b19decdf0d',
+  pozione_hp_media:   '6d5b63e3-90eb-499b-a25c-099c882ed780',
+  pozione_hp_grande:  '85f322c3-fde6-432b-9d83-8329815da520',
+  pozione_mp_piccola: '73953272-29f0-43c2-8c9f-82c49ccc71e6',
+  pozione_mp_media:   'cd190674-efbb-4c28-816d-eaeb8e849500',
+  pozione_mp_grande:  'ae557738-9d37-4aee-acc5-5ba079a7ad36',
+  elisir_vita:        'b26d2d44-abd6-41bb-98a2-8d201fb702bf',
+  amuleto_barriera:   '23e82462-3e79-45db-aafe-873bd5c6c10c',
+  risonanza_eterna:   '2cef55ee-f949-408a-a904-fc7ccac78c19',
+  bomba_acqua:        '578c9566-a7ca-4004-9358-a6500c618fa5',
+  bomba_fuoco:        'fdd22db0-363d-4a47-8919-65a72a275870',
+  bomba_luce:         '6ba822d8-7333-4d5b-8b8b-d8c49e1271e3',
+  bomba_oscura:       '96f88af3-41bb-415c-a2c1-0e8365971be4',
+};
+
+// Pool consumabili con prezzi fissi
+const CONSUMABLE_POOL = [
+  { id: CONSUMABLE_IDS.pozione_hp_piccola, price: 50  },
+  { id: CONSUMABLE_IDS.pozione_hp_media,   price: 120 },
+  { id: CONSUMABLE_IDS.pozione_hp_grande,  price: 300 },
+  { id: CONSUMABLE_IDS.pozione_mp_piccola, price: 50  },
+  { id: CONSUMABLE_IDS.pozione_mp_media,   price: 120 },
+  { id: CONSUMABLE_IDS.pozione_mp_grande,  price: 300 },
+  { id: CONSUMABLE_IDS.bomba_acqua,        price: 150 },
+  { id: CONSUMABLE_IDS.bomba_fuoco,        price: 150 },
+  { id: CONSUMABLE_IDS.bomba_luce,         price: 300 },
+  { id: CONSUMABLE_IDS.bomba_oscura,       price: 300 },
+  { id: CONSUMABLE_IDS.amuleto_barriera,   price: 500 },
+];
+
 /**
  * Restituisce gli slot del mercante, rigenerando se passate 24h.
- * @returns {Array} slot mercante (6 oggetti)
+ * @returns {Array} slot mercante
  */
 export async function getMerchantSlots() {
   const lastRot = DB.merchantLastRot;
@@ -305,47 +337,51 @@ export async function getMerchantSlots() {
 
 /**
  * Rigenera il catalogo del mercante.
- * Composizione: 4 consumabili fissi + 2 oggetti rari a rotazione.
+ * Composizione: 4 consumabili casuali dal pool reale +
+ *               2 armi rare/epic della classe del giocatore.
  */
 async function rotateMerchant() {
   await loadItems();
 
-  const M = ECONOMY.MERCHANT;
+  const M  = ECONOMY.MERCHANT;
+  const bc = CUR ? DB.battleCharacters?.[CUR.id] : null;
 
-  // Consumabili sempre disponibili
-  const fixedSlots = [
-    buildMerchantSlot('potion_heal_small',  M.priceHealSmall),
-    buildMerchantSlot('potion_heal_medium', M.priceHealMedium),
-    buildMerchantSlot('tonic_mana_small',   M.priceManaSmall),
-    buildMerchantSlot('bomb_aoe',           M.priceBombAoe),
-  ];
+  // 4 consumabili casuali dal pool reale
+  const dailyConsumables = shuffle([...CONSUMABLE_POOL])
+    .slice(0, 4)
+    .map(entry => {
+      const item = (DB.battleItems || []).find(i => i.id === entry.id);
+      return { itemId: entry.id, price: entry.price, item };
+    })
+    .filter(s => s.item); // scarta eventuali item non ancora in cache
 
-  // 2 oggetti rari/epici casuali
-  const rarPool = (DB.battleItems || []).filter(
-    i => ['rare', 'epic'].includes(i.rarity) && i.slot !== 'consumable'
+  // 2 armi rare/epic — solo asset reali, preferisce la classe del giocatore
+  const rarPool = (DB.battleItems || []).filter(i =>
+    ['rare', 'epic'].includes(i.rarity) &&
+    i.slot !== 'consumable' &&
+    i.icon_path !== null &&
+    (!bc?.class_id || i.class_id === bc.class_id || i.class_id === null)
   );
-  const picked = shuffle([...rarPool]).slice(0, 2);
-  const rareSlots = picked.map(item => {
-    const rarBase = { rare: 400, epic: 1000 };
-    const price   = Math.floor((rarBase[item.rarity] || 400) * M.rareItemMarkup);
-    return buildMerchantSlot(item.id, price, item);
-  });
+  const rareSlots = shuffle([...rarPool])
+    .slice(0, 2)
+    .map(item => {
+      const rarBase = { rare: 400, epic: 1000 };
+      const price   = Math.floor((rarBase[item.rarity] || 400) * (M.rareItemMarkup || 1.2));
+      return { itemId: item.id, price, item };
+    });
 
-  // Oggetto gratuito dell'Oracolo (richiede una quest specifica)
-  const freePool = (DB.battleItems || []).filter(i => i.rarity === 'uncommon');
+  // Oggetto gratuito Oracolo: uncommon con asset reale
+  const freePool = (DB.battleItems || []).filter(
+    i => i.rarity === 'uncommon' && i.icon_path !== null
+  );
   const freeItem = freePool.length
     ? freePool[Math.floor(Math.random() * freePool.length)]
     : null;
 
-  DB.merchantSlots   = [...fixedSlots, ...rareSlots];
+  DB.merchantSlots    = [...dailyConsumables, ...rareSlots];
   DB.merchantFreeItem = freeItem;
   DB.merchantLastRot  = Date.now();
   persist();
-}
-
-function buildMerchantSlot(itemId, price, itemData = null) {
-  const item = itemData || (DB.battleItems || []).find(i => i.id === itemId);
-  return { itemId, price, item };
 }
 
 function shuffle(arr) {
@@ -358,9 +394,6 @@ function shuffle(arr) {
 
 /**
  * Acquista un oggetto dal mercante.
- * @param {string} userId
- * @param {string} itemId
- * @returns {{ ok: boolean, item?, error? }}
  */
 export async function buyFromMerchant(userId, itemId) {
   const slots = await getMerchantSlots();
@@ -378,7 +411,6 @@ export async function buyFromMerchant(userId, itemId) {
   if (!goldResult.ok) return goldResult;
 
   await addToInventory(userId, bc.id, itemId);
-
   return { ok: true, item: slot.item, goldSpent: slot.price };
 }
 
@@ -403,7 +435,6 @@ export async function claimOracleFreeItem(userId) {
 
   return { ok: true, item };
 }
-
 // ════════════════════════════════════════════════════════════
 // FABBRO — Riparazione e Potenziamento
 // ════════════════════════════════════════════════════════════
