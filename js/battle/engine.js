@@ -518,25 +518,32 @@ function checkVictory(s, defeated) {
 }
  
 // ── Calcolo Ricompense ────────────────────────────────────────
- 
+
 export function calcPveRewards(enemyData, playerLuck, dungeonTier) {
-  const goldMin = enemyData.gold_min;
-  const goldMax = enemyData.gold_max;
-  const gold    = Math.floor(goldMin + Math.random() * (goldMax - goldMin));
- 
-  // drop_rate_pct è in formato 0-100 in tutto il sistema
-  const baseDropRate = (enemyData.drop_rate_pct || 0) / 100;
-  const luckBonus    = playerLuck * 0.001;
-  const drops        = Math.random() < (baseDropRate + luckBonus);
- 
+  const gold = Number(enemyData.gold_reward || 0);
+  const xp   = Number(enemyData.xp_reward || 0);
+
+  // Probabilità base di drop determinata dal tier del dungeon
+  const dropRates = [0.15, 0.18, 0.22, 0.28, 0.35];
+  const baseDropRate = dropRates[Math.min(Math.max(dungeonTier - 1, 0), 4)] || 0.15;
+
+  // La fortuna aumenta leggermente la probabilità di drop
+  const luckBonus = Number(playerLuck || 0) * 0.001;
+  const drops = Math.random() < Math.min(1, baseDropRate + luckBonus);
+
   let itemRarity = null;
+
   if (drops) {
     itemRarity = rollItemRarity(dungeonTier - 1, playerLuck);
   }
- 
-  return { gold, itemRarity, xpBonus: 0 };
+
+  return {
+    gold,
+    itemRarity,
+    xpBonus: xp,
+  };
 }
- 
+
 export function rollItemRarity(tierIndex, playerLuck = 0) {
   const DROP_RARITY_RATES = [
     [0, 0.40, 0.25, 0.08, 0.02, 0.00],
@@ -545,18 +552,33 @@ export function rollItemRarity(tierIndex, playerLuck = 0) {
     [0, 0.20, 0.35, 0.25, 0.12, 0.02],
     [0, 0.15, 0.35, 0.30, 0.18, 0.05],
   ];
- 
-  const RARITIES = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
-  const rates    = DROP_RARITY_RATES[Math.min(tierIndex, 4)] || DROP_RARITY_RATES[0];
-  const luckMult = 1 + playerLuck * 0.002;
-  const rand     = Math.random() / luckMult;
- 
+
+  const RARITIES = [
+    'common',
+    'uncommon',
+    'rare',
+    'epic',
+    'legendary',
+    'mythic'
+  ];
+
+  const rates =
+    DROP_RARITY_RATES[Math.min(Math.max(tierIndex, 0), 4)] ||
+    DROP_RARITY_RATES[0];
+
+  const luckMult = 1 + Number(playerLuck || 0) * 0.002;
+  const rand = Math.random() / luckMult;
+
   let cumulative = 0;
+
   for (let i = rates.length - 1; i >= 0; i--) {
     cumulative += rates[i];
-    if (rand < cumulative) return RARITIES[i];
+
+    if (rand < cumulative) {
+      return RARITIES[i];
+    }
   }
- 
+
   return 'uncommon';
 }
  
