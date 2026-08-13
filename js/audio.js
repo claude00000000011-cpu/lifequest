@@ -9,9 +9,8 @@
 const AUDIO_KEY = 'lq_audio_settings';
 
 function loadAudioSettings() {
-  try {
-    return JSON.parse(localStorage.getItem(AUDIO_KEY)) || {};
-  } catch { return {}; }
+  try { return JSON.parse(localStorage.getItem(AUDIO_KEY)) || {}; }
+  catch { return {}; }
 }
 
 function saveAudioSettings(s) {
@@ -40,97 +39,102 @@ const AUDIO_BASE = '/lifequest/assets/audio/';
 // ── Mappa SFX: nome → file MP3 ───────────────────────────────
 const SFX_MAP = {
   // Combattimento
-  attack:          'sfx_attack.mp3',
-  attack_enemy:    'sfx_attack_enemy.mp3',
-  ability:         'sfx_ability.mp3',
-  crit:            'sfx_crit.mp3',
-  guard:           'sfx_guard.mp3',
-  hit:             'sfx_hit.mp3',
-  poison:          'sfx_poison.mp3',
-  heal:            'sfx_heal.mp3',
-  mana:            'sfx_mana.mp3',
-  stun:            'sfx_stun.mp3',
-  buff:            'sfx_buff.mp3',
-  phase2:          'sfx_phase2.mp3',
-  immunity:        'sfx_immunity.mp3',
-  victory:         'sfx_victory.mp3',
-  defeat:          'sfx_defeat.mp3',
-  flee:            'sfx_flee.mp3',
+  attack:           'sfx_attack.mp3',
+  attack_enemy:     'sfx_attack_enemy.mp3',
+  ability:          'sfx_ability.mp3',
+  crit:             'sfx_crit.mp3',
+  guard:            'sfx_guard.mp3',
+  hit:              'sfx_hit.mp3',
+  poison:           'sfx_poison.mp3',
+  heal:             'sfx_heal.mp3',
+  mana:             'sfx_mana.mp3',
+  stun:             'sfx_stun.mp3',
+  buff:             'sfx_buff.mp3',
+  phase2:           'sfx_phase2.mp3',
+  immunity:         'sfx_immunity.mp3',
+  victory:          'sfx_victory.mp3',
+  defeat:           'sfx_defeat.mp3',
+  flee:             'sfx_flee.mp3',
   // Villaggio
-  buy:             'sfx_buy.mp3',
-  sell:            'sfx_sell.mp3',
-  lootbox:         'sfx_lootbox.mp3',
-  loot_rare:       'sfx_loot_rare.mp3',
-  enhance:         'sfx_enhance.mp3',
-  repair:          'sfx_repair.mp3',
-  equip:           'sfx_equip.mp3',
-  learn:           'sfx_learn.mp3',
-  dungeon_enter:   'sfx_dungeon_enter.mp3',
-  dungeon_complete:'sfx_dungeon_complete.mp3',
-  next_room:       'sfx_next_room.mp3',
+  buy:              'sfx_buy.mp3',
+  sell:             'sfx_sell.mp3',
+  lootbox:          'sfx_lootbox.mp3',
+  loot_rare:        'sfx_loot_rare.mp3',
+  enhance:          'sfx_enhance.mp3',
+  repair:           'sfx_repair.mp3',
+  equip:            'sfx_equip.mp3',
+  learn:            'sfx_learn.mp3',
+  dungeon_enter:    'sfx_dungeon_enter.mp3',
+  dungeon_complete: 'sfx_dungeon_complete.mp3',
+  next_room:        'sfx_next_room.mp3',
   // Sistema
-  tap:             'sfx_tap.mp3',
-  levelup:         'sfx_levelup.mp3',
-  error:           'sfx_error.mp3',
-  gold:            'sfx_gold.mp3',
-  class_select:    'sfx_class_select.mp3',
+  tap:              'sfx_tap.mp3',
+  levelup:          'sfx_levelup.mp3',
+  error:            'sfx_error.mp3',
+  gold:             'sfx_gold.mp3',
+  class_select:     'sfx_class_select.mp3',
   // Alias usati nel codice esistente
-  xp:              'sfx_levelup.mp3',
-  trophy:          'sfx_lootbox.mp3',
-  challenge:       'sfx_dungeon_enter.mp3',
-  login:           'sfx_tap.mp3',
-  open:            'sfx_tap.mp3',
-  quest:           'sfx_tap.mp3',
-  like:            'sfx_tap.mp3',
+  xp:               'sfx_levelup.mp3',
+  trophy:           'sfx_lootbox.mp3',
+  challenge:        'sfx_dungeon_enter.mp3',
+  login:            'sfx_tap.mp3',
+  open:             'sfx_tap.mp3',
+  quest:            'sfx_tap.mp3',
+  like:             'sfx_tap.mp3',
 };
 
-// ── BGM: tracce per schermata ─────────────────────────────────
-// Se una traccia manca → si usa l'altra in rotazione
+// ── BGM ───────────────────────────────────────────────────────
 const BGM_TRACKS = {
-  village:  ['bgm_village .mp3'],   // nota: spazio nel nome tuo file!
-  battle:   ['bgm_battle.mp3'],
-  // Per ora solo 2 BGM — le schermate non-battle usano bgm_village
-  // Quando aggiungi i file mancanti, aggiungi qui:
-  // merchant: ['bgm_merchant.mp3'],
-  // smith:    ['bgm_smith.mp3'],
-  // dungeon:  ['bgm_dungeon.mp3'],
-  // boss:     ['bgm_boss.mp3'],
+  village: ['bgm_village.mp3'],
+  battle:  ['bgm_battle.mp3'],
 };
 
-// Mappa schermata/tab → quale BGM usare
 const SCREEN_BGM = {
-  // Tab village
-  map:       'village',
-  merchant:  'village',   // fallback finché non hai bgm_merchant
-  port:      'village',   // fallback finché non hai bgm_dungeon
-  smith:     'village',   // fallback finché non hai bgm_smith
-  academy:   'village',
-  inventory: 'village',
-  // Combattimento
-  battle:    'battle',
-  boss:      'battle',    // fallback finché non hai bgm_boss
-  // Schermate app principale
-  home:      'village',
-  quest:     'village',
-  study:     'village',
-  routine:   'village',
-  pvp:       'village',
-  libri:     'village',
-  social:    'village',
-  stats:     'village',
+  map: 'village', merchant: 'village', port: 'village',
+  smith: 'village', academy: 'village', inventory: 'village',
+  battle: 'battle', boss: 'battle',
+  home: 'village', quest: 'village', study: 'village',
+  routine: 'village', pvp: 'village', libri: 'village',
+  social: 'village', stats: 'village',
 };
 
 // ── Stato BGM ─────────────────────────────────────────────────
 let _bgmAudio    = null;
-let _bgmCurrent  = null;   // chiave in BGM_TRACKS
+let _bgmCurrent  = null;
 let _bgmTrackIdx = 0;
+let _pendingBgm  = null;   // BGM richiesta prima del primo gesto
 
+// ── Primo gesto utente ────────────────────────────────────────
+let _gestureReady = false;
+const _gestureCallbacks = [];
+
+function _onGesture() {
+  if (_gestureReady) return;
+  _gestureReady = true;
+  // Resume AudioContext se sospeso
+  if (_ctx && _ctx.state === 'suspended') _ctx.resume();
+  // Avvia BGM pendente
+  if (_pendingBgm) { _startBgm(_pendingBgm); _pendingBgm = null; }
+  // Esegui callback SFX in coda
+  _gestureCallbacks.forEach(fn => fn());
+  _gestureCallbacks.length = 0;
+}
+
+// Intercetta qualsiasi gesto utente
+['click', 'touchstart', 'keydown'].forEach(evt =>
+  document.addEventListener(evt, _onGesture, { once: false, passive: true })
+);
+
+function _afterGesture(fn) {
+  if (_gestureReady) { fn(); return; }
+  _gestureCallbacks.push(fn);
+}
+
+// ── BGM interna ───────────────────────────────────────────────
 function _getBgmSrc(key) {
   const tracks = BGM_TRACKS[key];
   if (!tracks?.length) return null;
-  // Rotazione se più tracce
-  const idx = _bgmTrackIdx % tracks.length;
-  return AUDIO_BASE + tracks[idx];
+  return AUDIO_BASE + tracks[_bgmTrackIdx % tracks.length];
 }
 
 function _applyBgmVolume() {
@@ -139,59 +143,50 @@ function _applyBgmVolume() {
   }
 }
 
-/**
- * Avvia la BGM per una schermata/tab.
- * Se è già in play la stessa traccia, non fa nulla.
- * @param {string} screen — chiave in SCREEN_BGM
- */
-export function playBgm(screen) {
+function _startBgm(bgmKey) {
   if (!_settings.bgmEnabled) return;
-
-  const bgmKey = SCREEN_BGM[screen] || 'village';
+  // Stessa traccia già in play → non fare nulla
   if (_bgmCurrent === bgmKey && _bgmAudio && !_bgmAudio.paused) return;
 
-  _bgmCurrent = bgmKey;
   const src = _getBgmSrc(bgmKey);
   if (!src) return;
 
-  if (_bgmAudio) {
-    _bgmAudio.pause();
-    _bgmAudio.src = '';
-  }
+  if (_bgmAudio) { _bgmAudio.pause(); _bgmAudio.src = ''; }
 
-  _bgmAudio = new Audio(src);
-  _bgmAudio.loop = true;
+  _bgmCurrent = bgmKey;
+  _bgmAudio   = new Audio(src);
+  _bgmAudio.loop   = true;
   _bgmAudio.volume = _settings.bgmVolume;
-  _bgmAudio.play().catch(() => {
-    // Autoplay bloccato — riprova al prossimo click utente
-    const resume = () => {
-      _bgmAudio?.play().catch(() => {});
-      document.removeEventListener('click', resume);
-      document.removeEventListener('touchstart', resume);
-    };
-    document.addEventListener('click', resume, { once: true });
-    document.addEventListener('touchstart', resume, { once: true });
-  });
+  _bgmAudio.play().catch(e => console.warn('[BGM] play failed:', e.message));
 
-  // Rotazione traccia per la prossima volta
   _bgmAudio.addEventListener('ended', () => {
     _bgmTrackIdx++;
-    playBgm(screen);
+    _startBgm(bgmKey);
   });
+}
+
+// ── API pubblica BGM ──────────────────────────────────────────
+export function playBgm(screen) {
+  const bgmKey = SCREEN_BGM[screen] || 'village';
+  if (_gestureReady) {
+    _startBgm(bgmKey);
+  } else {
+    // Salva l'intenzione — parte al primo gesto
+    _pendingBgm = bgmKey;
+  }
 }
 
 export function stopBgm() {
   if (_bgmAudio) {
     _bgmAudio.pause();
     _bgmAudio.src = '';
-    _bgmAudio = null;
+    _bgmAudio   = null;
     _bgmCurrent = null;
   }
+  _pendingBgm = null;
 }
 
-export function pauseBgm() {
-  _bgmAudio?.pause();
-}
+export function pauseBgm() { _bgmAudio?.pause(); }
 
 export function resumeBgm() {
   if (_settings.bgmEnabled && _bgmAudio) {
@@ -205,9 +200,7 @@ const _sfxCache = {};
 function _getSfxAudio(name) {
   const file = SFX_MAP[name];
   if (!file) return null;
-  if (!_sfxCache[name]) {
-    _sfxCache[name] = new Audio(AUDIO_BASE + file);
-  }
+  if (!_sfxCache[name]) _sfxCache[name] = new Audio(AUDIO_BASE + file);
   return _sfxCache[name];
 }
 
@@ -240,7 +233,7 @@ function _playSynth(name) {
   if (def.arp) {
     const stepDur = def.dur / def.arp.length;
     def.arp.forEach((freq, i) => {
-      const osc = ctx.createOscillator();
+      const osc  = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain); gain.connect(ctx.destination);
       osc.type = def.type;
@@ -252,7 +245,7 @@ function _playSynth(name) {
     });
     return;
   }
-  const osc = ctx.createOscillator();
+  const osc  = ctx.createOscillator();
   const gain = ctx.createGain();
   osc.connect(gain); gain.connect(ctx.destination);
   osc.type = def.type;
@@ -264,22 +257,17 @@ function _playSynth(name) {
   osc.stop(ctx.currentTime + def.dur + 0.05);
 }
 
-// ── API pubblica ──────────────────────────────────────────────
-/**
- * Riproduce un SFX per nome.
- * Tenta il file MP3, poi cade sul synth.
- */
+// ── API pubblica SFX ──────────────────────────────────────────
 export function playSound(name) {
   if (!_settings.sfxEnabled) return;
-
-  const audio = _getSfxAudio(name);
-  if (audio) {
-    audio.volume = _settings.sfxVolume;
-    audio.currentTime = 0;
-    audio.play().catch(() => {
-      try { _playSynth(name); } catch(e) {}
-    });
-    return;
-  }
-  try { _playSynth(name); } catch(e) {}
+  _afterGesture(() => {
+    const audio = _getSfxAudio(name);
+    if (audio) {
+      audio.volume    = _settings.sfxVolume;
+      audio.currentTime = 0;
+      audio.play().catch(() => { try { _playSynth(name); } catch(e) {} });
+      return;
+    }
+    try { _playSynth(name); } catch(e) {}
+  });
 }
