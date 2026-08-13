@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lifequest-v4';
+const CACHE_NAME = 'lifequest-' + Date.now();
 
 self.addEventListener('install', event => {
   console.log('[SW] Installing v3...');
