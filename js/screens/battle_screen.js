@@ -250,22 +250,55 @@ function _bindEvents(container, abilities) {
   });
 }
 
+
+
+
+
+
+
+
+
+
+
 async function _handleAction(container, action, payload, abilityData = null) {
   _animLock = true;
   _setDisabled(container, true);
 
-  // Animazione attacco eroe
+  // Suono azione giocatore
+  if (action === 'attack')  playSound('attack');
+  if (action === 'guard')   playSound('guard');
+  if (action === 'ability') playSound('ability');
+  if (action === 'item')    playSound('heal');
+  if (action === 'support') playSound('buff');
+
   if (['attack', 'ability'].includes(action)) await _playAttackAnim('hero');
 
   const newState = processPlayerAction(_battleState, action, payload, abilityData);
   const newLogs  = newState.log;
 
-  // Animazione attacco nemico
+  // Suono attacco nemico
   const enemyAttacked = newLogs.some(l => l.includes('colpisce') || l.includes('attacca'));
-  if (enemyAttacked) await _playAttackAnim('enemy');
+  if (enemyAttacked) {
+    playSound('attack_enemy');
+    await _playAttackAnim('enemy');
+  }
 
+  // Suoni dal log
   for (const msg of newLogs) {
-    await _appendLog(container, msg, _classifyLog(msg));
+    const type = _classifyLog(msg);
+    if (type === 'damage') playSound('hit');
+    if (type === 'heal')   playSound('heal');
+    if (type === 'status') {
+      if (msg.includes('veleno'))   playSound('poison');
+      if (msg.includes('stord'))    playSound('stun');
+      if (msg.includes('immune'))   playSound('immunity');
+      if (msg.includes('potenzia')) playSound('buff');
+    }
+    if (msg.includes('CRITICO'))   playSound('crit');
+    if (msg.includes('FASE 2'))    playSound('phase2');
+    if (type === 'win')  playSound('victory');
+    if (type === 'lose') playSound('defeat');
+    await _appendLog(container, msg, type);
     await _sleep(280);
   }
 
@@ -289,6 +322,13 @@ async function _handleAction(container, action, payload, abilityData = null) {
     _rebindActions(container, abl);
   }
 }
+
+
+
+
+
+
+
 
 function _rebindActions(container, abilities) {
   container.querySelectorAll('.btn-battle-action').forEach(btn => {
@@ -346,10 +386,13 @@ async function _onBattleEnd(container, state) {
   const won = state.winner === 'player';
   let goldEarned = 0, itemDropped = null;
   if (won) {
-    playSound('trophy');
+    playSound('victory');
     const rewards = calcPveRewards(_enemyData, calcBattleStats(CUR.id)?.luck || 3, _dungeonCtx.tier || 1);
     goldEarned = rewards.gold;
-    if (goldEarned > 0) await updateGold(CUR.id, goldEarned, 'pve');
+    if (goldEarned > 0) {
+      await updateGold(CUR.id, goldEarned, 'pve');
+      playSound('gold');
+    }
     await incrementDailyLimit(CUR.id, 'pve_count');
     if (rewards.itemRarity) {
       const pool = DB.battleItems.filter(i =>
@@ -358,14 +401,14 @@ async function _onBattleEnd(container, state) {
         i.icon_path !== null
       );
       itemDropped = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
+      if (itemDropped) playSound('loot_rare');
     }
   } else {
-    playSound('error');
+    playSound('defeat');
     await incrementDailyLimit(CUR.id, 'pve_count');
   }
   _showEndOverlay(container, won, goldEarned, 0, itemDropped);
 }
-
 function _showEndOverlay(container, won, gold, xp = 0, item = null) {
   const root = container.querySelector('#battle-root');
   if (!root) return;
