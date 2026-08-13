@@ -42,71 +42,91 @@ if (!DB.characterEquipment) DB.characterEquipment = {};
  * @param {string} userId
  * @returns {Object} stats calcolate
  */
+
+
+
+
+
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  FILE 3/3 — js/battle/character.js  (solo calcBattleStats)  ║
+// ║  Incolla SOLO la funzione calcBattleStats nel file esistente ║
+// ║  sostituendo quella attuale (righe ~45-90 circa)             ║
+// ╚══════════════════════════════════════════════════════════════╝
+ 
 export function calcBattleStats(userId) {
   const user = DB.users[userId];
   if (!user) return null;
-
-  const bc       = DB.battleCharacters[userId];
-  const classId  = bc?.class_id;
-  const base     = classId ? CLASS_BASE_STATS[classId] : CLASS_BASE_STATS.warrior;
-  const mult     = classId ? CLASS_STAT_MULT[classId]  : CLASS_STAT_MULT.warrior;
-  const primary  = classId ? CLASS_PRIMARY_STAT[classId] : 'corpo';
-
-  const stats    = user.stats  || { mente: 0, corpo: 0, cultura: 0, sfide: 0, sociale: 0 };
+ 
+  const bc      = DB.battleCharacters[userId];
+  const classId = bc?.class_id;
+  const base    = classId ? CLASS_BASE_STATS[classId] : CLASS_BASE_STATS.warrior;
+  const mult    = classId ? CLASS_STAT_MULT[classId]  : CLASS_STAT_MULT.warrior;
+  const primary = classId ? CLASS_PRIMARY_STAT[classId] : 'corpo';
+ 
+  const stats    = user.stats || { mente: 0, corpo: 0, cultura: 0, sfide: 0, sociale: 0 };
   const level    = calcLevel(user.xp || 0);
   const primStat = stats[primary] || 0;
-
-  // PF base + bonus livello + bonus stat primaria
-  const hp = Math.floor(
+ 
+  // Ogni stat reale ha un soft-cap implicito nel moltiplicatore ridotto.
+  // I valori minimi sono clamped a 1 per evitare stat negative da bug.
+ 
+  const hp = Math.max(10, Math.floor(
     base.hp
-    + (stats.corpo || 0) * 2
+    + (stats.corpo || 0) * 1.5        // era 2 — corpo meno dominante
     + level * base.hpPerLevel
     + primStat * mult.hp
-  );
-
-  const attack = Math.floor(
+  ));
+ 
+  const attack = Math.max(1, Math.floor(
     base.attack
     + primStat * mult.attack
-  );
-
-  const defense = Math.floor(
+  ));
+ 
+  const defense = Math.max(1, Math.floor(
     base.defense
-    + (stats.corpo || 0) * 0.8
+    + (stats.corpo || 0) * 0.6        // era 0.8
     + primStat * mult.defense
-  );
-
-  const speed = Math.floor(
+  ));
+ 
+  const speed = Math.max(1, Math.floor(
     base.speed
-    + (stats.sfide || 0) * 0.5
+    + (stats.sfide || 0) * 0.4        // era 0.5
     + primStat * mult.speed
-  );
-
-  const mana = Math.floor(
+  ));
+ 
+  const mana = Math.max(0, Math.floor(
     base.mana
-    + (stats.mente || 0) * 1.5
+    + (stats.mente || 0) * 1.2        // era 1.5
     + primStat * mult.mana
     + level * base.manaPerLevel
-  );
-
-  const luck = parseFloat(
-    (base.luck + (stats.cultura || 0) * 0.1 + primStat * mult.luck).toFixed(2)
-  );
-
-  // Bonus equipaggiamento (somma dai 5 slot)
+  ));
+ 
+  const luck = Math.max(0, parseFloat(
+    (base.luck + (stats.cultura || 0) * 0.08 + primStat * mult.luck).toFixed(2)
+  ));
+ 
+  // Bonus equipaggiamento
   const equipment = DB.characterEquipment[userId] || [];
   const eqBonus   = calcEquipmentBonus(equipment);
-
+ 
   return {
-    hp:        hp     + eqBonus.hp,
-    attack:    attack + eqBonus.attack,
-    defense:   defense+ eqBonus.defense,
-    speed:     speed  + eqBonus.speed,
-    mana:      mana   + eqBonus.mana,
-    luck:      luck   + eqBonus.luck,
+    hp:      hp      + eqBonus.hp,
+    attack:  attack  + eqBonus.attack,
+    defense: defense + eqBonus.defense,
+    speed:   speed   + eqBonus.speed,
+    mana:    mana    + eqBonus.mana,
+    luck:    luck    + eqBonus.luck,
     level,
     classId,
   };
 }
+
+
+
+
+
+
 
 /**
  * Somma i bonus di tutti gli oggetti equipaggiati.
