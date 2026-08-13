@@ -251,7 +251,7 @@ export async function loadInventory(userId) {
 /**
  * Vende un oggetto al mercante (20% del valore stimato).
  */
-export async function sellItem(userId, inventoryId) {
+export async function sellItem(userId, inventoryId, qty = 1) {
   if (!DB.battleInventory?.[userId]) return { ok: false, error: 'Inventario non trovato' };
 
   const inv   = DB.battleInventory[userId];
@@ -261,24 +261,40 @@ export async function sellItem(userId, inventoryId) {
   const item  = (DB.battleItems || []).find(i => i.id === entry.item_id);
   const rarValues = { common: 50, uncommon: 150, rare: 400, epic: 1000, legendary: 2500, mythic: 6000 };
   const baseVal   = rarValues[item?.rarity] || 50;
-  const sellPrice = Math.floor(baseVal * ECONOMY.goldSellPct);
 
-  // Rimuovi dall'inventario locale
-  DB.battleInventory[userId] = inv.filter(i => i.id !== inventoryId);
-  persist();
+
+
+
+         
+  const sellPrice = Math.floor(baseVal * ECONOMY.goldSellPct) * qty;
+
+  const bc = getBattleChar(userId);
+  const currentQty = entry.quantity || 1;
+  const newQty = currentQty - qty;
+
+  if (newQty <= 0) {
+    // Rimuovi completamente
+    DB.battleInventory[userId] = inv.filter(i => i.id !== inventoryId);
+    persist();
+    if (bc) {
+      await supabase.from('inventory').delete()
+        .eq('character_id', bc.id)
+        .eq('item_id', entry.item_id);
+    }
+  } else {
+    // Aggiorna quantità
+    entry.quantity = newQty;
+    persist();
+    if (bc) {
+      await supabase.from('inventory').update({ quantity: newQty })
+        .eq('character_id', bc.id)
+        .eq('item_id', entry.item_id);
+    }
+  }
 
   // Aggiorna Gold
   const result = await updateGold(userId, sellPrice, 'sell', entry.item_id);
   if (!result.ok) return result;
-
-  // Rimuovi da Supabase
-  const bc = getBattleChar(userId);
-  if (bc) {
-    await supabase.from('inventory').delete()
-      .eq('character_id', bc.id)
-      .eq('item_id', entry.item_id)
-      .limit(1);
-  }
 
   return { ok: true, goldEarned: sellPrice };
 }
