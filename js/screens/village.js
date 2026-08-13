@@ -456,9 +456,16 @@ function renderInventoryItem(entry, item) {
             Equipaggia
           </button>
         ` : ''}
-        <button class="btn-sm btn-danger" onclick="window._sellItem?.('${entry.id}')">
-          Vendi
-        </button>
+
+
+        
+        ${item.slot === 'consumable' && (entry.quantity || 1) > 1
+  ? `<button class="btn-sm btn-danger" onclick="window._sellItem?.('${entry.id}', 1)">Vendi 1</button>
+     <button class="btn-sm btn-danger" onclick="window._sellItem?.('${entry.id}', ${entry.quantity})">Vendi tutti</button>`
+  : `<button class="btn-sm btn-danger" onclick="window._sellItem?.('${entry.id}', 1)">Vendi</button>`
+}
+
+        
       </div>
     </div>
   `;
@@ -855,9 +862,16 @@ window._claimFreeItem = async function() {
 };
 
 // Vendi oggetto
-window._sellItem = async function(inventoryId) {
-  if (!confirm('Vendere questo oggetto?')) return;
-  const result = await sellItem(CUR.id, inventoryId);
+
+
+window._sellItem = async function(inventoryId, qty = 1) {
+  if (!confirm(`Vendere ${qty === 1 ? 'un oggetto' : 'tutti gli oggetti'}?`)) return;
+  const result = await sellItem(CUR.id, inventoryId, qty);
+
+
+
+
+         
   if (!result.ok) return toast(result.error || 'Errore', 'error');
   playSound('tap');
   toast(`Venduto per 🪙 ${result.goldEarned} Gold!`, 'success');
