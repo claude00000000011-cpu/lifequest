@@ -134,6 +134,48 @@ function calcEquipmentBonus(equipment) {
   return bonus;
 }
 
+
+
+
+/**
+ * Calcola il Livello Potenza (LP) del personaggio.
+ * Usato per leaderboard, matchmaking PvP e display UI.
+ * @param {string} userId
+ * @returns {number} LP arrotondato
+ */
+export function calcPowerLevel(userId) {
+  const stats = calcBattleStats(userId);
+  if (!stats) return 0;
+
+  const level = stats.level || 1;
+
+  // Bonus enhancement (somma tutti i bonus attivi)
+  const bc        = DB.battleCharacters[userId];
+  const enhancements = DB.itemEnhancements?.[userId] || [];
+  const enhBonus  = enhancements.reduce((acc, e) => {
+    acc.attack  += (e.bonus_attack  || 0);
+    acc.defense += (e.bonus_defense || 0);
+    acc.hp      += (e.bonus_hp      || 0);
+    return acc;
+  }, { attack: 0, defense: 0, hp: 0 });
+
+  const lp = Math.floor(
+    level                              * 10   +
+    (stats.attack  + enhBonus.attack)  * 2    +
+    (stats.defense + enhBonus.defense) * 1.5  +
+    (stats.hp      + enhBonus.hp)      / 10   +
+    stats.speed                        * 1    +
+    stats.mana                         / 5
+  );
+
+  return Math.max(1, lp);
+}
+
+
+
+
+
+
 // ── Creazione / Sincronizzazione personaggio ──────────────────
 
 /**
@@ -226,26 +268,26 @@ async function _updateDerivedStats(userId, bc) {
   const computed = calcBattleStats(userId);
   if (!computed) return;
 
-  // Aggiorna solo le stats che cambiano con il livello,
-  // NON hp_current (potrebbe essere in battaglia)
-  const patch = {
-    hp_base:          computed.hp,
-    attack:           computed.attack,
-    defense:          computed.defense,
-    speed:            computed.speed,
-    mana_max:         computed.mana,
-    luck_pct:         computed.luck,
-    last_stats_sync:  new Date().toISOString(),
-  };
+ // Aggiorna solo le stats che cambiano con il livello,
+// NON hp_current (potrebbe essere in battaglia)
+const patch = {
+  hp_base:          computed.hp,
+  attack:           computed.attack,
+  defense:          computed.defense,
+  speed:            computed.speed,
+  mana_max:         computed.mana,
+  luck_pct:         computed.luck,
+  power_level:      calcPowerLevel(userId),   // ← AGGIUNTO
+  last_stats_sync:  new Date().toISOString(),
+};
 
-  await supabase
-    .from('battle_characters')
-    .update(patch)
-    .eq('user_id', userId);
+await supabase
+  .from('battle_characters')
+  .update(patch)
+  .eq('user_id', userId);
 
-  DB.battleCharacters[userId] = { ...bc, ...patch };
-  persist();
-}
+DB.battleCharacters[userId] = { ...bc, ...patch };
+persist();
 
 // ── Scelta Classe ─────────────────────────────────────────────
 
