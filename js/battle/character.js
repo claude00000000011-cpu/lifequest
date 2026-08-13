@@ -536,7 +536,7 @@ export async function loadItems() {
   if (DB.battleItems?.length) return;
 
   const { data, error } = await supabase
-    .from('items')
+    .from('battle_items')  // era 'items'
     .select('*');
 
   if (!error && data) {
@@ -546,7 +546,7 @@ export async function loadItems() {
 }
 
 export async function loadEnemies(tier = null) {
-  let query = supabase.from('enemies').select('*');
+  let query = supabase.from('battle_enemies').select('*');  // era 'enemies'
   if (tier) query = query.eq('tier', tier);
 
   const { data, error } = await query;
