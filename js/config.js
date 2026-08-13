@@ -100,7 +100,8 @@ export const TROPHY_CATEGORIES = [
 
 // ── Sistema XP Scaling ───────────────────────────────────────
 // XP base moltiplicato per (1 + livello * LVL_SCALE_FACTOR)
-export const LVL_SCALE_FACTOR = 0.15;  // era 0.08
+export const LVL_SCALE_FACTOR = 0.04;
+
 
 export const DAILY_XP_CAPS = {
   lettura:    { maxUnits: 300,  unitLabel: 'pagine'  },
