@@ -347,36 +347,51 @@ html, body {
   bottom: 0;
   left: 0;
   right: 0;
-  height: var(--nav-height);
+  height: 72px;
   background: var(--bg-2);
   border-top: 3px solid var(--gold-dark);
   display: flex;
   align-items: center;
-  justify-content: space-around;
   z-index: 7000;
-  padding: 0 0.25rem;
+  padding: 0;
   padding-bottom: env(safe-area-inset-bottom);
   overscroll-behavior: none;
   touch-action: none;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
 }
+.bottom-nav::-webkit-scrollbar { display: none; }
 
 .nav-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  padding: 0.4rem 0.5rem;
-  border-radius: 0;
-  color: var(--text-3);
+  justify-content: center;
+  gap: 4px;
+  padding: 0.5rem 0.75rem;
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  color: #a0a0c0;
   font-family: var(--font-pixel);
-  font-size: 0.3rem;
+  font-size: 0.32rem;
   font-weight: normal;
   cursor: pointer;
-  min-width: 42px;
+  min-width: 58px;
+  border-bottom: 3px solid transparent;
   transition: none;
-  border-bottom: 2px solid transparent;
 }
-.nav-btn .nav-icon { font-size: 1.3rem; line-height: 1; }
+.nav-btn .nav-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+.nav-btn span:not(.nav-icon) {
+  color: #c0c0d8;
+  font-size: 0.28rem;
+  letter-spacing: 0.3px;
+}
 
 .nav-btn--active {
   color: var(--gold);
@@ -385,7 +400,9 @@ html, body {
 .nav-btn--active .nav-icon {
   filter: drop-shadow(0 0 4px var(--gold));
 }
-
+.nav-btn--active span:not(.nav-icon) {
+  color: var(--gold);
+}
 /* ── Home / Dashboard ────────────────────────────────────── */
 .hero-card {
   background: var(--bg-2);
