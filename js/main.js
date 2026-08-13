@@ -7,9 +7,10 @@ import { initModals } from './modals.js';
 import { Moderation } from './api.js';
 import { updateDashboard, gotoTab } from './screens/home.js';
 import { switchAuthTab, doRegister, doLogin, doResetPin } from './auth.js';
+import { initSettings } from './settings.js';
+import { playBgm } from './audio.js';
 
 // BUG #7 FIX — tiene traccia della tab attiva
-// così doAppRefresh può ritornarci invece di andare sempre a 'home'
 let _activeTab = 'home';
 
 // ── Splash screen ─────────────────────────────────────────────
@@ -28,12 +29,16 @@ function bootApp(user) {
   document.getElementById('auth-screen')?.classList.add('hidden');
   document.getElementById('app-main')?.classList.remove('hidden');
   gotoTab('home');
+  playBgm('home');
   Moderation.getBannedWords();
 }
 
 // ── DOMContentLoaded ──────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
+
+  // Inizializza impostazioni (font size, sfondi, FAB ⚙️)
+  initSettings();
 
   initModals();
 
@@ -47,6 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
       hideSplash();
       document.getElementById('auth-screen')?.classList.remove('hidden');
+      playBgm('home'); // BGM anche sulla schermata login
     }, 1500);
   }
 
@@ -59,11 +65,18 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => switchAuthTab(btn.dataset.tab));
   });
 
-  // BUG #7 FIX — ogni click sulla nav aggiorna _activeTab
+  // BUG #7 FIX — ogni click sulla nav aggiorna _activeTab + avvia BGM
   document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       _activeTab = btn.dataset.tab;
       gotoTab(_activeTab);
+
+      // BGM: battaglia usa bgm_battle, tutto il resto bgm_village
+      if (_activeTab === 'battle') {
+        playBgm('village'); // villaggio — in battaglia viene chiamato playBgm('battle') da battle_screen.js
+      } else {
+        playBgm('home');
+      }
     });
   });
 
@@ -108,8 +121,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ── App Refresh ───────────────────────────────────────────────
 
-// BUG #7 FIX — dopo il refresh ritorna alla tab che stava usando l'utente,
-// non sempre a 'home'. Usa gotoTab(_activeTab) invece di updateDashboard().
 async function doAppRefresh() {
   const { CUR, DB, persist, mergeUserData } = await import('./db.js');
   const { Users, syncCloudDataOnLogin } = await import('./api.js');
@@ -130,8 +141,6 @@ async function doAppRefresh() {
     }
 
     await syncCloudDataOnLogin(CUR.id);
-
-    // BUG #7: ricarica la tab corrente invece di tornare sempre a home
     await gotoTab(_activeTab);
 
     toast('Dati aggiornati ✅', 'success');
