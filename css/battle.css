@@ -1884,6 +1884,14 @@
   background: #1a1030;
 }
 
+
+.chat-msg--dm {
+  border-left-color: var(--rpg-accent);
+  background: #12082a;
+}
+
+
+
 .chat-msg__user {
   font-family: var(--font-pixel);
   font-size: 0.32rem;
