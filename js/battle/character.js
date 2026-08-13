@@ -9,6 +9,7 @@ import { supabase } from '../../supabase.js';
 import { DB, CUR, persist } from '../db.js';
 import { calcLevel } from '../xp.js';
 import { loadItems } from './economy.js';
+
 import {
   CLASS_BASE_STATS,
   CLASS_PRIMARY_STAT,
@@ -41,6 +42,7 @@ export function calcBattleStats(userId) {
   if (!user) return null;
 
   const bc = DB.battleCharacters[userId];
+
   const classId = bc?.class_id;
 
   const base = classId
@@ -64,9 +66,11 @@ export function calcBattleStats(userId) {
   };
 
   const level = calcLevel(user.xp || 0);
+
   const primStat = stats[primary] || 0;
 
-  // PF
+  // ── HP ─────────────────────────────────────────────────────
+
   const hp = Math.max(
     10,
     Math.floor(
@@ -77,7 +81,8 @@ export function calcBattleStats(userId) {
     )
   );
 
-  // Attacco
+  // ── Attacco ────────────────────────────────────────────────
+
   const attack = Math.max(
     1,
     Math.floor(
@@ -86,7 +91,8 @@ export function calcBattleStats(userId) {
     )
   );
 
-  // Difesa
+  // ── Difesa ─────────────────────────────────────────────────
+
   const defense = Math.max(
     1,
     Math.floor(
@@ -96,7 +102,8 @@ export function calcBattleStats(userId) {
     )
   );
 
-  // Velocità
+  // ── Velocità ───────────────────────────────────────────────
+
   const speed = Math.max(
     1,
     Math.floor(
@@ -106,7 +113,8 @@ export function calcBattleStats(userId) {
     )
   );
 
-  // Mana
+  // ── Mana ───────────────────────────────────────────────────
+
   const mana = Math.max(
     0,
     Math.floor(
@@ -117,8 +125,9 @@ export function calcBattleStats(userId) {
     )
   );
 
-  // Fortuna
-  // Soft-cap a 50 per evitare valori eccessivi
+  // ── Fortuna ────────────────────────────────────────────────
+  // Soft-cap a 50 per evitare valori anomali.
+
   const luckRaw =
     base.luck
     + (stats.cultura || 0) * 0.08
@@ -126,12 +135,18 @@ export function calcBattleStats(userId) {
 
   const luck = Math.max(
     0,
-    parseFloat(Math.min(luckRaw, 50).toFixed(2))
+    parseFloat(
+      Math.min(luckRaw, 50).toFixed(2)
+    )
   );
 
-  // Bonus equipaggiamento
-  const equipment = DB.characterEquipment[userId] || [];
-  const eqBonus = calcEquipmentBonus(equipment);
+  // ── Bonus equipaggiamento ──────────────────────────────────
+
+  const equipment =
+    DB.characterEquipment[userId] || [];
+
+  const eqBonus =
+    calcEquipmentBonus(equipment);
 
   return {
     hp: hp + eqBonus.hp,
@@ -139,7 +154,10 @@ export function calcBattleStats(userId) {
     defense: defense + eqBonus.defense,
     speed: speed + eqBonus.speed,
     mana: mana + eqBonus.mana,
-    luck: Math.min(luck + eqBonus.luck, 60),
+    luck: Math.min(
+      luck + eqBonus.luck,
+      60
+    ),
     level,
     classId,
   };
@@ -150,18 +168,20 @@ export function calcBattleStats(userId) {
 /**
  * Somma i bonus di tutti gli oggetti equipaggiati.
  *
- * Supporta sia la struttura:
+ * Supporta entrambe le strutture:
+ *
  * row.battle_items
  *
- * sia la struttura:
+ * oppure:
+ *
  * row
  *
- * Considera anche la durabilità dell'oggetto.
- *
  * @param {Array} equipment
- * @returns {Object} bonus totali
+ * @returns {Object}
  */
-export function calcEquipmentBonus(equipment = []) {
+export function calcEquipmentBonus(
+  equipment = []
+) {
   const bonus = {
     hp: 0,
     attack: 0,
@@ -171,98 +191,163 @@ export function calcEquipmentBonus(equipment = []) {
     luck: 0,
   };
 
-  if (!equipment?.length) return bonus;
+  if (!equipment?.length) {
+    return bonus;
+  }
 
   for (const row of equipment) {
     if (!row) continue;
 
-    // loadEquipment esegue il join con battle_items
-    const item = row.battle_items || row;
+    // loadEquipment esegue il join con battle_items.
+    const item =
+      row.battle_items || row;
 
     if (!item) continue;
 
-    // Durabilità
-    const durability = row.durability ?? item.durability ?? 100;
-    const durabilityMultiplier = Math.max(
-      0,
-      Math.min(100, durability)
-    ) / 100;
+    // Durabilità dell'oggetto.
+    const durability =
+      row.durability ??
+      item.durability ??
+      100;
+
+    const durabilityMultiplier =
+      Math.max(
+        0,
+        Math.min(100, durability)
+      ) / 100;
 
     // ── Bonus diretti ────────────────────────────────────────
 
     bonus.hp += Math.floor(
-      (item.bonus_hp || 0) * durabilityMultiplier
+      (item.bonus_hp || 0) *
+      durabilityMultiplier
     );
 
     bonus.attack += Math.floor(
-      (item.bonus_attack || 0) * durabilityMultiplier
+      (item.bonus_attack || 0) *
+      durabilityMultiplier
     );
 
     bonus.defense += Math.floor(
-      (item.bonus_defense || 0) * durabilityMultiplier
+      (item.bonus_defense || 0) *
+      durabilityMultiplier
     );
 
     bonus.speed += Math.floor(
-      (item.bonus_speed || 0) * durabilityMultiplier
+      (item.bonus_speed || 0) *
+      durabilityMultiplier
     );
 
     bonus.mana += Math.floor(
-      (item.bonus_mana || 0) * durabilityMultiplier
+      (item.bonus_mana || 0) *
+      durabilityMultiplier
     );
 
     bonus.luck += parseFloat(
-      ((item.bonus_luck_pct || 0) * durabilityMultiplier).toFixed(2)
+      (
+        (item.bonus_luck_pct || 0) *
+        durabilityMultiplier
+      ).toFixed(2)
     );
 
     // ── Bonus statistiche RPG ────────────────────────────────
     //
-    // strength       → attack + hp
-    // intelligence   → attack + mana
-    // agility        → speed + attack
-    // vitality       → hp
-    // spirit         → mana + defense
-    // charisma       → luck
+    // strength:
+    // +1 attack
+    // +2 hp
+    //
+    // intelligence:
+    // +1 attack
+    // +3 mana
+    //
+    // agility:
+    // +1 speed
+    // +0.5 attack
+    //
+    // vitality:
+    // +5 hp
+    //
+    // spirit:
+    // +2 mana
+    // +0.5 defense
+    //
+    // charisma:
+    // +1 luck
 
-    const str = item.bonus_strength || 0;
-    const int = item.bonus_intelligence || 0;
-    const agi = item.bonus_agility || 0;
-    const vit = item.bonus_vitality || 0;
-    const spi = item.bonus_spirit || 0;
-    const cha = item.bonus_charisma || 0;
+    const str =
+      item.bonus_strength || 0;
+
+    const int =
+      item.bonus_intelligence || 0;
+
+    const agi =
+      item.bonus_agility || 0;
+
+    const vit =
+      item.bonus_vitality || 0;
+
+    const spi =
+      item.bonus_spirit || 0;
+
+    const cha =
+      item.bonus_charisma || 0;
 
     bonus.attack += Math.floor(
-      (str * 1 + agi * 0.5 + int * 1) * durabilityMultiplier
+      (
+        str * 1 +
+        agi * 0.5 +
+        int * 1
+      ) *
+      durabilityMultiplier
     );
 
     bonus.hp += Math.floor(
-      (str * 2 + vit * 5) * durabilityMultiplier
+      (
+        str * 2 +
+        vit * 5
+      ) *
+      durabilityMultiplier
     );
 
     bonus.mana += Math.floor(
-      (int * 3 + spi * 2) * durabilityMultiplier
+      (
+        int * 3 +
+        spi * 2
+      ) *
+      durabilityMultiplier
     );
 
     bonus.defense += Math.floor(
-      (spi * 0.5) * durabilityMultiplier
+      spi *
+      0.5 *
+      durabilityMultiplier
     );
 
     bonus.speed += Math.floor(
-      agi * 1 * durabilityMultiplier
+      agi *
+      durabilityMultiplier
     );
 
     bonus.luck += Math.floor(
-      cha * 1 * durabilityMultiplier
+      cha *
+      durabilityMultiplier
     );
   }
 
-  // Soft-cap bonus attack da equipaggiamento
+  // Soft-cap attacco equipaggiamento.
   if (bonus.attack > 50) {
     bonus.attack =
-      50 + Math.floor((bonus.attack - 50) * 0.5);
+      50 +
+      Math.floor(
+        (bonus.attack - 50) * 0.5
+      );
   }
 
-  // Hard-cap fortuna da equipaggiamento
-  bonus.luck = Math.min(bonus.luck, 20);
+  // Hard-cap fortuna equipaggiamento.
+  bonus.luck = Math.min(
+    bonus.luck,
+    20
+  );
 
   return bonus;
 }
@@ -270,47 +355,75 @@ export function calcEquipmentBonus(equipment = []) {
 // ── Livello Potenza ───────────────────────────────────────────
 
 /**
- * Calcola il Livello Potenza del personaggio.
- * Usato per leaderboard, matchmaking PvP e display UI.
+ * Calcola il Livello Potenza (LP) del personaggio.
+ *
+ * Usato per:
+ * - leaderboard
+ * - matchmaking PvP
+ * - display UI
  *
  * @param {string} userId
- * @returns {number} LP arrotondato
+ * @returns {number}
  */
 export function calcPowerLevel(userId) {
-  const stats = calcBattleStats(userId);
+  const stats =
+    calcBattleStats(userId);
+
   if (!stats) return 0;
 
-  const level = stats.level || 1;
+  const level =
+    stats.level || 1;
 
-  // Bonus enhancement
+  // ── Bonus enhancement ──────────────────────────────────────
+
   const enhancements =
     DB.itemEnhancements?.[userId] || [];
 
-  const enhBonus = enhancements.reduce(
-    (acc, e) => {
-      acc.attack += e.bonus_attack || 0;
-      acc.defense += e.bonus_defense || 0;
-      acc.hp += e.bonus_hp || 0;
-      return acc;
-    },
-    {
-      attack: 0,
-      defense: 0,
-      hp: 0,
-    }
-  );
+  const enhBonus =
+    enhancements.reduce(
+      (acc, e) => {
+        acc.attack +=
+          e.bonus_attack || 0;
+
+        acc.defense +=
+          e.bonus_defense || 0;
+
+        acc.hp +=
+          e.bonus_hp || 0;
+
+        return acc;
+      },
+      {
+        attack: 0,
+        defense: 0,
+        hp: 0,
+      }
+    );
+
+  // ── Formula LP ─────────────────────────────────────────────
 
   const lp = Math.floor(
     level * 10
-    + (stats.attack + enhBonus.attack) * 2
-    + (stats.defense + enhBonus.defense) * 1.5
-    + (stats.hp + enhBonus.hp) / 8
+    + (
+      stats.attack +
+      enhBonus.attack
+    ) * 2
+    + (
+      stats.defense +
+      enhBonus.defense
+    ) * 1.5
+    + (
+      stats.hp +
+      enhBonus.hp
+    ) / 8
     + stats.speed * 1.5
     + stats.mana / 4
   );
 
-  // Bonus classi support
-  const bc = DB.battleCharacters[userId];
+  // ── Bonus classi support ───────────────────────────────────
+
+  const bc =
+    DB.battleCharacters[userId];
 
   const supportClasses = [
     'oracle',
@@ -321,29 +434,39 @@ export function calcPowerLevel(userId) {
     'diplomat',
   ];
 
-  const supportBonus = supportClasses.includes(bc?.class_id)
-    ? 1.05
-    : 1.0;
+  const supportBonus =
+    supportClasses.includes(
+      bc?.class_id
+    )
+      ? 1.05
+      : 1.0;
 
   return Math.max(
     1,
-    Math.floor(lp * supportBonus)
+    Math.floor(
+      lp * supportBonus
+    )
   );
 }
 
-// ── Creazione / Sincronizzazione personaggio ────────────────
+// ── Creazione / Sincronizzazione ─────────────────────────────
 
 /**
- * Sincronizza il personaggio battle dell'utente.
+ * Sincronizza il personaggio battle.
  *
  * Se non esiste lo crea.
  * Se esiste aggiorna le stats derivate.
  *
  * @param {string} userId
  */
-export async function syncBattleCharacter(userId) {
+export async function syncBattleCharacter(
+  userId
+) {
   try {
-    const { data: existing, error } = await supabase
+    const {
+      data: existing,
+      error,
+    } = await supabase
       .from('battle_characters')
       .select('*')
       .eq('user_id', userId)
@@ -358,15 +481,25 @@ export async function syncBattleCharacter(userId) {
     }
 
     if (!existing) {
-      await _createBattleCharacter(userId);
+      await _createBattleCharacter(
+        userId
+      );
     } else {
-      DB.battleCharacters[userId] = existing;
+      DB.battleCharacters[userId] =
+        existing;
+
       persist();
 
-      await _updateDerivedStats(userId, existing);
+      await _updateDerivedStats(
+        userId,
+        existing
+      );
     }
 
-    // Carica dati necessari
+    // IMPORTANTE:
+    // loadItems arriva da economy.js.
+    // NON esiste una seconda loadItems in questo file.
+
     await Promise.all([
       loadEquipment(userId),
       loadAbilities(userId),
@@ -380,14 +513,25 @@ export async function syncBattleCharacter(userId) {
   }
 }
 
-async function _createBattleCharacter(userId) {
-  const user = DB.users[userId];
+// ── Creazione personaggio ────────────────────────────────────
+
+async function _createBattleCharacter(
+  userId
+) {
+  const user =
+    DB.users[userId];
+
   if (!user) return;
 
-  const level = calcLevel(user.xp || 0);
+  const level =
+    calcLevel(
+      user.xp || 0
+    );
 
   const newChar = {
     user_id: userId,
+
+    // Scelto al livello previsto.
     class_id: null,
 
     hp_base: 100,
@@ -402,9 +546,14 @@ async function _createBattleCharacter(userId) {
 
     luck_pct: 3.0,
 
-    gold: PROGRESSION.startingGold,
+    gold:
+      PROGRESSION.startingGold,
 
-    skill_points: Math.max(0, level - 1),
+    skill_points:
+      Math.max(
+        0,
+        level - 1
+      ),
 
     reputation: 0,
 
@@ -412,7 +561,10 @@ async function _createBattleCharacter(userId) {
     total_wins: 0,
   };
 
-  const { data, error } = await supabase
+  const {
+    data,
+    error,
+  } = await supabase
     .from('battle_characters')
     .insert(newChar)
     .select()
@@ -426,21 +578,34 @@ async function _createBattleCharacter(userId) {
     return;
   }
 
-  DB.battleCharacters[userId] = data;
+  DB.battleCharacters[userId] =
+    data;
+
   persist();
 
-  // Oggetto starter garantito
-  await grantStarterItem(userId, data.id);
+  // Oggetto starter garantito.
+  await grantStarterItem(
+    userId,
+    data.id
+  );
 }
 
-async function _updateDerivedStats(userId, bc) {
+// ── Aggiornamento stats derivate ─────────────────────────────
+
+async function _updateDerivedStats(
+  userId,
+  bc
+) {
+  // Nessuna classe = nessuna stats di classe.
   if (!bc.class_id) return;
 
-  const computed = calcBattleStats(userId);
+  const computed =
+    calcBattleStats(userId);
+
   if (!computed) return;
 
-  // Aggiorna solo le stats derivate.
-  // NON modifica hp_current perché potrebbe essere in battaglia.
+  // NON aggiornare hp_current:
+  // potrebbe essere in battaglia.
 
   const patch = {
     hp_base: computed.hp,
@@ -449,11 +614,15 @@ async function _updateDerivedStats(userId, bc) {
     speed: computed.speed,
     mana_max: computed.mana,
     luck_pct: computed.luck,
-    power_level: calcPowerLevel(userId),
-    last_stats_sync: new Date().toISOString(),
+    power_level:
+      calcPowerLevel(userId),
+    last_stats_sync:
+      new Date().toISOString(),
   };
 
-  const { error } = await supabase
+  const {
+    error,
+  } = await supabase
     .from('battle_characters')
     .update(patch)
     .eq('user_id', userId);
@@ -478,14 +647,19 @@ async function _updateDerivedStats(userId, bc) {
 
 /**
  * Imposta la classe del personaggio.
- * Disponibile dal livello previsto dalla configurazione.
+ *
+ * Disponibile dal livello definito in PROGRESSION.
  *
  * @param {string} userId
  * @param {string} classId
- * @returns {{ ok: boolean, error?: string }}
+ * @returns {{ok: boolean, error?: string}}
  */
-export async function chooseClass(userId, classId) {
-  const user = DB.users[userId];
+export async function chooseClass(
+  userId,
+  classId
+) {
+  const user =
+    DB.users[userId];
 
   if (!user) {
     return {
@@ -494,28 +668,38 @@ export async function chooseClass(userId, classId) {
     };
   }
 
-  const level = calcLevel(user.xp || 0);
+  const level =
+    calcLevel(
+      user.xp || 0
+    );
 
-  if (level < PROGRESSION.UNLOCKS.classChoice) {
+  if (
+    level <
+    PROGRESSION.UNLOCKS.classChoice
+  ) {
     return {
       ok: false,
-      error: `Raggiungi il livello ${PROGRESSION.UNLOCKS.classChoice} per scegliere una classe`,
+      error:
+        `Raggiungi il livello ${PROGRESSION.UNLOCKS.classChoice} per scegliere una classe`,
     };
   }
 
-  const bc = DB.battleCharacters[userId];
+  const bc =
+    DB.battleCharacters[userId];
 
   if (!bc) {
     return {
       ok: false,
-      error: 'Personaggio battle non trovato',
+      error:
+        'Personaggio battle non trovato',
     };
   }
 
   if (bc.class_id) {
     return {
       ok: false,
-      error: 'Hai già scelto una classe',
+      error:
+        'Hai già scelto una classe',
     };
   }
 
@@ -527,14 +711,18 @@ export async function chooseClass(userId, classId) {
     'oracle',
   ];
 
-  if (!validClasses.includes(classId)) {
+  if (
+    !validClasses.includes(classId)
+  ) {
     return {
       ok: false,
       error: 'Classe non valida',
     };
   }
 
-  const { error } = await supabase
+  const {
+    error,
+  } = await supabase
     .from('battle_characters')
     .update({
       class_id: classId,
@@ -568,87 +756,124 @@ export async function chooseClass(userId, classId) {
 // ── Punti Abilità ─────────────────────────────────────────────
 
 /**
- * Controlla quanti PA ha il personaggio.
+ * Ritorna i PA disponibili.
  *
  * @param {string} userId
  * @returns {number}
  */
-export function getSkillPoints(userId) {
-  return DB.battleCharacters[userId]?.skill_points || 0;
+export function getSkillPoints(
+  userId
+) {
+  return (
+    DB.battleCharacters[userId]
+      ?.skill_points || 0
+  );
 }
 
 /**
- * Sblocca un'abilità spendendo PA e Gold se richiesto.
+ * Sblocca un'abilità spendendo PA
+ * e Gold se richiesto.
  *
  * @param {string} userId
  * @param {string} abilityId
- * @returns {{ ok: boolean, error?: string }}
+ * @returns {{ok: boolean, error?: string}}
  */
-export async function unlockAbility(userId, abilityId) {
-  const bc = DB.battleCharacters[userId];
+export async function unlockAbility(
+  userId,
+  abilityId
+) {
+  const bc =
+    DB.battleCharacters[userId];
 
   if (!bc) {
     return {
       ok: false,
-      error: 'Personaggio non trovato',
+      error:
+        'Personaggio non trovato',
     };
   }
 
-  const already = (
-    DB.characterAbilities[userId] || []
-  ).find(
-    a => a.ability_id === abilityId
-  );
+  // Controlla se già sbloccata.
+  const already =
+    (
+      DB.characterAbilities[userId] ||
+      []
+    ).find(
+      a =>
+        a.ability_id ===
+        abilityId
+    );
 
   if (already) {
     return {
       ok: false,
-      error: 'Abilità già sbloccata',
+      error:
+        'Abilità già sbloccata',
     };
   }
 
-  const ability = (
-    DB.battleAbilities || []
-  ).find(
-    a => a.id === abilityId
-  );
+  // Recupera abilità.
+  const ability =
+    (
+      DB.battleAbilities || []
+    ).find(
+      a =>
+        a.id === abilityId
+    );
 
   if (!ability) {
     return {
       ok: false,
-      error: 'Abilità non trovata',
+      error:
+        'Abilità non trovata',
     };
   }
 
-  const userLevel = calcLevel(
-    DB.users[userId]?.xp || 0
-  );
+  // Controlla livello.
+  const userLevel =
+    calcLevel(
+      DB.users[userId]?.xp || 0
+    );
 
-  if (userLevel < ability.min_char_level) {
+  if (
+    userLevel <
+    ability.min_char_level
+  ) {
     return {
       ok: false,
-      error: `Raggiungi il livello ${ability.min_char_level}`,
+      error:
+        `Raggiungi il livello ${ability.min_char_level}`,
     };
   }
 
-  if (bc.skill_points < ability.pa_cost) {
+  // Controlla PA.
+  if (
+    bc.skill_points <
+    ability.pa_cost
+  ) {
     return {
       ok: false,
-      error: `Servono ${ability.pa_cost} Punti Abilità (ne hai ${bc.skill_points})`,
+      error:
+        `Servono ${ability.pa_cost} Punti Abilità (ne hai ${bc.skill_points})`,
     };
   }
 
+  // Controlla Gold.
   if (
     ability.gold_cost > 0 &&
     bc.gold < ability.gold_cost
   ) {
     return {
       ok: false,
-      error: `Servono ${ability.gold_cost} Gold (ne hai ${bc.gold})`,
+      error:
+        `Servono ${ability.gold_cost} Gold (ne hai ${bc.gold})`,
     };
   }
 
-  const { error: abErr } = await supabase
+  // Sblocca abilità.
+  const {
+    error: abErr,
+  } = await supabase
     .from('character_abilities')
     .insert({
       character_id: bc.id,
@@ -662,11 +887,14 @@ export async function unlockAbility(userId, abilityId) {
     };
   }
 
+  // Scala PA e Gold.
   const newSp =
-    bc.skill_points - ability.pa_cost;
+    bc.skill_points -
+    ability.pa_cost;
 
   const newGold =
-    bc.gold - (ability.gold_cost || 0);
+    bc.gold -
+    (ability.gold_cost || 0);
 
   await supabase
     .from('battle_characters')
@@ -676,16 +904,23 @@ export async function unlockAbility(userId, abilityId) {
     })
     .eq('id', bc.id);
 
-  DB.battleCharacters[userId].skill_points = newSp;
-  DB.battleCharacters[userId].gold = newGold;
+  DB.battleCharacters[userId]
+    .skill_points = newSp;
 
-  if (!DB.characterAbilities[userId]) {
-    DB.characterAbilities[userId] = [];
+  DB.battleCharacters[userId]
+    .gold = newGold;
+
+  if (
+    !DB.characterAbilities[userId]
+  ) {
+    DB.characterAbilities[userId] =
+      [];
   }
 
   DB.characterAbilities[userId].push({
     ability_id: abilityId,
-    unlocked_at: new Date().toISOString(),
+    unlocked_at:
+      new Date().toISOString(),
   });
 
   persist();
@@ -698,13 +933,13 @@ export async function unlockAbility(userId, abilityId) {
 // ── Gold ──────────────────────────────────────────────────────
 
 /**
- * Aggiunge o toglie Gold al personaggio.
+ * Aggiunge o toglie Gold.
  *
  * @param {string} userId
  * @param {number} amount
  * @param {string} source
  * @param {string|null} referenceId
- * @returns {{ ok: boolean, newGold?: number, error?: string }}
+ * @returns {{ok: boolean, newGold?: number, error?: string}}
  */
 export async function updateGold(
   userId,
@@ -712,26 +947,32 @@ export async function updateGold(
   source,
   referenceId = null
 ) {
-  const bc = DB.battleCharacters[userId];
+  const bc =
+    DB.battleCharacters[userId];
 
   if (!bc) {
     return {
       ok: false,
-      error: 'Personaggio non trovato',
+      error:
+        'Personaggio non trovato',
     };
   }
 
   const newGold =
-    (bc.gold || 0) + amount;
+    (bc.gold || 0) +
+    amount;
 
   if (newGold < 0) {
     return {
       ok: false,
-      error: 'Gold insufficienti',
+      error:
+        'Gold insufficienti',
     };
   }
 
-  const { error } = await supabase
+  const {
+    error,
+  } = await supabase
     .from('battle_characters')
     .update({
       gold: newGold,
@@ -745,25 +986,30 @@ export async function updateGold(
     };
   }
 
-  // Log transazione
+  // Log transazione.
   supabase
     .from('gold_transactions')
     .insert({
       character_id: bc.id,
       amount,
       source,
-      reference_id: referenceId,
+      reference_id:
+        referenceId,
     })
-    .then(({ error: txErr }) => {
-      if (txErr) {
-        console.warn(
-          '[Battle] gold_transaction log failed:',
-          txErr.message
-        );
+    .then(
+      ({ error: txErr }) => {
+        if (txErr) {
+          console.warn(
+            '[Battle] gold_transaction log failed:',
+            txErr.message
+          );
+        }
       }
-    });
+    );
 
-  DB.battleCharacters[userId].gold = newGold;
+  DB.battleCharacters[userId]
+    .gold = newGold;
+
   persist();
 
   return {
@@ -775,24 +1021,38 @@ export async function updateGold(
 // ── Limiti Giornalieri ────────────────────────────────────────
 
 /**
- * Legge i limiti giornalieri del personaggio.
+ * Legge i limiti giornalieri.
  *
  * @param {string} userId
  * @returns {Object|null}
  */
-export async function getDailyLimits(userId) {
-  const bc = DB.battleCharacters[userId];
+export async function getDailyLimits(
+  userId
+) {
+  const bc =
+    DB.battleCharacters[userId];
 
   if (!bc) return null;
 
   const today =
-    new Date().toISOString().slice(0, 10);
+    new Date()
+      .toISOString()
+      .slice(0, 10);
 
-  const { data, error } = await supabase
+  const {
+    data,
+    error,
+  } = await supabase
     .from('daily_limits')
     .select('*')
-    .eq('character_id', bc.id)
-    .eq('date', today)
+    .eq(
+      'character_id',
+      bc.id
+    )
+    .eq(
+      'date',
+      today
+    )
     .maybeSingle();
 
   if (error) {
@@ -810,7 +1070,9 @@ export async function getDailyLimits(userId) {
   }
 
   if (!data) {
-    const { data: created } = await supabase
+    const {
+      data: created,
+    } = await supabase
       .from('daily_limits')
       .upsert(
         {
@@ -818,7 +1080,8 @@ export async function getDailyLimits(userId) {
           date: today,
         },
         {
-          onConflict: 'character_id,date',
+          onConflict:
+            'character_id,date',
         }
       )
       .select()
@@ -847,7 +1110,8 @@ export async function incrementDailyLimit(
   userId,
   field
 ) {
-  const bc = DB.battleCharacters[userId];
+  const bc =
+    DB.battleCharacters[userId];
 
   if (!bc) return;
 
@@ -858,7 +1122,9 @@ export async function incrementDailyLimit(
     'help_sent',
   ];
 
-  if (!allowedFields.includes(field)) {
+  if (
+    !allowedFields.includes(field)
+  ) {
     console.warn(
       '[Battle] Campo daily limit non valido:',
       field
@@ -867,10 +1133,14 @@ export async function incrementDailyLimit(
   }
 
   const today =
-    new Date().toISOString().slice(0, 10);
+    new Date()
+      .toISOString()
+      .slice(0, 10);
 
   try {
-    const { error } = await supabase.rpc(
+    const {
+      error,
+    } = await supabase.rpc(
       'increment_daily_limit',
       {
         p_character_id: bc.id,
@@ -893,14 +1163,20 @@ export async function incrementDailyLimit(
   }
 }
 
-// ── Caricamento dati da Supabase ──────────────────────────────
+// ── Caricamento Equipaggiamento ──────────────────────────────
 
-export async function loadEquipment(userId) {
-  const bc = DB.battleCharacters[userId];
+export async function loadEquipment(
+  userId
+) {
+  const bc =
+    DB.battleCharacters[userId];
 
   if (!bc) return;
 
-  const { data, error } = await supabase
+  const {
+    data,
+    error,
+  } = await supabase
     .from('character_equipment')
     .select(`
       id,
@@ -937,7 +1213,10 @@ export async function loadEquipment(userId) {
         absorb_pct
       )
     `)
-    .eq('character_id', bc.id);
+    .eq(
+      'character_id',
+      bc.id
+    );
 
   if (error) {
     console.warn(
@@ -947,36 +1226,62 @@ export async function loadEquipment(userId) {
     return;
   }
 
-  const equipped = (data || []).filter(
-    row =>
-      row.item_id &&
-      row.battle_items
-  );
+  // Tieni solo equipaggiamenti validi.
+  const equipped =
+    (data || []).filter(
+      row =>
+        row.item_id &&
+        row.battle_items
+    );
 
-  DB.characterEquipment[userId] = equipped;
+  DB.characterEquipment[userId] =
+    equipped;
+
   persist();
 }
 
-export async function loadAbilities(userId) {
-  const bc = DB.battleCharacters[userId];
+// ── Caricamento Abilità ──────────────────────────────────────
+
+export async function loadAbilities(
+  userId
+) {
+  const bc =
+    DB.battleCharacters[userId];
 
   if (!bc) return;
 
-  const { data, error } = await supabase
+  const {
+    data,
+    error,
+  } = await supabase
     .from('character_abilities')
     .select('*')
-    .eq('character_id', bc.id);
+    .eq(
+      'character_id',
+      bc.id
+    );
 
   if (!error && data) {
-    DB.characterAbilities[userId] = data;
+    DB.characterAbilities[userId] =
+      data;
+
     persist();
   }
 }
 
-export async function loadBattleClasses() {
-  if (DB.battleClasses?.length) return;
+// ── Caricamento Classi ───────────────────────────────────────
 
-  const { data, error } = await supabase
+export async function loadBattleClasses() {
+  if (
+    DB.battleClasses?.length
+  ) {
+    return;
+  }
+
+  const {
+    data,
+    error,
+  } = await supabase
     .from('battle_classes')
     .select('*');
 
@@ -986,22 +1291,28 @@ export async function loadBattleClasses() {
   }
 }
 
+// ── Caricamento Abilità Catalogo ─────────────────────────────
+
 export async function loadBattleAbilities(
   classId = null
 ) {
-  let query = supabase
-    .from('battle_abilities')
-    .select('*');
+  let query =
+    supabase
+      .from('battle_abilities')
+      .select('*');
 
   if (classId) {
-    query = query.eq(
-      'class_id',
-      classId
-    );
+    query =
+      query.eq(
+        'class_id',
+        classId
+      );
   }
 
-  const { data, error } =
-    await query;
+  const {
+    data,
+    error,
+  } = await query;
 
   if (!error && data) {
     DB.battleAbilities = data;
@@ -1009,35 +1320,28 @@ export async function loadBattleAbilities(
   }
 }
 
-export async function loadItems() {
-  if (DB.battleItems?.length) return;
-
-  const { data, error } = await supabase
-    .from('battle_items')
-    .select('*');
-
-  if (!error && data) {
-    DB.battleItems = data;
-    persist();
-  }
-}
+// ── Caricamento Nemici ───────────────────────────────────────
 
 export async function loadEnemies(
   tier = null
 ) {
-  let query = supabase
-    .from('battle_enemies')
-    .select('*');
+  let query =
+    supabase
+      .from('battle_enemies')
+      .select('*');
 
   if (tier) {
-    query = query.eq(
-      'tier',
-      tier
-    );
+    query =
+      query.eq(
+        'tier',
+        tier
+      );
   }
 
-  const { data, error } =
-    await query;
+  const {
+    data,
+    error,
+  } = await query;
 
   if (!error && data) {
     if (!DB.battleEnemies) {
@@ -1047,10 +1351,14 @@ export async function loadEnemies(
     data.forEach(enemy => {
       if (
         !DB.battleEnemies.find(
-          x => x.id === enemy.id
+          existing =>
+            existing.id ===
+            enemy.id
         )
       ) {
-        DB.battleEnemies.push(enemy);
+        DB.battleEnemies.push(
+          enemy
+        );
       }
     });
 
@@ -1058,21 +1366,27 @@ export async function loadEnemies(
   }
 }
 
-// ── Oggetto Starter ───────────────────────────────────────────
+// ── Oggetto Starter ──────────────────────────────────────────
 
 async function grantStarterItem(
   userId,
   characterId
 ) {
-  // Trova un'arma Non Comune casuale
+  // Cerca un'arma Non Comune.
   const starterItems =
-    (DB.battleItems || []).filter(
+    (
+      DB.battleItems || []
+    ).filter(
       item =>
-        item.rarity === 'uncommon' &&
-        item.slot === 'weapon'
+        item.rarity ===
+          'uncommon' &&
+        item.slot ===
+          'weapon'
     );
 
-  if (!starterItems.length) return;
+  if (!starterItems.length) {
+    return;
+  }
 
   const item =
     starterItems[
@@ -1085,8 +1399,10 @@ async function grantStarterItem(
   await supabase
     .from('inventory')
     .insert({
-      character_id: characterId,
-      item_id: item.id,
+      character_id:
+        characterId,
+      item_id:
+        item.id,
       quantity: 1,
       durability: 100,
     });
@@ -1095,20 +1411,30 @@ async function grantStarterItem(
 // ── Helper pubblici ───────────────────────────────────────────
 
 /**
- * Ritorna il personaggio battle dell'utente.
+ * Ritorna il personaggio battle dalla cache.
  *
  * @param {string} userId
+ * @returns {Object|null}
  */
-export function getBattleChar(userId) {
+export function getBattleChar(
+  userId
+) {
   return (
     DB.battleCharacters?.[userId] ||
     null
   );
 }
 
+// ── Sincronizzazione Power Level ─────────────────────────────
+
 /**
- * Ricalcola e salva il power_level su Supabase.
- * Chiamare dopo equip/unequip, enhancement o acquisto item.
+ * Ricalcola e salva il power_level.
+ *
+ * Da chiamare dopo:
+ * - equip
+ * - unequip
+ * - enhancement
+ * - acquisto item
  *
  * @param {string} userId
  */
@@ -1123,16 +1449,23 @@ export async function syncPowerLevel(
   const lp =
     calcPowerLevel(userId);
 
-  if (lp === bc.power_level) {
+  if (
+    lp === bc.power_level
+  ) {
     return;
   }
 
-  const { error } = await supabase
+  const {
+    error,
+  } = await supabase
     .from('battle_characters')
     .update({
       power_level: lp,
     })
-    .eq('user_id', userId);
+    .eq(
+      'user_id',
+      userId
+    );
 
   if (error) {
     console.warn(
@@ -1142,8 +1475,8 @@ export async function syncPowerLevel(
     return;
   }
 
-  DB.battleCharacters[userId].power_level =
-    lp;
+  DB.battleCharacters[userId]
+    .power_level = lp;
 
   persist();
 }
@@ -1162,9 +1495,10 @@ export function canAccessDungeon(
   userId,
   tier
 ) {
-  const level = calcLevel(
-    DB.users[userId]?.xp || 0
-  );
+  const level =
+    calcLevel(
+      DB.users[userId]?.xp || 0
+    );
 
   const dungeon = [
     null,
@@ -1175,12 +1509,17 @@ export function canAccessDungeon(
     { minLevel: 50 },
   ][tier];
 
-  if (!dungeon) return false;
+  if (!dungeon) {
+    return false;
+  }
 
-  const delta = tier - 1;
+  const delta =
+    tier - 1;
 
   return (
-    level >= dungeon.minLevel &&
-    delta <= PROGRESSION.dungeonLevelCap
+    level >=
+      dungeon.minLevel &&
+    delta <=
+      PROGRESSION.dungeonLevelCap
   );
 }
