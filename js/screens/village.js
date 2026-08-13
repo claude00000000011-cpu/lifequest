@@ -1068,18 +1068,35 @@ async function renderFriends() {
   const { supabase } = await import('../../supabase.js');
   const myId = CUR.id;
 
-  const { data, error } = await supabase
+
+
+
+         
+ const { data, error } = await supabase
     .from('game_friends')
-    .select('user_a, user_b, users!game_friends_user_a_fkey(id,username,avatar_url), users!game_friends_user_b_fkey(id,username,avatar_url)')
+    .select('user_a, user_b, ua:users!game_friends_user_a_fkey(id,username,avatar_url), ub:users!game_friends_user_b_fkey(id,username,avatar_url)')
     .or(`user_a.eq.${myId},user_b.eq.${myId}`);
 
+
+
+
+
+         
   if (error) console.warn('[Friends]', error.message);
 
+
+
+
+         
   const friends = (data || []).map(row => {
     const isA = row.user_a === myId;
-    return isA ? row['users!game_friends_user_b_fkey'] : row['users!game_friends_user_a_fkey'];
+    return isA ? row.ub : row.ua;
   }).filter(Boolean);
 
+
+
+
+         
   return `
     <div class="friends-screen">
       <div class="village-section-title">👥 Amici di Gioco (${friends.length})</div>
@@ -1208,13 +1225,22 @@ window._openPlayerProfile = async function(userId) {
   const myId = CUR.id;
   const userA = myId < userId ? myId : userId;
   const userB = myId < userId ? userId : myId;
-  const { data: friendship } = await supabase
+
+
+         
+  const { data: friendshipData, error: friendshipError } = await supabase
     .from('game_friends')
     .select('id')
     .eq('user_a', userA)
     .eq('user_b', userB)
     .maybeSingle();
-  const alreadyFriend = !!friendship;
+  const alreadyFriend = !friendshipError && !!friendshipData;
+
+
+
+
+
+         
   console.log('[Profile Debug]', { userId, curId: CUR.id, alreadyFriend, sameUser: userId === CUR.id });
   const todayStr = new Date().toISOString().slice(0, 10);
   const summonKey = `summon_${userId}_${todayStr}`;
