@@ -324,7 +324,7 @@ MERCHANT: {
     rareItemMarkup:   1.50,
     dailyFreeItem:    1,
   }
-  },
+ 
 };
  
 export const ABILITY_VALUES = {
