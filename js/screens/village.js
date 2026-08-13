@@ -1059,6 +1059,20 @@ window._resumeDungeon = async function() {
   });
 };
 
+
+window._enhanceItem = async function(inventoryId) {
+  const { enhanceItem } = await import('../battle/enhancement.js');
+  const result = await enhanceItem(inventoryId, CUR.id);
+  if (!result.ok) return toast(result.error || 'Errore', 'error');
+  playSound('xp');
+  const enh = result.enhancement;
+  toast(`⭐${enh.enhancement_lvl} — Potenziamento riuscito!`, 'success');
+  renderVillage();
+};
+
+
+
+
 // Reset abilità
 window._openResetDialog = async function() {
   const bc = getBattleChar(CUR.id);
