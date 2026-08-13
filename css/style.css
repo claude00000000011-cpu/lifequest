@@ -1036,3 +1036,36 @@ body::after {
   z-index: 99999;
   mix-blend-mode: multiply;
 }
+
+
+/* ── Stats screen — card più compatte e leggibili ─── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  margin-bottom: 1rem;
+}
+
+.stat-card {
+  background: rgba(15, 15, 42, 0.92);
+  border: 2px solid;
+  padding: 0.6rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-card__label {
+  font-family: var(--font-pixel);
+  font-size: 0.3rem;
+  color: #d0d0e8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-card__value {
+  font-family: var(--font-pixel);
+  font-size: 0.75rem;
+  text-shadow: 1px 1px 0 #000;
+  line-height: 1;
+}
