@@ -311,6 +311,7 @@ function _rebindActions(container, abilities) {
 async function _onBattleEnd(container, state) {
   const won = state.winner === 'player';
   let goldEarned = 0, itemDropped = null;
+
   if (won) {
     playSound('trophy');
     const rewards = calcPveRewards(_enemyData, calcBattleStats(CUR.id)?.luck || 3, _dungeonCtx.tier || 1);
@@ -329,28 +330,18 @@ async function _onBattleEnd(container, state) {
     playSound('error');
     await incrementDailyLimit(CUR.id, 'pve_count');
   }
+
   _showEndOverlay(container, won, goldEarned, 0, itemDropped);
 }
 
 
 
-           
-    await incrementDailyLimit(CUR.id, 'pve_count');
-    if (rewards.itemRarity) {
-      const pool = DB.battleItems.filter(i =>
-        i.rarity === rewards.itemRarity &&
-        i.slot !== 'consumable' &&
-        i.icon_path !== null
-      );
-      itemDropped = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
-    }
-  } else {
-    playSound('error');
-    await incrementDailyLimit(CUR.id, 'pve_count');
-  }
 
-  _showEndOverlay(container, won, goldEarned, xpBonus, itemDropped);
-}
+
+
+
+
+
 
 
 function _showEndOverlay(container, won, gold, xp = 0, item = null) {
