@@ -34,7 +34,7 @@ export function updateAudioSettings(patch) {
 }
 
 // ── Path asset ────────────────────────────────────────────────
-const AUDIO_BASE = '/lifequest/assets/audio/';
+const AUDIO_BASE = '/lifequest-battle/assets/audio/';
 
 // ── Mappa SFX: nome → file MP3 ───────────────────────────────
 const SFX_MAP = {
