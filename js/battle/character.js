@@ -102,9 +102,10 @@ export function calcBattleStats(userId) {
     + level * base.manaPerLevel
   ));
  
-  const luck = Math.max(0, parseFloat(
-    (base.luck + (stats.cultura || 0) * 0.08 + primStat * mult.luck).toFixed(2)
-  ));
+  // Soft-cap fortuna: oltre 50 i ritorni marginali sono quasi nulli.
+  // Questo corregge il bug oracle luck=226 causato da sociale alto.
+  const luckRaw = base.luck + (stats.cultura || 0) * 0.08 + primStat * mult.luck;
+  const luck = Math.max(0, parseFloat(Math.min(luckRaw, 50).toFixed(2)));
  
   // Bonus equipaggiamento
   const equipment = DB.characterEquipment[userId] || [];
@@ -121,8 +122,6 @@ export function calcBattleStats(userId) {
     classId,
   };
 }
-
-
 
 
 
