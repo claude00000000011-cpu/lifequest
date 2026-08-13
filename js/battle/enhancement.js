@@ -5,8 +5,7 @@
 
 import { supabase }          from '../../supabase.js';
 import { DB, CUR, persist }  from '../db.js';
-import { updateGold }        from './character.js';
-
+import { updateGold, syncPowerLevel } from './character.js';
 // ── Costanti ─────────────────────────────────────────────────
 
 const RARITY_ORDER = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
@@ -222,6 +221,9 @@ export async function enhanceItem(inventoryId, userId) {
   if (idx >= 0) DB.itemEnhancements[userId][idx] = result;
   else DB.itemEnhancements[userId].push(result);
   persist();
+
+  // 6. Aggiorna power level
+  await syncPowerLevel(userId);
 
   return { ok: true, enhancement: result, bonus };
 }
