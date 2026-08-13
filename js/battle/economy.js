@@ -234,7 +234,7 @@ export async function loadInventory(userId) {
 
   const { data, error } = await supabase
     .from('inventory')
-    .select('*, items(*)')
+    .select('*, battle_items(*)')
     .eq('character_id', bc.id);
 
   if (error) {
