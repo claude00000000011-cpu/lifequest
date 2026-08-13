@@ -311,7 +311,6 @@ function _rebindActions(container, abilities) {
 async function _onBattleEnd(container, state) {
   const won = state.winner === 'player';
   let goldEarned = 0, itemDropped = null;
-
   if (won) {
     playSound('trophy');
     const rewards = calcPveRewards(_enemyData, calcBattleStats(CUR.id)?.luck || 3, _dungeonCtx.tier || 1);
@@ -330,28 +329,15 @@ async function _onBattleEnd(container, state) {
     playSound('error');
     await incrementDailyLimit(CUR.id, 'pve_count');
   }
-
   _showEndOverlay(container, won, goldEarned, 0, itemDropped);
 }
-
-
-
-
-
-
-
-
-
-
 
 function _showEndOverlay(container, won, gold, xp = 0, item = null) {
   const root = container.querySelector('#battle-root');
   if (!root) return;
   const overlay = document.createElement('div');
   overlay.className = `battle-end-overlay ${won ? 'battle-win' : won === null ? '' : 'battle-loss'}`;
-
   const isDungeon = !!_dungeonCtx?.dungeon;
-
   overlay.innerHTML = `
     <div class="battle-end-content">
       <div class="battle-end-icon">${won === null ? '🏃' : won ? '🏆' : '💀'}</div>
