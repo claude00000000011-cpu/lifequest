@@ -5,6 +5,7 @@
 
 
 import { CUR, DB, persist }    from '../db.js';
+import { supabase } from '../../supabase.js';
 import { escHtml, toast }       from '../utils.js';
 import { playSound }            from '../audio.js';
 import { calcBattleStats, getBattleChar, getDailyLimits,
