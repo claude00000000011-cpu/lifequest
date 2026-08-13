@@ -427,11 +427,11 @@ export async function getDailyLimits(userId) {
 
   if (!data) {
     // Crea il record per oggi
-    const { data: created } = await supabase
-      .from('daily_limits')
-      .insert({ character_id: bc.id, date: today })
-      .select()
-      .single();
+   const { data: created } = await supabase
+  .from('daily_limits')
+  .upsert({ character_id: bc.id, date: today }, { onConflict: 'character_id,date' })
+  .select()
+  .single();
     return created || { pve_count: 0, pvp_count: 0, dungeon_count: 0, help_sent: 0 };
   }
 
