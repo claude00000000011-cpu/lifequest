@@ -544,12 +544,29 @@ async function _onBattleEnd(container, state) {
       itemDropped = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
       if (itemDropped) playSound('loot_rare');
     }
-  } else {
+
+
+           
+   } else {
     playSound('defeat');
     await incrementDailyLimit(CUR.id, 'pve_count');
   }
+
+  // Salva gli HP rimasti dopo la battaglia
+  await DB
+    .from('battle_characters')
+    .update({
+      hp_current: Math.max(0, Math.floor(state.player.hp))
+    })
+    .eq('user_id', CUR.id);
+
   _showEndOverlay(container, won, goldEarned, 0, itemDropped);
 }
+
+
+
+
+
 function _showEndOverlay(container, won, gold, xp = 0, item = null) {
   const root = container.querySelector('#battle-root');
   if (!root) return;
