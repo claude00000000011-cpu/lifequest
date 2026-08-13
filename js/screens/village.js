@@ -29,7 +29,16 @@ import { ECONOMY, PROGRESSION,
 // ── Stato navigazione villaggio ───────────────────────────────
 let _villageTab = 'map';  // 'map'|'merchant'|'port'|'smith'|'academy'|'oracle'|'inventory'
 
-export function switchVillageTab(t) { _villageTab = t; renderVillage(); }
+let _chatRealtimeChannel = null;
+
+export function switchVillageTab(t) {
+  if (t !== 'chat' && _chatRealtimeChannel) {
+    _chatRealtimeChannel.unsubscribe();
+    _chatRealtimeChannel = null;
+  }
+  _villageTab = t;
+  renderVillage();
+}
 // ════════════════════════════════════════════════════════════
 // ENTRY POINT
 // ════════════════════════════════════════════════════════════
@@ -203,7 +212,11 @@ async function renderVillageTabContent(bc, user, level) {
     case 'smith':     return await renderSmith(bc);
     case 'academy':   return renderAcademy(bc, level);
     case 'friends':   return await renderFriends();
-    case 'chat':      return await renderGameChat();
+     case 'chat': {
+      const chatHtml = await renderGameChat();
+      setTimeout(() => window._initChatRealtime?.(), 100);
+      return chatHtml;
+    }
     default:          return renderVillageMap(bc, level);
   }
 }
@@ -1134,8 +1147,15 @@ async function renderGameChat() {
                   <span class="chat-msg__user"
                         style="color:${isMe ? 'var(--rpg-gold)' : 'var(--rpg-gray)'};
                                ${!isMe ? 'cursor:pointer;text-decoration:underline dotted' : ''}"
-                        ${!isMe ? `onclick="window._addGameFriend?.('${m.user_id}', '${escHtml(m.username)}')"
-                                   title="Aggiungi @${escHtml(m.username)} agli amici"` : ''}>
+
+
+
+                               
+                       ${!isMe ? `onclick="window._openPlayerProfile?.('${m.user_id}')"
+                                   title="Vedi profilo di @${escHtml(m.username)}"` : ''}>
+
+
+                                   
                     @${escHtml(m.username)}${isDM ? ' 🔒' : ''}
                   </span>
                   <span class="chat-msg__text">${escHtml(m.message)}</span>
@@ -1172,7 +1192,151 @@ async function renderGameChat() {
 
 
 
+
+window._openPlayerProfile = async function(userId) {
+  const { supabase } = await import('../../supabase.js');
+  const { data: bc } = await supabase
+    .from('battle_characters')
+    .select('*, users(id, username, avatar_url)')
+    .eq('user_id', userId)
+    .single();
+  if (!bc) return toast('Personaggio non trovato', 'error');
+  const { data: equip } = await supabase
+    .from('character_equipment')
+    .select('*, battle_items(*)')
+    .eq('character_id', bc.id);
+  const myId = CUR.id;
+  const userA = myId < userId ? myId : userId;
+  const userB = myId < userId ? userId : myId;
+  const { data: friendship } = await supabase
+    .from('game_friends')
+    .select('id')
+    .eq('user_a', userA)
+    .eq('user_b', userB)
+    .maybeSingle();
+  const alreadyFriend = !!friendship;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const summonKey = `summon_${userId}_${todayStr}`;
+  const summonCount = parseInt(localStorage.getItem(summonKey) || '0');
+  const canSummon = summonCount < 10;
+  const classIcon = { warrior:'⚔️', mage:'🔮', bard:'🎸', shadow:'🗡️', oracle:'☀️' }[bc.class_id] || '⚔️';
+  const rarColors = { common:'#9CA3AF', uncommon:'#22C55E', rare:'#3B82F6', epic:'#7C3AED', legendary:'#F59E0B', mythic:'#DC2626' };
+  const equipHtml = (equip || []).map(e => {
+    if (!e.battle_items) return '';
+    const item = e.battle_items;
+    const color = rarColors[item.rarity] || '#9CA3AF';
+    return `
+      <div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--rpg-border)">
+        <span style="font-size:1rem">${slotEmoji(e.slot)}</span>
+        <span style="font-family:var(--font-pixel);font-size:0.35rem;color:${color}">${escHtml(item.name)}</span>
+        <span style="font-family:var(--font-pixel);font-size:0.3rem;color:var(--rpg-gray);margin-left:auto">${item.rarity}</span>
+      </div>`;
+  }).join('') || '<div style="font-family:var(--font-pixel);font-size:0.35rem;color:var(--rpg-gray)">Nessun equipaggiamento</div>';
+  const existing = document.getElementById('player-profile-modal');
+  if (existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = 'player-profile-modal';
+  modal.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:9100;display:flex;align-items:center;justify-content:center;padding:1rem`;
+  modal.innerHTML = `
+    <div style="background:var(--rpg-panel);border:3px solid var(--rpg-border-gold);padding:1.25rem;width:100%;max-width:340px;position:relative;max-height:85dvh;overflow-y:auto">
+      <button onclick="document.getElementById('player-profile-modal').remove()"
+              style="position:absolute;top:8px;right:8px;background:transparent;border:none;color:var(--rpg-gray);font-family:var(--font-pixel);font-size:0.5rem;cursor:pointer">✕</button>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem">
+        <div style="font-size:2rem;background:rgba(0,0,0,0.3);width:48px;height:48px;display:flex;align-items:center;justify-content:center;border:2px solid var(--rpg-border)">${classIcon}</div>
+        <div>
+          <div style="font-family:var(--font-pixel);font-size:0.52rem;color:var(--rpg-gold)">@${escHtml(bc.users?.username || '?')}</div>
+          <div style="font-family:var(--font-pixel);font-size:0.38rem;color:var(--rpg-gray);margin-top:3px">${bc.class_id} · Lv.${bc.level || 1}</div>
+        </div>
+      </div>
+      <div style="font-family:var(--font-pixel);font-size:0.4rem;color:var(--rpg-gold);margin-bottom:6px;border-left:3px solid var(--rpg-gold-dark);padding-left:6px">📊 Statistiche</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:1rem">
+        ${[['⚔️ Attacco',bc.attack],['🛡️ Difesa',bc.defense],['❤️ HP',`${bc.hp_current}/${bc.hp_base}`],['💙 Mana',`${bc.mana_current}/${bc.mana_max}`],['💨 Velocità',bc.speed],['🍀 Fortuna',`${bc.luck_pct}%`]].map(([label,val]) => `
+          <div style="background:var(--rpg-panel2);border:1px solid var(--rpg-border);padding:5px 7px">
+            <div style="font-family:var(--font-pixel);font-size:0.3rem;color:var(--rpg-gray)">${label}</div>
+            <div style="font-family:var(--font-pixel);font-size:0.45rem;color:var(--rpg-white)">${val}</div>
+          </div>`).join('')}
+      </div>
+      <div style="font-family:var(--font-pixel);font-size:0.4rem;color:var(--rpg-gold);margin-bottom:6px;border-left:3px solid var(--rpg-gold-dark);padding-left:6px">⚔️ Equipaggiamento</div>
+      <div style="margin-bottom:1rem">${equipHtml}</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-top:0.5rem">
+        ${!alreadyFriend && userId !== CUR.id ? `
+          <button class="btn-primary" style="width:100%"
+                  onclick="window._addGameFriendFromProfile?.('${userId}', '${escHtml(bc.users?.username || '')}')">
+            👥 Aggiungi agli amici
+          </button>` : userId !== CUR.id ? `
+          <div style="font-family:var(--font-pixel);font-size:0.36rem;color:var(--rpg-hp);text-align:center">✅ Già amici</div>` : ''}
+        ${userId !== CUR.id ? `
+          <button class="btn-sm btn-primary" style="width:100%"
+                  ${!canSummon ? 'disabled title="Limite giornaliero raggiunto (10/10)"' : ''}
+                  onclick="window._summonPlayer?.('${userId}', '${bc.id}')">
+            ⚡ Evoca (${summonCount}/10 oggi)
+          </button>` : ''}
+      </div>
+    </div>`;
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  document.body.appendChild(modal);
+};
+
+window._addGameFriendFromProfile = async function(userId, username) {
+  const { supabase } = await import('../../supabase.js');
+  const userA = CUR.id < userId ? CUR.id : userId;
+  const userB = CUR.id < userId ? userId : CUR.id;
+  const { error } = await supabase.from('game_friends').insert({ user_a: userA, user_b: userB });
+  if (error?.code === '23505') return toast(`@${username} è già tra i tuoi amici`, 'info');
+  if (error) return toast('Errore: ' + error.message, 'error');
+  playSound('tap');
+  toast(`@${username} aggiunto agli amici! 👥`, 'success');
+  const modal = document.getElementById('player-profile-modal');
+  if (modal) {
+    const btn = modal.querySelector(`button[onclick*="_addGameFriendFromProfile"]`);
+     if (btn) btn.outerHTML = `<div style="font-family:var(--font-pixel);font-size:0.36rem;color:var(--rpg-hp);text-align:center">✅ Già amici</div>`;
+  }
+};
+
+window._initChatRealtime = function() {
+  if (_chatRealtimeChannel) {
+    _chatRealtimeChannel.unsubscribe();
+    _chatRealtimeChannel = null;
+  }
+  import('../../supabase.js').then(({ supabase }) => {
+    _chatRealtimeChannel = supabase
+      .channel('game_chat_live')
+      .on('postgres_changes', {
+        event:  'INSERT',
+        schema: 'public',
+        table:  'game_chat',
+      }, payload => {
+        const m = payload.new;
+        if (m.recipient_id && m.recipient_id !== CUR.id && m.user_id !== CUR.id) return;
+        if (m.user_id === CUR.id) return;
+        const msgs = document.getElementById('chat-messages');
+        if (!msgs) return;
+        const isDM = !!m.recipient_id;
+        const div = document.createElement('div');
+        div.className = `chat-msg${isDM ? ' chat-msg--dm' : ''}`;
+        div.innerHTML = `
+          <span class="chat-msg__user"
+                style="color:var(--rpg-gray);cursor:pointer;text-decoration:underline dotted"
+                onclick="window._openPlayerProfile?.('${m.user_id}')"
+                title="Vedi profilo di @${escHtml(m.username)}">
+            @${escHtml(m.username)}${isDM ? ' 🔒' : ''}
+          </span>
+          <span class="chat-msg__text">${escHtml(m.message)}</span>
+          <span class="chat-msg__time">${new Date(m.created_at).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}</span>
+        `;
+        msgs.appendChild(div);
+        msgs.scrollTop = msgs.scrollHeight;
+      })
+      .subscribe();
+  });
+};
+
 window._switchVillageTab = switchVillageTab;
+
+
+
+
+
 
 // Carica l'economy summary inline dopo render mappa
 window._loadEconomySummary = async function() {
