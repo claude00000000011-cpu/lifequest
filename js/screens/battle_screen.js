@@ -308,6 +308,40 @@ function _rebindActions(container, abilities) {
   });
 }
 
+
+
+
+
+
+async function _playAttackAnim(who = 'hero') {
+  const heroClass = DB.battleCharacters?.[CUR.id]?.class_id || 'warrior';
+  const heroLoopGif   = `/lifequest/assets/battle/classes/${heroClass}_loop.gif`;
+  const heroAttackGif = `/lifequest/assets/battle/classes/${heroClass}_attack.gif`;
+
+  if (who === 'hero') {
+    const sprite = document.getElementById('hero-sprite');
+    if (!sprite) return;
+    sprite.src = heroAttackGif;
+    await _sleep(800);
+    sprite.src = heroLoopGif;
+  } else {
+    const sprite = document.getElementById('enemy-sprite');
+    if (!sprite) return;
+    sprite.src = _enemyData.attack_gif || _enemyData.loop_gif || '';
+    await _sleep(800);
+    sprite.src = _enemyData.loop_gif || '';
+  }
+}
+
+
+
+
+
+
+
+
+
+
 async function _onBattleEnd(container, state) {
   const won = state.winner === 'player';
   let goldEarned = 0, itemDropped = null;
