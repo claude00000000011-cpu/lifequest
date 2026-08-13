@@ -8,7 +8,8 @@ import { Moderation } from './api.js';
 import { updateDashboard, gotoTab } from './screens/home.js';
 import { switchAuthTab, doRegister, doLogin, doResetPin } from './auth.js';
 import { initSettings } from './settings.js';
-import { playBgm } from './audio.js';
+import { playBgm, playSound } from './audio.js';
+window.playSound = playSound;
 
 // BUG #7 FIX — tiene traccia della tab attiva
 let _activeTab = 'home';
