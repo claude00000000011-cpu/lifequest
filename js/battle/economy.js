@@ -1,696 +1,597 @@
 // ============================================================
-// js/battle/character.js — Personaggio Battle System
-// Calcola le stats di combattimento partendo dalle stats XP esistenti.
-// Crea/sincronizza il personaggio battle su Supabase.
-// NON modifica DB.users — legge solo da esso.
+// js/battle/economy.js — Economia Battle System LifeQuest
+// Gold, casse loot con pity system, mercante, drop oggetti.
 // ============================================================
 
-import { supabase }                     from '../../supabase.js';
-import { DB, CUR, persist }             from '../db.js';
-import { calcLevel }                    from '../xp.js';
-import {
-  CLASS_BASE_STATS,
-  CLASS_PRIMARY_STAT,
-  CLASS_STAT_MULT,
-  CLASS_EVOLUTION,
-  SKILL_POINTS,
-  PROGRESSION,
-} from './config.js';
+import { supabase }                from '../../supabase.js';
+import { DB, CUR, persist }        from '../db.js';
+import { ECONOMY, PROGRESSION,
+         EQUIPMENT_RARITIES }      from './config.js';
+import { updateGold, getBattleChar,
+         loadItems }               from './character.js';
+import { rollItemRarity }          from './engine.js';
+import { calcLevel }               from '../xp.js';
+import { uid, today }              from '../utils.js';
 
-// ── Cache locale ─────────────────────────────────────────────
-// Evita round-trip a Supabase per ogni operazione in-battle
-if (!DB.battleCharacters) DB.battleCharacters = {};
-if (!DB.characterAbilities) DB.characterAbilities = {};
-if (!DB.characterEquipment) DB.characterEquipment = {};
+// ── Cache locale mercante ─────────────────────────────────────
+if (!DB.merchantSlots)    DB.merchantSlots    = [];
+if (!DB.merchantLastRot)  DB.merchantLastRot  = null;
+if (!DB.lootBoxHistory)   DB.lootBoxHistory   = {};  // { [boxType]: pityCount }
 
-// ── Calcola stats derivate ────────────────────────────────────
+// ════════════════════════════════════════════════════════════
+// LOOT BOXES
+// ════════════════════════════════════════════════════════════
 
 /**
- * Calcola le statistiche di combattimento a partire da:
- *  - stats reali dell'utente (DB.users[userId].stats)
- *  - classe scelta
- *  - livello personaggio reale
- *
- * Formula base dal Master Plan:
- *  PF      = hpBase + (Corpo × 2) + (level × hpPerLevel)
- *  Attacco = attackBase + (stat_primaria × mult)
- *  Difesa  = defenseBase + (Corpo × 0.8) + bonus equipaggiamento
- *  Velocità= speedBase + (Sfide × 0.5)
- *  Mana    = manaBase + (Mente × 1.5)
- *  Fortuna = luckBase + (Cultura × 0.1)
- *
+ * Controlla se il giocatore può aprire una cassa del tipo indicato.
  * @param {string} userId
- * @returns {Object} stats calcolate
+ * @param {'wood'|'iron'|'gold'|'mythic'} boxType
+ * @returns {{ canOpen: boolean, reason?: string, cost: number }}
  */
+export function canOpenBox(userId, boxType) {
+  const boxCfg  = ECONOMY.LOOT_BOXES[boxType];
+  if (!boxCfg) return { canOpen: false, reason: 'Cassa non valida', cost: 0 };
 
-
-
-
-
-
-// ╔══════════════════════════════════════════════════════════════╗
-// ║  FILE 3/3 — js/battle/character.js  (solo calcBattleStats)  ║
-// ║  Incolla SOLO la funzione calcBattleStats nel file esistente ║
-// ║  sostituendo quella attuale (righe ~45-90 circa)             ║
-// ╚══════════════════════════════════════════════════════════════╝
- 
-export function calcBattleStats(userId) {
-  const user = DB.users[userId];
-  if (!user) return null;
- 
   const bc      = DB.battleCharacters[userId];
-  const classId = bc?.class_id;
-  const base    = classId ? CLASS_BASE_STATS[classId] : CLASS_BASE_STATS.warrior;
-  const mult    = classId ? CLASS_STAT_MULT[classId]  : CLASS_STAT_MULT.warrior;
-  const primary = classId ? CLASS_PRIMARY_STAT[classId] : 'corpo';
- 
-  const stats    = user.stats || { mente: 0, corpo: 0, cultura: 0, sfide: 0, sociale: 0 };
-  const level    = calcLevel(user.xp || 0);
-  const primStat = stats[primary] || 0;
- 
-  // Ogni stat reale ha un soft-cap implicito nel moltiplicatore ridotto.
-  // I valori minimi sono clamped a 1 per evitare stat negative da bug.
- 
-  const hp = Math.max(10, Math.floor(
-    base.hp
-    + (stats.corpo || 0) * 1.5        // era 2 — corpo meno dominante
-    + level * base.hpPerLevel
-    + primStat * mult.hp
-  ));
- 
-  const attack = Math.max(1, Math.floor(
-    base.attack
-    + primStat * mult.attack
-  ));
- 
-  const defense = Math.max(1, Math.floor(
-    base.defense
-    + (stats.corpo || 0) * 0.6        // era 0.8
-    + primStat * mult.defense
-  ));
- 
-  const speed = Math.max(1, Math.floor(
-    base.speed
-    + (stats.sfide || 0) * 0.4        // era 0.5
-    + primStat * mult.speed
-  ));
- 
-  const mana = Math.max(0, Math.floor(
-    base.mana
-    + (stats.mente || 0) * 1.2        // era 1.5
-    + primStat * mult.mana
-    + level * base.manaPerLevel
-  ));
- 
-  // Soft-cap fortuna: oltre 50 i ritorni marginali sono quasi nulli.
-  // Questo corregge il bug oracle luck=226 causato da sociale alto.
-  const luckRaw = base.luck + (stats.cultura || 0) * 0.08 + primStat * mult.luck;
-  const luck = Math.max(0, parseFloat(Math.min(luckRaw, 50).toFixed(2)));
- 
-  // Bonus equipaggiamento
-  const equipment = DB.characterEquipment[userId] || [];
-  const eqBonus   = calcEquipmentBonus(equipment);
- 
+  if (!bc)      return { canOpen: false, reason: 'Personaggio non trovato', cost: 0 };
+
+  // Sblocchi per livello
+  const level   = calcLevel(DB.users[userId]?.xp || 0);
+  if (boxType === 'gold'   && level < PROGRESSION.UNLOCKS.goldBoxes) {
+    return { canOpen: false, reason: `Sblocca al livello ${PROGRESSION.UNLOCKS.goldBoxes}`, cost: boxCfg.cost };
+  }
+  if (boxType === 'mythic' && level < PROGRESSION.UNLOCKS.mythicBoxes) {
+    return { canOpen: false, reason: `Sblocca al livello ${PROGRESSION.UNLOCKS.mythicBoxes}`, cost: boxCfg.cost };
+  }
+
+  if ((bc.gold || 0) < boxCfg.cost) {
+    return { canOpen: false, reason: `Gold insufficienti (hai ${bc.gold}, servono ${boxCfg.cost})`, cost: boxCfg.cost };
+  }
+
+  return { canOpen: true, cost: boxCfg.cost };
+}
+
+/**
+ * Apre una cassa loot, gestisce pity system e assegna l'oggetto.
+ * @param {string} userId
+ * @param {'wood'|'iron'|'gold'|'mythic'} boxType
+ * @returns {{ ok: boolean, item?, rarity?, pityCount?, error? }}
+ */
+export async function openLootBox(userId, boxType) {
+  const check = canOpenBox(userId, boxType);
+  if (!check.canOpen) return { ok: false, error: check.reason };
+
+  const bc     = getBattleChar(userId);
+  const boxCfg = ECONOMY.LOOT_BOXES[boxType];
+  const rates  = ECONOMY.BOX_RATES[boxType];
+
+  // 1. Scala il Gold
+  const goldResult = await updateGold(userId, -boxCfg.cost, 'loot_box', null);
+  if (!goldResult.ok) return { ok: false, error: goldResult.error };
+
+  // 2. Pity system: conta aperture precedenti senza la rarità target
+  if (!DB.lootBoxHistory[userId])        DB.lootBoxHistory[userId] = {};
+  if (!DB.lootBoxHistory[userId][boxType]) DB.lootBoxHistory[userId][boxType] = 0;
+
+  const pityCount = DB.lootBoxHistory[userId][boxType];
+  const pityTrigger = pityCount >= boxCfg.pity - 1; // -1 perché contiamo da 0
+
+  // 3. Tira la rarità
+  let rarity = pityTrigger
+    ? boxCfg.rarityTarget
+    : rollFromBoxRates(rates);
+
+  // Se pity scatta, garantisce almeno la rarità target
+  const rarityRank = { common: 0, uncommon: 1, rare: 2, epic: 3, legendary: 4, mythic: 5 };
+  if (rarityRank[rarity] < rarityRank[boxCfg.rarityTarget]) {
+    rarity = boxCfg.rarityTarget;
+  }
+
+  // 4. Aggiorna pity counter
+  const hitTarget = rarityRank[rarity] >= rarityRank[boxCfg.rarityTarget];
+  DB.lootBoxHistory[userId][boxType] = hitTarget ? 0 : pityCount + 1;
+  persist();
+
+  // 5. Seleziona un oggetto casuale della rarità ottenuta
+  const item = selectRandomItemByRarity(rarity);
+
+  // 6. Aggiungi all'inventario
+  if (item) {
+    await addToInventory(userId, bc.id, item.id);
+  }
+
+  // 7. Salva apertura su Supabase
+  supabase.from('loot_boxes').insert({
+    character_id:  bc.id,
+    box_type:      boxType,
+    item_obtained: item?._procedural ? null : (item?.id || null),
+    pity_counter:  DB.lootBoxHistory[userId][boxType],
+  }).then(({ error }) => {
+    if (error) console.warn('[Economy] loot_box log failed:', error.message);
+  });
+
   return {
-    hp:      hp      + eqBonus.hp,
-    attack:  attack  + eqBonus.attack,
-    defense: defense + eqBonus.defense,
-    speed:   speed   + eqBonus.speed,
-    mana:    mana    + eqBonus.mana,
-    luck:    luck    + eqBonus.luck,
-    level,
-    classId,
+    ok:         true,
+    item,
+    rarity,
+    pityCount:  DB.lootBoxHistory[userId][boxType],
+    wasGold:    boxCfg.cost,
   };
 }
 
-
-
-
-
 /**
- * Somma i bonus di tutti gli oggetti equipaggiati.
- * @param {Array} equipment — array slot equipment
- * @returns {Object} bonus totali
+ * Tira una rarità secondo le probabilità della cassa.
  */
-function calcEquipmentBonus(equipment) {
-  const bonus = { hp: 0, attack: 0, defense: 0, speed: 0, mana: 0, luck: 0 };
-  if (!equipment?.length) return bonus;
-
-  equipment.forEach(slot => {
-    if (!slot.item_id) return;
-    const item = (DB.battleItems || []).find(i => i.id === slot.item_id);
-    if (!item) return;
-
-    const dur  = (slot.durability ?? 100) / 100; // efficacia 0-1
-    bonus.hp      += Math.floor((item.bonus_hp      || 0) * dur);
-    bonus.attack  += Math.floor((item.bonus_attack  || 0) * dur);
-    bonus.defense += Math.floor((item.bonus_defense || 0) * dur);
-    bonus.speed   += Math.floor((item.bonus_speed   || 0) * dur);
-    bonus.mana    += Math.floor((item.bonus_mana    || 0) * dur);
-    bonus.luck    += parseFloat(((item.bonus_luck_pct || 0) * dur).toFixed(2));
-  });
-
-  return bonus;
-}
-
-
-
-
-/**
- * Calcola il Livello Potenza (LP) del personaggio.
- * Usato per leaderboard, matchmaking PvP e display UI.
- * @param {string} userId
- * @returns {number} LP arrotondato
- */
-export function calcPowerLevel(userId) {
-  const stats = calcBattleStats(userId);
-  if (!stats) return 0;
-
-  const level = stats.level || 1;
-
-  // Bonus enhancement (somma tutti i bonus attivi)
-  const bc        = DB.battleCharacters[userId];
-  const enhancements = DB.itemEnhancements?.[userId] || [];
-  const enhBonus  = enhancements.reduce((acc, e) => {
-    acc.attack  += (e.bonus_attack  || 0);
-    acc.defense += (e.bonus_defense || 0);
-    acc.hp      += (e.bonus_hp      || 0);
-    return acc;
-  }, { attack: 0, defense: 0, hp: 0 });
-
-  const lp = Math.floor(
-    level                              * 10   +
-    (stats.attack  + enhBonus.attack)  * 2    +
-    (stats.defense + enhBonus.defense) * 1.5  +
-    (stats.hp      + enhBonus.hp)      / 10   +
-    stats.speed                        * 1    +
-    stats.mana                         / 5
-  );
-
-  return Math.max(1, lp);
-}
-
-
-
-
-
-
-// ── Creazione / Sincronizzazione personaggio ──────────────────
-
-/**
- * Sincronizza il personaggio battle dell'utente.
- * Chiamato da api.js → syncCloudDataOnLogin (fire-and-forget).
- * Se non esiste lo crea; se esiste aggiorna le stats derivate.
- *
- * @param {string} userId
- */
-export async function syncBattleCharacter(userId) {
-  try {
-    // 1. Leggi il personaggio esistente
-    const { data: existing, error } = await supabase
-      .from('battle_characters')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (error) {
-      console.warn('[Battle] syncBattleCharacter error:', error.message);
-      return;
-    }
-
-    if (!existing) {
-      // 2. Prima volta: crea il personaggio
-      await _createBattleCharacter(userId);
-    } else {
-      // 3. Già esistente: aggiorna stats derivate + cache locale
-      DB.battleCharacters[userId] = existing;
-      persist();
-      await _updateDerivedStats(userId, existing);
-    }
-
-    // 4. Carica equipaggiamento e abilità
-    await Promise.all([
-      loadEquipment(userId),
-      loadAbilities(userId),
-    ]);
-
-  } catch (e) {
-    console.warn('[Battle] syncBattleCharacter failed:', e);
+function rollFromBoxRates(rates) {
+  const rand = Math.random();
+  let cumulative = 0;
+  // Ordine decrescente per favorire le rarità più basse per ultime
+  const order = ['mythic', 'legendary', 'epic', 'rare', 'uncommon', 'common'];
+  // Costruiamo in ordine crescente di rarità per avere distribuzione corretta
+  const entries = Object.entries(rates).filter(([, v]) => v > 0);
+  for (const [rarity, prob] of entries) {
+    cumulative += prob;
+    if (rand < cumulative) return rarity;
   }
+  return entries[0]?.[0] || 'uncommon';
 }
 
-async function _createBattleCharacter(userId) {
-  const user  = DB.users[userId];
-  if (!user) return;
+/**
+ * Seleziona un oggetto casuale dal catalogo locale filtrato per rarità.
+ * Esclude consumabili (non droppano dalle casse).
+ */
+function selectRandomItemByRarity(rarity) {
+  const pool = (DB.battleItems || []).filter(
+    i => i.rarity === rarity && i.slot !== 'consumable'
+  );
+  if (!pool.length) {
+    // Fallback: oggetto procedurale
+    return generateProceduralItem(rarity);
+  }
+  return pool[Math.floor(Math.random() * pool.length)];
+}
 
-  const level = calcLevel(user.xp || 0);
+/**
+ * Genera un oggetto procedurale quando il catalogo non ha quella rarità.
+ */
+function generateProceduralItem(rarity) {
+  const rarCfg   = EQUIPMENT_RARITIES[rarity];
+  const slots    = ['weapon', 'armor', 'helmet', 'accessory1', 'accessory2'];
+  const slot     = slots[Math.floor(Math.random() * slots.length)];
+  const rarNames = { common:'Comune', uncommon:'Non Comune', rare:'Raro',
+                     epic:'Epico', legendary:'Leggendario', mythic:'Mitico' };
 
-  const newChar = {
-    user_id:         userId,
-    class_id:        null,           // Scelto al lv.5
-    hp_base:         100,
-    hp_current:      100,
-    attack:          10,
-    defense:         5,
-    speed:           5,
-    mana_max:        50,
-    mana_current:    50,
-    luck_pct:        3.0,
-    gold:            PROGRESSION.startingGold,
-    skill_points:    Math.max(0, level - 1), // PA retroattivi per chi è già avanzato
-    reputation:      0,
-    total_battles:   0,
-    total_wins:      0,
+  return {
+    id:          `proc_${rarity}_${Date.now()}`,
+    name:        `Oggetto ${rarNames[rarity]} Misterioso`,
+    description: 'Un oggetto dal potere sconosciuto.',
+    slot,
+    rarity,
+    level_req:   1,
+    bonus_attack:  rand(rarCfg.attackMin,  rarCfg.attackMax),
+    bonus_defense: rand(rarCfg.defenseMin, rarCfg.defenseMax),
+    bonus_hp:      rand(rarCfg.hpMin,      rarCfg.hpMax),
+    bonus_mana:    0,
+    bonus_speed:   0,
+    bonus_luck_pct:0,
+    bonus_secondary: [],
+    icon_path:    null,
+    _procedural:  true,
   };
-
-  const { data, error } = await supabase
-    .from('battle_characters')
-    .insert(newChar)
-    .select()
-    .single();
-
-  if (error) {
-    console.warn('[Battle] _createBattleCharacter error:', error.message);
-    return;
-  }
-
-  DB.battleCharacters[userId] = data;
-  persist();
-
-  // Oggetto starter garantito (Non Comune)
-  await grantStarterItem(userId, data.id);
 }
 
-async function _updateDerivedStats(userId, bc) {
-  if (!bc.class_id) return; // Nessuna classe → nulla da calcolare ancora
-
-  const computed = calcBattleStats(userId);
-  if (!computed) return;
-
- // Aggiorna solo le stats che cambiano con il livello,
-// NON hp_current (potrebbe essere in battaglia)
-const patch = {
-  hp_base:          computed.hp,
-  attack:           computed.attack,
-  defense:          computed.defense,
-  speed:            computed.speed,
-  mana_max:         computed.mana,
-  luck_pct:         computed.luck,
-  power_level:      calcPowerLevel(userId),   // ← AGGIUNTO
-  last_stats_sync:  new Date().toISOString(),
-};
-
-await supabase
-  .from('battle_characters')
-  .update(patch)
-  .eq('user_id', userId);
-
-DB.battleCharacters[userId] = { ...bc, ...patch };
-persist();
-}  // ← chiude _updateDerivedStats
-
-// ── Scelta Classe ─────────────────────────────────────────────
-// ── Scelta Classe ─────────────────────────────────────────────
-
-/**
- * Imposta la classe del personaggio. Disponibile dal lv.5.
- * @param {string} userId
- * @param {string} classId — 'warrior'|'mage'|'bard'|'shadow'|'oracle'
- * @returns {{ ok: boolean, error?: string }}
- */
-export async function chooseClass(userId, classId) {
-  const user  = DB.users[userId];
-  if (!user) return { ok: false, error: 'Utente non trovato' };
-
-  const level = calcLevel(user.xp || 0);
-  if (level < PROGRESSION.UNLOCKS.classChoice) {
-    return { ok: false, error: `Raggiungi il livello ${PROGRESSION.UNLOCKS.classChoice} per scegliere una classe` };
-  }
-
-  const bc = DB.battleCharacters[userId];
-  if (!bc) return { ok: false, error: 'Personaggio battle non trovato' };
-
-  if (bc.class_id) return { ok: false, error: 'Hai già scelto una classe' };
-
-  const validClasses = ['warrior', 'mage', 'bard', 'shadow', 'oracle'];
-  if (!validClasses.includes(classId)) return { ok: false, error: 'Classe non valida' };
-
-  const { error } = await supabase
-    .from('battle_characters')
-    .update({ class_id: classId })
-    .eq('user_id', userId);
-
-  if (error) return { ok: false, error: error.message };
-
-  DB.battleCharacters[userId] = { ...bc, class_id: classId };
-  persist();
-
-  // Ricalcola le stats con la nuova classe
-  await _updateDerivedStats(userId, DB.battleCharacters[userId]);
-
-  return { ok: true };
+function rand(min, max) {
+  return Math.floor(min + Math.random() * (max - min + 1));
 }
 
-// ── Punti Abilità ─────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════
+// INVENTARIO
+// ════════════════════════════════════════════════════════════
 
 /**
- * Controlla quanti PA ha il personaggio.
- * I PA = (livello reale - 1) - PA già spesi.
+ * Aggiunge un oggetto all'inventario del personaggio.
  * @param {string} userId
- * @returns {number}
+ * @param {string} characterId
+ * @param {string} itemId
+ * @param {number} [quantity]
  */
-export function getSkillPoints(userId) {
-  return DB.battleCharacters[userId]?.skill_points || 0;
-}
+export async function addToInventory(userId, characterId, itemId, quantity = 1) {
+  // Cache locale
+  if (!DB.battleInventory) DB.battleInventory = {};
+  if (!DB.battleInventory[userId]) DB.battleInventory[userId] = [];
 
-/**
- * Sblocca un'abilità spendendo PA (e Gold se richiesto).
- * @param {string} userId
- * @param {string} abilityId
- * @returns {{ ok: boolean, error?: string }}
- */
-export async function unlockAbility(userId, abilityId) {
-  const bc = DB.battleCharacters[userId];
-  if (!bc) return { ok: false, error: 'Personaggio non trovato' };
-
-  // Controlla se già sbloccata
-  const already = (DB.characterAbilities[userId] || []).find(a => a.ability_id === abilityId);
-  if (already) return { ok: false, error: 'Abilità già sbloccata' };
-
-  // Recupera dati abilità
-  const ability = (DB.battleAbilities || []).find(a => a.id === abilityId);
-  if (!ability) return { ok: false, error: 'Abilità non trovata' };
-
-  // Controlla livello personaggio
-  const userLevel = calcLevel(DB.users[userId]?.xp || 0);
-  if (userLevel < ability.min_char_level) {
-    return { ok: false, error: `Raggiungi il livello ${ability.min_char_level}` };
-  }
-
-  // Controlla PA
-  if (bc.skill_points < ability.pa_cost) {
-    return { ok: false, error: `Servono ${ability.pa_cost} Punti Abilità (ne hai ${bc.skill_points})` };
-  }
-
-  // Controlla Gold
-  if (ability.gold_cost > 0 && bc.gold < ability.gold_cost) {
-    return { ok: false, error: `Servono ${ability.gold_cost} Gold (ne hai ${bc.gold})` };
-  }
-
-  // Sblocca
-  const { error: abErr } = await supabase
-    .from('character_abilities')
-    .insert({ character_id: bc.id, ability_id: abilityId });
-
-  if (abErr) return { ok: false, error: abErr.message };
-
-  // Scala PA e Gold
-  const newSp   = bc.skill_points - ability.pa_cost;
-  const newGold = bc.gold - (ability.gold_cost || 0);
-
-  await supabase
-    .from('battle_characters')
-    .update({ skill_points: newSp, gold: newGold })
-    .eq('id', bc.id);
-
-  DB.battleCharacters[userId].skill_points = newSp;
-  DB.battleCharacters[userId].gold         = newGold;
-
-  if (!DB.characterAbilities[userId]) DB.characterAbilities[userId] = [];
-  DB.characterAbilities[userId].push({ ability_id: abilityId, unlocked_at: new Date().toISOString() });
-  persist();
-
-  return { ok: true };
-}
-
-// ── Gold ──────────────────────────────────────────────────────
-
-/**
- * Aggiunge o toglie Gold al personaggio.
- * @param {string} userId
- * @param {number} amount — positivo = guadagno, negativo = spesa
- * @param {string} source — chiave della tabella gold_transactions
- * @param {string} [referenceId]
- * @returns {{ ok: boolean, newGold?: number, error?: string }}
- */
-export async function updateGold(userId, amount, source, referenceId = null) {
-  const bc = DB.battleCharacters[userId];
-  if (!bc) return { ok: false, error: 'Personaggio non trovato' };
-
-  const newGold = (bc.gold || 0) + amount;
-  if (newGold < 0) return { ok: false, error: 'Gold insufficienti' };
-
-  // Aggiorna il totale
-  const { error } = await supabase
-    .from('battle_characters')
-    .update({ gold: newGold })
-    .eq('id', bc.id);
-
-  if (error) return { ok: false, error: error.message };
-
-  // Log transazione
-  supabase.from('gold_transactions').insert({
-    character_id: bc.id,
-    amount,
-    source,
-    reference_id: referenceId,
-  }).then(({ error: txErr }) => {
-    if (txErr) console.warn('[Battle] gold_transaction log failed:', txErr.message);
-  });
-
-  DB.battleCharacters[userId].gold = newGold;
-  persist();
-  return { ok: true, newGold };
-}
-
-// ── Limiti Giornalieri ────────────────────────────────────────
-
-/**
- * Legge i limiti giornalieri del personaggio.
- * @param {string} userId
- * @returns {Object} { pve_count, pvp_count, dungeon_count, help_sent }
- */
-export async function getDailyLimits(userId) {
-  const bc   = DB.battleCharacters[userId];
-  if (!bc) return null;
-
-  const today = new Date().toISOString().slice(0, 10);
-
-  const { data, error } = await supabase
-    .from('daily_limits')
-    .select('*')
-    .eq('character_id', bc.id)
-    .eq('date', today)
-    .maybeSingle();
-
-  if (error) {
-    console.warn('[Battle] getDailyLimits:', error.message);
-    return { pve_count: 0, pvp_count: 0, dungeon_count: 0, help_sent: 0 };
-  }
-
-  if (!data) {
-    // Crea il record per oggi
-   const { data: created } = await supabase
-  .from('daily_limits')
-  .upsert({ character_id: bc.id, date: today }, { onConflict: 'character_id,date' })
-  .select()
-  .single();
-    return created || { pve_count: 0, pvp_count: 0, dungeon_count: 0, help_sent: 0 };
-  }
-
-  return data;
-}
-
-/**
- * Incrementa un contatore giornaliero.
- * @param {string} userId
- * @param {'pve_count'|'pvp_count'|'dungeon_count'|'help_sent'} field
- */
-export async function incrementDailyLimit(userId, field) {
-  const bc = DB.battleCharacters[userId];
-  if (!bc) return;
-
-  const allowedFields = [
-    'pve_count',
-    'pvp_count',
-    'dungeon_count',
-    'help_sent',
-  ];
-
-  if (!allowedFields.includes(field)) {
-    console.warn('[Battle] Campo daily limit non valido:', field);
-    return;
-  }
-
-  const today = new Date().toISOString().slice(0, 10);
-
-  try {
-    const { error } = await supabase.rpc('increment_daily_limit', {
-      p_character_id: bc.id,
-      p_date: today,
-      p_field: field,
+  const existing = DB.battleInventory[userId].find(i => i.item_id === itemId && !i._equipped);
+  if (existing) {
+    existing.quantity = (existing.quantity || 1) + quantity;
+  } else {
+    DB.battleInventory[userId].push({
+      id:           uid(),
+      character_id: characterId,
+      item_id:      itemId,
+      quantity,
+      durability:   100,
+      obtained_at:  new Date().toISOString(),
     });
-
-    if (error) {
-      console.warn('[Battle] incrementDailyLimit RPC error:', error.message);
-    }
-  } catch (err) {
-    console.warn('[Battle] incrementDailyLimit failed:', err);
   }
-}
+  persist();
 
-// ── Caricamento dati da Supabase ──────────────────────────────
-
-export async function loadEquipment(userId) {
-  const bc = DB.battleCharacters[userId];
-  if (!bc) return;
-
-  const { data, error } = await supabase
-    .from('character_equipment')
-    .select('*')
-    .eq('character_id', bc.id);
-
-  if (!error && data) {
-    DB.characterEquipment[userId] = data;
-    persist();
-  }
-}
-
-export async function loadAbilities(userId) {
-  const bc = DB.battleCharacters[userId];
-  if (!bc) return;
-
-  const { data, error } = await supabase
-    .from('character_abilities')
-    .select('*')
-    .eq('character_id', bc.id);
-
-  if (!error && data) {
-    DB.characterAbilities[userId] = data;
-    persist();
-  }
-}
-
-export async function loadBattleClasses() {
-  if (DB.battleClasses?.length) return; // già in cache
-
-  const { data, error } = await supabase
-    .from('battle_classes')
-    .select('*');
-
-  if (!error && data) {
-    DB.battleClasses = data;
-    persist();
-  }
-}
-
-export async function loadBattleAbilities(classId = null) {
-  let query = supabase.from('battle_abilities').select('*');
-  if (classId) query = query.eq('class_id', classId);
-
-  const { data, error } = await query;
-  if (!error && data) {
-    DB.battleAbilities = data;
-    persist();
-  }
-}
-
-export async function loadItems() {
-  if (DB.battleItems?.length) return;
-
-  const { data, error } = await supabase
-    .from('battle_items')  // era 'items'
-    .select('*');
-
-  if (!error && data) {
-    DB.battleItems = data;
-    persist();
-  }
-}
-
-export async function loadEnemies(tier = null) {
-  let query = supabase.from('battle_enemies').select('*');  // era 'enemies'
-  if (tier) query = query.eq('tier', tier);
-
-  const { data, error } = await query;
-  if (!error && data) {
-    if (!DB.battleEnemies) DB.battleEnemies = [];
-    data.forEach(e => {
-      if (!DB.battleEnemies.find(x => x.id === e.id)) DB.battleEnemies.push(e);
-    });
-    persist();
-  }
-}
-
-// ── Oggetto Starter ───────────────────────────────────────────
-
-async function grantStarterItem(userId, characterId) {
-  // Trova un'arma Non Comune casuale
-  const starterItems = (DB.battleItems || []).filter(
-    i => i.rarity === 'uncommon' && i.slot === 'weapon'
-  );
-
-  if (!starterItems.length) return;
-  const item = starterItems[Math.floor(Math.random() * starterItems.length)];
-
-  await supabase.from('inventory').insert({
+  // Sync Supabase
+  const { error } = await supabase.from('inventory').insert({
     character_id: characterId,
-    item_id:      item.id,
-    quantity:     1,
+    item_id:      itemId,
+    quantity,
     durability:   100,
   });
+  if (error) console.warn('[Economy] addToInventory error:', error.message);
 }
 
-// ── Helper pubblici ───────────────────────────────────────────
-
 /**
- * Ritorna il personaggio battle dell'utente corrente (cache locale).
- * @param {string} userId
+ * Carica l'inventario da Supabase.
  */
-export function getBattleChar(userId) {
-  return DB.battleCharacters?.[userId] || null;
-}
+export async function loadInventory(userId) {
+  const bc = getBattleChar(userId);
+  if (!bc) return [];
 
-
-
-
-/**
- * Ricalcola e salva il power_level su Supabase.
- * Chiamare dopo: equip/unequip, enhancement, acquisto item.
- * @param {string} userId
- */
-export async function syncPowerLevel(userId) {
-  const bc = DB.battleCharacters[userId];
-  if (!bc) return;
-
-  const lp = calcPowerLevel(userId);
-  if (lp === bc.power_level) return; // nessun cambiamento, skip
-
-  const { error } = await supabase
-    .from('battle_characters')
-    .update({ power_level: lp })
-    .eq('user_id', userId);
+  const { data, error } = await supabase
+    .from('inventory')
+    .select('*, battle_items(*)')
+    .eq('character_id', bc.id);
 
   if (error) {
-    console.warn('[Battle] syncPowerLevel error:', error.message);
-    return;
+    console.warn('[Economy] loadInventory error:', error.message);
+    return DB.battleInventory?.[userId] || [];
   }
 
-  DB.battleCharacters[userId].power_level = lp;
+  if (!DB.battleInventory) DB.battleInventory = {};
+  DB.battleInventory[userId] = data || [];
+  persist();
+  return data || [];
+}
+
+/**
+ * Vende un oggetto al mercante (20% del valore stimato).
+ */
+export async function sellItem(userId, inventoryId, qty = 1) {
+  if (!DB.battleInventory?.[userId]) return { ok: false, error: 'Inventario non trovato' };
+
+  const inv   = DB.battleInventory[userId];
+  const entry = inv.find(i => i.id === inventoryId);
+  if (!entry) return { ok: false, error: 'Oggetto non trovato' };
+
+  const item  = (DB.battleItems || []).find(i => i.id === entry.item_id);
+  const rarValues = { common: 50, uncommon: 150, rare: 400, epic: 1000, legendary: 2500, mythic: 6000 };
+  const baseVal   = rarValues[item?.rarity] || 50;
+
+
+
+
+         
+  const sellPrice = Math.floor(baseVal * ECONOMY.goldSellPct) * qty;
+
+  const bc = getBattleChar(userId);
+  const currentQty = entry.quantity || 1;
+  const newQty = currentQty - qty;
+
+  if (newQty <= 0) {
+    // Rimuovi completamente
+    DB.battleInventory[userId] = inv.filter(i => i.id !== inventoryId);
+    persist();
+    if (bc) {
+      await supabase.from('inventory').delete()
+        .eq('character_id', bc.id)
+        .eq('item_id', entry.item_id);
+    }
+  } else {
+    // Aggiorna quantità
+    entry.quantity = newQty;
+    persist();
+    if (bc) {
+      await supabase.from('inventory').update({ quantity: newQty })
+        .eq('character_id', bc.id)
+        .eq('item_id', entry.item_id);
+    }
+  }
+
+  // Aggiorna Gold
+  const result = await updateGold(userId, sellPrice, 'sell', entry.item_id);
+  if (!result.ok) return result;
+
+  return { ok: true, goldEarned: sellPrice };
+}
+
+// ════════════════════════════════════════════════════════════
+// MERCANTE
+// ════════════════════════════════════════════════════════════
+
+// UUID reali dei consumabili (da Supabase battle_items)
+const CONSUMABLE_IDS = {
+  pozione_hp_piccola: 'c043e4da-feae-49fc-b3a0-c8b19decdf0d',
+  pozione_hp_media:   '6d5b63e3-90eb-499b-a25c-099c882ed780',
+  pozione_hp_grande:  '85f322c3-fde6-432b-9d83-8329815da520',
+  pozione_mp_piccola: '73953272-29f0-43c2-8c9f-82c49ccc71e6',
+  pozione_mp_media:   'cd190674-efbb-4c28-816d-eaeb8e849500',
+  pozione_mp_grande:  'ae557738-9d37-4aee-acc5-5ba079a7ad36',
+  elisir_vita:        'b26d2d44-abd6-41bb-98a2-8d201fb702bf',
+  amuleto_barriera:   '23e82462-3e79-45db-aafe-873bd5c6c10c',
+  risonanza_eterna:   '2cef55ee-f949-408a-a904-fc7ccac78c19',
+  bomba_acqua:        '578c9566-a7ca-4004-9358-a6500c618fa5',
+  bomba_fuoco:        'fdd22db0-363d-4a47-8919-65a72a275870',
+  bomba_luce:         '6ba822d8-7333-4d5b-8b8b-d8c49e1271e3',
+  bomba_oscura:       '96f88af3-41bb-415c-a2c1-0e8365971be4',
+};
+
+// Pool consumabili con prezzi fissi
+const CONSUMABLE_POOL = [
+  { id: CONSUMABLE_IDS.pozione_hp_piccola, price: 50  },
+  { id: CONSUMABLE_IDS.pozione_hp_media,   price: 120 },
+  { id: CONSUMABLE_IDS.pozione_hp_grande,  price: 300 },
+  { id: CONSUMABLE_IDS.pozione_mp_piccola, price: 50  },
+  { id: CONSUMABLE_IDS.pozione_mp_media,   price: 120 },
+  { id: CONSUMABLE_IDS.pozione_mp_grande,  price: 300 },
+  { id: CONSUMABLE_IDS.bomba_acqua,        price: 150 },
+  { id: CONSUMABLE_IDS.bomba_fuoco,        price: 150 },
+  { id: CONSUMABLE_IDS.bomba_luce,         price: 300 },
+  { id: CONSUMABLE_IDS.bomba_oscura,       price: 300 },
+  { id: CONSUMABLE_IDS.amuleto_barriera,   price: 500 },
+];
+
+/**
+ * Restituisce gli slot del mercante, rigenerando se passate 24h.
+ * @returns {Array} slot mercante
+ */
+export async function getMerchantSlots() {
+  const lastRot = DB.merchantLastRot;
+  const now     = Date.now();
+  const rotMs   = ECONOMY.MERCHANT.rotationHours * 3_600_000;
+
+  if (!lastRot || (now - lastRot) >= rotMs || !DB.merchantSlots.length) {
+    await rotateMerchant();
+  }
+
+  return DB.merchantSlots;
+}
+
+/**
+ * Rigenera il catalogo del mercante.
+ * Composizione: 4 consumabili casuali dal pool reale +
+ *               2 armi rare/epic della classe del giocatore.
+ */
+async function rotateMerchant() {
+  await loadItems();
+
+  const M  = ECONOMY.MERCHANT;
+  const bc = CUR ? DB.battleCharacters?.[CUR.id] : null;
+
+  // 4 consumabili casuali dal pool reale
+  const dailyConsumables = shuffle([...CONSUMABLE_POOL])
+    .slice(0, 4)
+    .map(entry => {
+      const item = (DB.battleItems || []).find(i => i.id === entry.id);
+      return { itemId: entry.id, price: entry.price, item };
+    })
+    .filter(s => s.item); // scarta eventuali item non ancora in cache
+
+  // 2 armi rare/epic — solo asset reali, preferisce la classe del giocatore
+  const rarPool = (DB.battleItems || []).filter(i =>
+    ['rare', 'epic'].includes(i.rarity) &&
+    i.slot !== 'consumable' &&
+    i.icon_path !== null &&
+    (!bc?.class_id || i.class_id === bc.class_id || i.class_id === null)
+  );
+  const rareSlots = shuffle([...rarPool])
+    .slice(0, 2)
+    .map(item => {
+      const rarBase = { rare: 400, epic: 1000 };
+      const price   = Math.floor((rarBase[item.rarity] || 400) * (M.rareItemMarkup || 1.2));
+      return { itemId: item.id, price, item };
+    });
+
+  // Oggetto gratuito Oracolo: uncommon con asset reale
+  const freePool = (DB.battleItems || []).filter(
+    i => i.rarity === 'uncommon' && i.icon_path !== null
+  );
+  const freeItem = freePool.length
+    ? freePool[Math.floor(Math.random() * freePool.length)]
+    : null;
+
+  DB.merchantSlots    = [...dailyConsumables, ...rareSlots];
+  DB.merchantFreeItem = freeItem;
+  DB.merchantLastRot  = Date.now();
   persist();
 }
 
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
 
-
-
-  
 /**
- * Controlla se il personaggio può accedere a un dato dungeon tier.
+ * Acquista un oggetto dal mercante.
  */
-export function canAccessDungeon(userId, tier) {
-  const level   = calcLevel(DB.users[userId]?.xp || 0);
-  const dungeon = [null, { minLevel: 1 }, { minLevel: 10 }, { minLevel: 20 }, { minLevel: 35 }, { minLevel: 50 }][tier];
-  if (!dungeon) return false;
-  const delta = tier - 1;
-  return level >= dungeon.minLevel && delta <= PROGRESSION.dungeonLevelCap;
+export async function buyFromMerchant(userId, itemId) {
+  const slots = await getMerchantSlots();
+  const slot  = slots.find(s => s.itemId === itemId);
+  if (!slot) return { ok: false, error: 'Oggetto non disponibile dal mercante' };
+
+  const bc = getBattleChar(userId);
+  if (!bc) return { ok: false, error: 'Personaggio non trovato' };
+
+  if ((bc.gold || 0) < slot.price) {
+    return { ok: false, error: `Gold insufficienti (hai ${bc.gold}, prezzo ${slot.price})` };
+  }
+
+  const goldResult = await updateGold(userId, -slot.price, 'merchant', itemId);
+  if (!goldResult.ok) return goldResult;
+
+  await addToInventory(userId, bc.id, itemId);
+  return { ok: true, item: slot.item, goldSpent: slot.price };
+}
+
+/**
+ * Ritira l'oggetto gratuito dell'Oracolo (1 al giorno).
+ */
+export async function claimOracleFreeItem(userId) {
+  // 1. Inizializza la struttura se non esiste
+  if (!DB.oracleClaims) DB.oracleClaims = {};
+  
+  const todayStr = today();
+  const lastClaim = DB.oracleClaims[userId];
+
+  // 2. Controllo stringa data (YYYY-MM-DD)
+  if (lastClaim === todayStr) {
+    return { ok: false, error: 'Hai già ritirato l\'oggetto di oggi.' };
+  }
+
+  const item = DB.merchantFreeItem;
+  if (!item) return { ok: false, error: 'Nessun oggetto disponibile oggi.' };
+
+  const bc = getBattleChar(userId);
+  if (!bc) return { ok: false, error: 'Personaggio non trovato' };
+
+  // 3. Esegui il ritiro
+  await addToInventory(userId, bc.id, item.id);
+
+  // 4. Aggiorna stato e salva
+  DB.oracleClaims[userId] = todayStr;
+  persist();
+
+  return { ok: true, item };
+}
+// ════════════════════════════════════════════════════════════
+// FABBRO — Riparazione e Potenziamento
+// ════════════════════════════════════════════════════════════
+
+/**
+ * Ripara un oggetto nell'equipaggiamento o nell'inventario.
+ * @param {string} userId
+ * @param {string} inventoryId
+ */
+export async function repairItem(userId, inventoryId) {
+  const { SMITH } = await import('./config.js');
+  const inv   = DB.battleInventory?.[userId] || [];
+  const entry = inv.find(i => i.id === inventoryId);
+  if (!entry) return { ok: false, error: 'Oggetto non trovato' };
+
+  const item  = (DB.battleItems || []).find(i => i.id === entry.item_id);
+  if (!item)  return { ok: false, error: 'Dati oggetto non trovati' };
+
+  const { EQUIPMENT_DEGRADATION } = await import('./config.js');
+  const cost = EQUIPMENT_DEGRADATION.repairCost[item.rarity] || 50;
+
+  const bc = getBattleChar(userId);
+  if ((bc?.gold || 0) < cost) {
+    return { ok: false, error: `Servono ${cost} Gold per la riparazione` };
+  }
+
+  await updateGold(userId, -cost, 'repair', inventoryId);
+
+  // Ripristina durabilità
+  entry.durability = 100;
+  persist();
+
+  // Sync Supabase
+  if (bc) {
+    await supabase.from('inventory')
+      .update({ durability: 100 })
+      .eq('character_id', bc.id)
+      .eq('item_id', entry.item_id);
+  }
+
+  return { ok: true, goldSpent: cost };
+}
+
+/**
+ * Degrada la durabilità degli oggetti equipaggiati dopo N combattimenti.
+ * Da chiamare ogni EQUIPMENT_DEGRADATION.combatsPerTick battaglie.
+ * @param {string} userId
+ */
+export async function tickEquipmentDurability(userId) {
+  const { EQUIPMENT_DEGRADATION } = await import('./config.js');
+  const bc  = getBattleChar(userId);
+  if (!bc)  return;
+
+  const equip = DB.characterEquipment?.[userId] || [];
+  if (!equip.length) return;
+
+  for (const slot of equip) {
+    if (!slot.item_id) continue;
+    const newDur = Math.max(
+      EQUIPMENT_DEGRADATION.minDurability,
+      (slot.durability ?? 100) - 10
+    );
+    slot.durability = newDur;
+
+    await supabase.from('character_equipment')
+      .update({ durability: newDur })
+      .eq('character_id', bc.id)
+      .eq('slot', slot.slot);
+  }
+  persist();
+}
+
+// ════════════════════════════════════════════════════════════
+// DROP DA BATTAGLIA (usato da dungeon.js + pvp_battle.js)
+// ════════════════════════════════════════════════════════════
+
+/**
+ * Gestisce il drop effettivo di un oggetto dopo una battaglia,
+ * lo aggiunge all'inventario e ritorna i dati per la UI.
+ * @param {string} userId
+ * @param {string} rarity
+ * @returns {{ ok: boolean, item? }}
+ */
+export async function processDrop(userId, rarity) {
+  if (!rarity) return { ok: false };
+
+  await loadItems();
+
+  const item = selectRandomItemByRarity(rarity);
+  if (!item) return { ok: false };
+
+  const bc = getBattleChar(userId);
+  if (!bc)  return { ok: false };
+
+  await addToInventory(userId, bc.id, item.id);
+  return { ok: true, item };
+}
+
+// ════════════════════════════════════════════════════════════
+// RIEPILOGO ECONOMIA GIORNALIERA
+// ════════════════════════════════════════════════════════════
+
+/**
+ * Restituisce un riepilogo dell'economia giornaliera dell'utente.
+ * Usato dalla UI del Villaggio per mostrare le statistiche.
+ * @param {string} userId
+ */
+export async function getDailyEconomySummary(userId) {
+  const bc = getBattleChar(userId);
+  if (!bc) return null;
+
+  const todayStr = today();
+
+  const { data, error } = await supabase
+    .from('gold_transactions')
+    .select('amount, source')
+    .eq('character_id', bc.id)
+    .gte('created_at', `${todayStr}T00:00:00`);
+
+  if (error) {
+    console.warn('[Economy] getDailyEconomySummary:', error.message);
+    return null;
+  }
+
+  const earned = (data || []).filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+  const spent  = (data || []).filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
+
+  return {
+    totalGold:    bc.gold || 0,
+    earnedToday:  earned,
+    spentToday:   spent,
+    targetDaily:  ECONOMY.targetDailyGold,
+    progressPct:  Math.min(100, Math.round((earned / ECONOMY.targetDailyGold) * 100)),
+  };
 }
