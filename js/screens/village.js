@@ -425,7 +425,7 @@ async function renderInventory(bc, user) {
         ? '<div class="empty-state" style="padding:2rem">Nessun oggetto. Esplora i dungeon o apri casse loot!</div>'
         : `<div class="inventory-list">
             ${sorted.map(entry => {
-              const item = entry.items || (DB.battleItems || []).find(i => i.id === entry.item_id);
+              const item = entry.battle_items || (DB.battleItems || []).find(i => i.id === entry.item_id);
               if (!item) return '';
               return renderInventoryItem(entry, item);
             }).join('')}
