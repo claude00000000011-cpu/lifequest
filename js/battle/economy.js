@@ -228,6 +228,32 @@ export async function addToInventory(userId, characterId, itemId, quantity = 1) 
 /**
  * Carica l'inventario da Supabase.
  */
+// ── Catalogo globale item da Supabase ──────────────────────
+// Carica tutti gli item attivi e li mette in DB.battleItems
+export async function loadItems(forceRefresh = false) {
+  if (DB.battleItems?.length && !forceRefresh) return DB.battleItems;
+  const { data, error } = await supabase
+    .from('battle_items')
+    .select('*')
+    .eq('is_active', true);
+  if (error) {
+    console.warn('[Economy] loadItems error:', error.message);
+    return DB.battleItems || [];
+  }
+  DB.battleItems = data || [];
+  persist();
+  return DB.battleItems;
+}
+
+// ── selectRandomItemByRarity ────────────────────────────────
+// Sceglie un item reale da DB.battleItems filtrato per rarità.
+// Se non trova nulla per quella rarità, genera un item procedurale.
+function selectRandomItemByRarity(rarity) {
+  const pool = (DB.battleItems || []).filter(i => i.rarity === rarity && i.is_active !== false);
+  if (!pool.length) return generateProceduralItem(rarity);
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
 export async function loadInventory(userId) {
   const bc = getBattleChar(userId);
   if (!bc) return [];
@@ -545,15 +571,23 @@ export async function tickEquipmentDurability(userId) {
  */
 export async function processDrop(userId, rarity) {
   if (!rarity) return { ok: false };
-
   await loadItems();
-
-  const item = selectRandomItemByRarity(rarity);
-  if (!item) return { ok: false };
-
   const bc = getBattleChar(userId);
-  if (!bc)  return { ok: false };
+  if (!bc) return { ok: false };
 
+  // Filtra per classe del personaggio (usa item senza restriction O compatibili)
+  const classId = bc.class_id;
+  const pool = (DB.battleItems || []).filter(i => {
+    if (i.rarity !== rarity) return false;
+    if (!i.class_restriction || i.class_restriction.length === 0) return true;
+    return i.class_restriction.includes(classId);
+  });
+
+  const item = pool.length
+    ? pool[Math.floor(Math.random() * pool.length)]
+    : generateProceduralItem(rarity);
+
+  if (!item) return { ok: false };
   await addToInventory(userId, bc.id, item.id);
   return { ok: true, item };
 }
