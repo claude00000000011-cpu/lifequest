@@ -106,6 +106,7 @@ container.innerHTML = `
   // Carica economia dopo che il DOM è pronto
   if (_villageTab === 'map') {
     setTimeout(() => window._loadEconomySummary?.(), 50);
+    setTimeout(() => window._loadSummonStatus?.(), 80);
   }
 }
 // ════════════════════════════════════════════════════════════
@@ -250,8 +251,20 @@ function renderVillageMap(bc, level) {
         `).join('')}
       </div>
 
+
+
+      
+
+        <!-- Alleato evocato -->
+      <div id="summon-status-area"></div>
+
       <!-- Economia oggi -->
       <div id="economy-summary-area">
+
+
+
+
+      
         <div class="feed-loading" style="text-align:center;padding:1rem;color:var(--text-3)">Caricamento economia…</div>
       </div>
     </div>
@@ -1309,7 +1322,71 @@ window._openPlayerProfile = async function(userId) {
   document.body.appendChild(modal);
 };
 
+
+
+
+
+
+window._summonPlayer = async function(userId, bcId) {
+  const { supabase } = await import('../../supabase.js');
+
+  // Controlla se ho già un alleato attivo
+  const { data: existing } = await supabase
+    .from('active_summons')
+    .select('id, status')
+    .eq('summoner_id', CUR.id)
+    .maybeSingle();
+
+  if (existing?.status === 'active') {
+    return toast('Hai già un alleato evocato. Congedalo prima dal Villaggio.', 'error');
+  }
+  if (existing?.status === 'dead') {
+    return toast('Il tuo alleato è caduto. Rianimalo o aspetta domani.', 'error');
+  }
+
+  // Carica le stat attuali del personaggio evocato
+  const { data: bc } = await supabase
+    .from('battle_characters')
+    .select('*')
+    .eq('id', bcId)
+    .single();
+
+  if (!bc) return toast('Personaggio non trovato', 'error');
+
+  // Inserisci evocazione
+  const { error } = await supabase.from('active_summons').upsert({
+    summoner_id:      CUR.id,
+    summoned_bc_id:   bcId,
+    summoned_user_id: userId,
+    hp_current:       bc.hp_base,
+    hp_max:           bc.hp_base,
+    status:           'active',
+    summoned_at:      new Date().toISOString(),
+    died_at:          null,
+    revives_at:       null,
+  }, { onConflict: 'summoner_id' });
+
+  if (error) return toast('Errore evocazione: ' + error.message, 'error');
+
+  // Dai gold al proprietario dell'alleato (50G per evocazione)
+  await supabase.rpc('increment_gold', { bc_id: bcId, amount: 50 });
+
+  // Salva in cache locale
+  if (!DB.activeSummon) DB.activeSummon = {};
+  DB.activeSummon[CUR.id] = { bcId, userId, hp: bc.hp_base, hpMax: bc.hp_base, stats: bc };
+  persist();
+
+  playSound('tap');
+  toast(`⚡ ${bc.class_id} evocato come alleato!`, 'success');
+  document.getElementById('player-profile-modal')?.remove();
+  renderVillage();
+};
+
 window._addGameFriendFromProfile = async function(userId, username) {
+
+
+
+
   const { supabase } = await import('../../supabase.js');
   const userA = CUR.id < userId ? CUR.id : userId;
   const userB = CUR.id < userId ? userId : CUR.id;
@@ -1367,11 +1444,68 @@ window._switchVillageTab = switchVillageTab;
 
 
 
+window._loadSummonStatus = async function() {
+  const area = document.getElementById('summon-status-area');
+  if (!area) return;
 
+  const { supabase } = await import('../../supabase.js');
+  const { data: summon } = await supabase
+    .from('active_summons')
+    .select('*, bc:battle_characters!active_summons_summoned_bc_id_fkey(*), u:users!active_summons_summoned_user_id_fkey(username)')
+    .eq('summoner_id', CUR.id)
+    .maybeSingle();
+
+  if (!summon) { area.innerHTML = ''; return; }
+
+  const classIcon = { warrior:'⚔️', mage:'🔮', bard:'🎸', shadow:'🗡️', oracle:'☀️' }[summon.bc?.class_id] || '⚔️';
+  const hpPct = Math.round((summon.hp_current / summon.hp_max) * 100);
+  const isDead = summon.status === 'dead';
+
+  // Controlla se revives_at è passato → auto-rianimazione
+  if (isDead && summon.revives_at && new Date(summon.revives_at) <= new Date()) {
+    await supabase.from('active_summons')
+      .update({ status: 'active', hp_current: summon.hp_max, died_at: null, revives_at: null })
+      .eq('summoner_id', CUR.id);
+    toast('Il tuo alleato si è rianimato!', 'success');
+    window._loadSummonStatus?.();
+    return;
+  }
+
+  area.innerHTML = `
+    <div class="village-section-title">⚡ Alleato Evocato</div>
+    <div style="background:var(--rpg-panel);border:2px solid ${isDead ? '#7f1d1d' : 'var(--rpg-border-gold)'};padding:10px;display:flex;gap:10px;align-items:center">
+      <div style="font-size:1.8rem">${classIcon}</div>
+      <div style="flex:1">
+        <div style="font-family:var(--font-pixel);font-size:0.42rem;color:${isDead ? 'var(--rpg-hp-low)' : 'var(--rpg-gold)'}">
+          @${escHtml(summon.u?.username || '?')} ${isDead ? '💀 CADUTO' : ''}
+        </div>
+        <div style="font-family:var(--font-pixel);font-size:0.32rem;color:var(--rpg-gray);margin:3px 0">
+          ${summon.bc?.class_id} · ❤️ ${summon.hp_current}/${summon.hp_max}
+        </div>
+        <div style="height:6px;background:#000;border:1px solid var(--rpg-border);margin-top:3px">
+          <div style="height:100%;width:${hpPct}%;background:${hpPct > 30 ? 'var(--rpg-hp)' : 'var(--rpg-hp-low)'}"></div>
+        </div>
+        ${isDead && summon.revives_at ? `
+          <div style="font-family:var(--font-pixel);font-size:0.3rem;color:var(--rpg-gray);margin-top:3px">
+            Si rianima il ${new Date(summon.revives_at).toLocaleDateString('it-IT')}
+          </div>
+        ` : ''}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        ${isDead ? `
+          <button class="btn-sm btn-primary" onclick="window._reviveSummon?.()">🧪 Rianima</button>
+        ` : `
+          <button class="btn-sm btn-danger" onclick="window._dismissSummon?.()">Congeda</button>
+        `}
+      </div>
+    </div>
+  `;
+};
+
+window._loadEconomySummary = async function() {
 
 
 // Carica l'economy summary inline dopo render mappa
-window._loadEconomySummary = async function() {
   const area = document.getElementById('economy-summary-area');
   if (!area) return;
   const summary = await getDailyEconomySummary(CUR.id);
@@ -1645,7 +1779,63 @@ window._openResetDialog = async function() {
 };
 
 
+
+window._dismissSummon = async function() {
+  if (!confirm('Congedare l\'alleato?')) return;
+  const { supabase } = await import('../../supabase.js');
+  await supabase.from('active_summons')
+    .update({ status: 'dismissed' })
+    .eq('summoner_id', CUR.id);
+  delete DB.activeSummon?.[CUR.id];
+  persist();
+  toast('Alleato congedato.', 'info');
+  renderVillage();
+};
+
+window._reviveSummon = async function() {
+  const { supabase } = await import('../../supabase.js');
+
+  // Cerca elisir_vita nell'inventario
+  const inv = DB.battleInventory?.[CUR.id] || [];
+  const elisir = inv.find(i => i.item_id === 'b26d2d44-abd6-41bb-98a2-8d201fb702bf');
+
+  if (!elisir) return toast('Serve un Elisir della Vita per rianimare l\'alleato!', 'error');
+  if (!confirm('Usare un Elisir della Vita per rianimare l\'alleato?')) return;
+
+  // Rimuovi elisir dall'inventario
+  const bc = getBattleChar(CUR.id);
+  const newQty = (elisir.quantity || 1) - 1;
+  if (newQty <= 0) {
+    DB.battleInventory[CUR.id] = inv.filter(i => i.id !== elisir.id);
+    await supabase.from('inventory').delete()
+      .eq('character_id', bc.id).eq('item_id', elisir.item_id);
+  } else {
+    elisir.quantity = newQty;
+    await supabase.from('inventory').update({ quantity: newQty })
+      .eq('character_id', bc.id).eq('item_id', elisir.item_id);
+  }
+  persist();
+
+  // Aggiorna stato evocazione
+  const { data: summon } = await supabase
+    .from('active_summons')
+    .select('hp_max')
+    .eq('summoner_id', CUR.id)
+    .single();
+
+  await supabase.from('active_summons')
+    .update({ status: 'active', hp_current: summon?.hp_max || 100, died_at: null, revives_at: null })
+    .eq('summoner_id', CUR.id);
+
+  playSound('trophy');
+  toast('Alleato rianimato! ⚡', 'success');
+  renderVillage();
+};
+
 window._smithFilter = function(rarity) {
+
+
+
   document.querySelectorAll('.smith-filter-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.rarity === rarity);
   });
