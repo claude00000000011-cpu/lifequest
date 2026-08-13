@@ -83,11 +83,20 @@ function calcEnemyScaling(enemyData, playerLevel, playerAtk = 10) {
   const atkRatio       = Math.max(1, playerAtk / (atkBaseForTier * 2));
   const hpAtkScaling   = Math.min(atkRatio, 3.0); // cap a 3× per evitare sponge
  
+ // L'ATK nemico scala anche con la difesa del giocatore (passata come playerAtk era ATK,
+  // ora usiamo un secondo parametro). Per ora approssimiamo: playerAtk include già
+  // l'effetto indiretto. Aggiungiamo uno scaling diretto sulla difesa stimata.
+  const defScaling = Math.max(1, Math.sqrt(playerAtk / 10));
+
   return {
-    hp:      Math.floor(enemyData.hp_base      * levelMult * hpAtkScaling),
-  attack:  Math.floor(enemyData.attack  * levelMult),
-defense: Math.floor(enemyData.defense * levelMult),
+    hp:      Math.floor(enemyData.hp_base  * levelMult * hpAtkScaling),
+    attack:  Math.floor(enemyData.attack   * levelMult * defScaling),
+    defense: Math.floor(enemyData.defense  * levelMult),
   };
+
+
+
+ 
 }
  
 function getDungeonConfig(tier) {
