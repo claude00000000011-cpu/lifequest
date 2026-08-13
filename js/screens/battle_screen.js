@@ -87,8 +87,7 @@ function _renderUI(container) {
 
          
   const bgUrl = `/lifequest-battle/assets/battle/sfondi/battaglia_${tier}.png`;
-const heroLoopGif = `/lifequest/assets/battle/classes/${heroClass}_loop.gif`;
-
+const heroLoopGif = `/lifequest-battle/assets/battle/classes/${heroClass}_loop.gif`;
 
          
 
@@ -244,6 +243,7 @@ async function _handleAction(container, action, payload, abilityData = null) {
 
   _battleState = newState;
   (container, newState);
+  _updateBars(container, newState);
   _updateStatuses(container, newState);
   document.getElementById('battle-turn').textContent = Math.min(newState.turn, 10);
 
