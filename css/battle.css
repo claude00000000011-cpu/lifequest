@@ -344,3 +344,18 @@
 .enhance-item__cost        { display:flex; gap:0.75rem; font-size:0.78rem; color:var(--text-2); margin-top:0.3rem; }
 
 .repair-item__icon         { width:40px; height:40px; display:flex; align-items:center; justify-content:center; font-size:1.4rem; }
+
+
+
+
+---
+
+
+.smith-filter-bar       { display:flex; gap:0.4rem; flex-wrap:wrap; margin-bottom:0.75rem; }
+.smith-filter-btn       { padding:0.25rem 0.6rem; border-radius:6px; border:1px solid var(--border);
+                          background:var(--card-bg); color:var(--text-2); font-size:0.75rem; cursor:pointer; }
+.smith-filter-btn.active{ background:var(--accent); color:#fff; border-color:var(--accent); }
+.enhance-item__footer   { display:flex; align-items:center; justify-content:space-between; margin-top:0.5rem; }
+.enhance-copies         { font-size:0.78rem; font-weight:600; }
+.copies-ok              { color:#22C55E; }
+.copies-missing         { color:var(--danger); }
