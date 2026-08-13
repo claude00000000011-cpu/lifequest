@@ -1069,3 +1069,28 @@ body::after {
   text-shadow: 1px 1px 0 #000;
   line-height: 1;
 }
+
+
+
+
+
+/* ── Fix contenuto coperto dalla navbar ───────────────────── */
+#app-main {
+  height: calc(100dvh - var(--nav-height));
+  padding-bottom: 0;
+}
+
+.screen {
+  min-height: calc(100dvh - var(--nav-height));
+  padding-bottom: calc(var(--nav-height) + 1rem);
+}
+
+/* Modal e overlay sempre sopra la navbar */
+.modal-overlay {
+  padding-bottom: calc(var(--nav-height) + 1rem);
+}
+
+/* Select e dropdown non vengono tagliati */
+select {
+  max-height: 200px;
+}
