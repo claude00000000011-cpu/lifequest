@@ -294,14 +294,23 @@ select option { background: var(--bg-3); }
   cursor: pointer;
 }
 
+
+
+
+
 /* ── App Main ────────────────────────────────────────────── */
 #app-main {
   display: flex;
   flex-direction: column;
   min-height: 100dvh;
-  padding-bottom: var(--nav-height);
+  padding-bottom: 0;
 }
 #app-main.hidden { display: none; }
+
+
+
+
+
 
 /* Blocca lo scroll che muove la barra browser */
 html, body {
