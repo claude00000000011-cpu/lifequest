@@ -31,8 +31,8 @@ export const CLASS_STAT_MULT = {
   mage:    { attack: 0.9,  hp: 0.5,  mana: 1.2, defense: 0.2, speed: 0.3, luck: 0.05 },
 // Bard: cultura → fortuna la stat più iconica, attack ridotto
   bard:    { attack: 0.55, hp: 0.7,  mana: 0.9, defense: 0.3, speed: 0.3, luck: 0.08 },
-// Shadow: sfide → velocità e crit, attack alto
-  shadow:  { attack: 0.85, hp: 0.6,  mana: 0.7, defense: 0.2, speed: 0.6, luck: 0.10 },
+// Shadow: sfide → velocità e crit, attack alto (luck leggermente ridotto a 0.08)
+  shadow:  { attack: 0.85, hp: 0.6,  mana: 0.7, defense: 0.2, speed: 0.6, luck: 0.08 },
 // Oracle: sociale → supporto, luck soft-cappato via calcBattleStats
   oracle:  { attack: 0.45, hp: 0.95, mana: 1.1, defense: 0.45, speed: 0.2, luck: 0.04 },
 };
@@ -389,14 +389,14 @@ export const PROGRESSION = {
   startingGold:   50,
   starterItem:    1,
  
-  UNLOCKS: {
+ UNLOCKS: {
     classChoice:     1,
     pvpArena:        5,
     guilds:          15,
     goldBoxes:       20,
-    dungeon3:        30,
-    dungeon4:        60,
-    dungeon5:        100,
+    dungeon3:        20,
+    dungeon4:        35,
+    dungeon5:        50,
     evolution:       25,
     guildWar:        30,
     mythicBoxes:     50,
