@@ -86,7 +86,28 @@ function _renderUI(container) {
 
 
          
- const bgUrl = `/lifequest/assets/battle/sfondi/battaglia_${tier}.png`;
+ const isBoss = _enemyData.is_boss || false;
+const bgUrl = (() => {
+  if (isBoss) {
+    const n = Math.random() < 0.5 ? 1 : 2;
+    return `/lifequest/assets/battle/sfondi/bossfight_${n}.gif`;
+  }
+  const tierBgs = {
+    1: ['battaglia_1.gif'],
+    2: ['battaglia_2.gif', 'battaglia_3.gif'],
+    3: ['battaglia_4.gif', 'battaglia_5.gif'],
+    4: ['battaglia_6.gif'],
+    5: ['battaglia_6.gif'],
+  };
+  const pool = tierBgs[tier] || ['battaglia_1.gif'];
+  return `/lifequest/assets/battle/sfondi/${pool[Math.floor(Math.random() * pool.length)]}`;
+})();
+
+
+
+
+
+         
 const heroLoopGif = `/lifequest/assets/battle/classes/${heroClass}_loop.gif`;
 
          
