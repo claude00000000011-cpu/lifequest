@@ -888,7 +888,7 @@ window._selectClass = async function(classId) {
   if (!confirm(`Sei sicuro di voler scegliere ${classId}? La scelta è definitiva.`)) return;
   const { ok, error } = await chooseClass(CUR.id, classId);
   if (!ok) return toast(error || 'Errore', 'error');
-  playSound('levelup');
+  playSound('class_select');
   toast(`Classe ${classId} scelta! Buona fortuna, eroe. ⚔️`, 'success');
   renderVillage();
 };
@@ -905,9 +905,18 @@ window._openBox = async function(boxType) {
   const rarColors= { common:'#9CA3AF', uncommon:'#22C55E', rare:'#3B82F6',
                      epic:'#7C3AED', legendary:'#F59E0B', mythic:'#DC2626' };
 
-  playSound('trophy');
+
+
+         
+
+  const isRare = ['epic','legendary','mythic'].includes(result.rarity);
+  playSound(isRare ? 'loot_rare' : 'lootbox');
   toast(
     `📦 ${rarNames[result.rarity]}! ${result.item?.name || 'Oggetto misterioso'} ottenuto!`,
+
+
+
+           
     result.rarity === 'epic' || result.rarity === 'legendary' || result.rarity === 'mythic' ? 'success' : 'info'
   );
 
@@ -932,14 +941,23 @@ function showLootResult(item, rarity, color) {
   document.body.appendChild(overlay);
 }
 
+
+
+
+
 // Acquisto mercante
 window._buyItem = async function(itemId) {
   const result = await buyFromMerchant(CUR.id, itemId);
   if (!result.ok) return toast(result.error || 'Errore', 'error');
-  playSound('tap');
+    playSound('buy');
   toast(`${result.item?.name || 'Oggetto'} acquistato! 🛒`, 'success');
   renderVillage();
 };
+
+
+
+
+
 
 // Oggetto gratuito oracolo
 window._claimFreeItem = async function() {
@@ -962,7 +980,7 @@ window._sellItem = async function(inventoryId, qty = 1) {
 
          
   if (!result.ok) return toast(result.error || 'Errore', 'error');
-  playSound('tap');
+  playSound('sell');
   toast(`Venduto per 🪙 ${result.goldEarned} Gold!`, 'success');
   renderVillage();
 };
@@ -991,7 +1009,7 @@ window._repairEquip = async function(slot) {
     const { supabase: sb } = await import('../../supabase.js');
     await sb.from('character_equipment').update({ durability: 100 }).eq('character_id', bc.id).eq('slot', slot);
 
-    playSound('tap');
+    playSound('repair');
     toast('Oggetto riparato! 🔨', 'success');
     renderVillage();
     return;
@@ -999,7 +1017,7 @@ window._repairEquip = async function(slot) {
 
   const result = await repairItem(CUR.id, invId);
   if (!result.ok) return toast(result.error || 'Errore', 'error');
-  playSound('tap');
+  playSound('repair');
   toast('Oggetto riparato! 🔨', 'success');
   renderVillage();
 };
@@ -1009,7 +1027,7 @@ window._learnAbility = async function(abilityId) {
   const { unlockAbility } = await import('../battle/character.js');
   const result = await unlockAbility(CUR.id, abilityId);
   if (!result.ok) return toast(result.error || 'Errore', 'error');
-  playSound('xp');
+  playSound('learn');
   toast('Abilità appresa! ✨', 'success');
   renderVillage();
 };
@@ -1029,7 +1047,7 @@ window._enterDungeon = async function(tier) {
     return toast('Nessun nemico trovato nella stanza.', 'error');
   }
 
-  playSound('challenge');
+ playSound('dungeon_enter');
   toast(`Sei entrato nel dungeon Tier ${tier}! Buona fortuna. ⚔️`, 'success');
 
   import('./battle_screen.js').then(m => {
@@ -1070,7 +1088,7 @@ window._enhanceItem = async function(inventoryId) {
   const { enhanceItem } = await import('../battle/enhancement.js');
   const result = await enhanceItem(inventoryId, CUR.id);
   if (!result.ok) return toast(result.error || 'Errore', 'error');
-  playSound('xp');
+ playSound('enhance');
   const enh = result.enhancement;
   toast(`⭐${enh.enhancement_lvl} — Potenziamento riuscito!`, 'success');
   renderVillage();
