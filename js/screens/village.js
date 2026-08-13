@@ -576,7 +576,7 @@ async function renderSmith(bc) {
               ].filter(Boolean).join(' · ') : '';
 
               return `
-                <div class="enhance-item" style="border-color:${color}44">
+                <div class="enhance-item" style="border-color:${color}44" data-rarity="${item.rarity}">
 
                   <!-- Icona item -->
                   <div class="enhance-item__icon" style="background:${color}22">
@@ -1113,3 +1113,21 @@ window._openResetDialog = async function() {
   toast(`Abilità resettate. ${paRefund} PA restituiti.`, 'success');
   renderVillage();
 };
+
+
+window._smithFilter = function(rarity) {
+  document.querySelectorAll('.smith-filter-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.rarity === rarity);
+  });
+  document.querySelectorAll('.enhance-item').forEach(el => {
+    const r = el.dataset.rarity;
+    el.style.display = (rarity === 'tutti' || r === rarity) ? '' : 'none';
+  });
+};
+
+
+
+
+
+
+
