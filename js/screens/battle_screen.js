@@ -261,7 +261,7 @@ async function _handleAction(container, action, payload, abilityData = null) {
   const newLogs  = newState.log;
 
   // Animazione attacco nemico
-  const enemyAttacked = newLogs.some(l => l.includes('nemico') && l.includes('danni'));
+  const enemyAttacked = newLogs.some(l => l.includes('colpisce') || l.includes('attacca'));
   if (enemyAttacked) await _playAttackAnim('enemy');
 
   for (const msg of newLogs) {
