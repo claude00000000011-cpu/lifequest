@@ -320,12 +320,7 @@ html, body {
   padding: 0.75rem 0.75rem 1rem;
   animation: fadeIn 0.15s steps(3);
 }
-/* ── Screens ─────────────────────────────────────────────── */
-.screen {
-  display: block;
-  padding: 1rem 1rem 1.5rem;
-  animation: fadeIn 0.15s steps(3);
-}
+
 .screen--hidden { display: none !important; }
 
 .screen-header {
@@ -518,34 +513,28 @@ html, body {
   letter-spacing: 0.5px;
 }
 
-/* Stats mini grid */
-.stats-mini {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 4px;
-  margin-top: 0.75rem;
-}
-.stat-mini-item {
-  background: var(--bg-3);
-  border: 2px solid var(--border);
-  border-radius: 0;
-  padding: 0.5rem 0.3rem;
-  text-align: center;
-}
-.stat-mini-item__val {
-  font-family: var(--font-pixel);
-  font-size: 0.55rem;
-  color: var(--gold);
-  text-shadow: 1px 1px 0 #000;
-}
-.stat-mini-item__label {
-  font-family: var(--font-pixel);
-  font-size: 0.28rem;
-  color: var(--text-3);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-top: 3px;
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /* Daily motiv */
 .daily-motiv {
