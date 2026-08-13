@@ -66,7 +66,7 @@ export async function openLootBox(userId, boxType) {
   const rates  = ECONOMY.BOX_RATES[boxType];
 
   // 1. Scala il Gold
-  const goldResult = await updateGold(userId, -boxCfg.cost, 'loot_box', boxType);
+  const goldResult = await updateGold(userId, -boxCfg.cost, 'loot_box', null);
   if (!goldResult.ok) return { ok: false, error: goldResult.error };
 
   // 2. Pity system: conta aperture precedenti senza la rarità target
@@ -104,7 +104,7 @@ export async function openLootBox(userId, boxType) {
   supabase.from('loot_boxes').insert({
     character_id:  bc.id,
     box_type:      boxType,
-    item_obtained: item?.id || null,
+    item_obtained: item?._procedural ? null : (item?.id || null),
     pity_counter:  DB.lootBoxHistory[userId][boxType],
   }).then(({ error }) => {
     if (error) console.warn('[Economy] loot_box log failed:', error.message);
