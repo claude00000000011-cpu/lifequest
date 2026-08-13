@@ -75,24 +75,24 @@ function calcEnemyScaling(enemyData, playerLevel, playerAtk = 10, playerDef = 10
   const minLevel      = dungeonConfig?.minLevel || 1;
   const excess        = Math.max(0, playerLevel - minLevel);
   const levelMult     = 1 + excess * (dungeonConfig?.scalingPerLevel || 0.04);
- 
-  // Bonus HP basato sull'ATK del giocatore rispetto all'ATK base nemico
-  // Se il giocatore fa molti danni, i nemici hanno più HP per compensare.
-  // Rapporto ATK: 1.0 = nessun bonus, >1 = nemico ha più HP
+
+  // L'ATK nemico scala con la difesa del giocatore usando un soft-cap.
+  // def=54 → defMult ≈ 1.95  (nemici quasi raddoppiano ATK)
+  // def=10 → defMult ≈ 1.14
+  // def=100→ defMult ≈ 2.58  (cap morbido, non esplode)
+  const defMult = 1 + Math.log10(1 + playerDef / 20);
+
+  // Gli HP nemici scalano con l'ATK del giocatore (come prima)
   const atkBaseForTier = (dungeonConfig?.enemyAttackBase || 14);
   const atkRatio       = Math.max(1, playerAtk / (atkBaseForTier * 2));
-  const hpAtkScaling   = Math.min(atkRatio, 3.0); // cap a 3× per evitare sponge
- 
- // L'ATK nemico scala anche con la difesa del giocatore (passata come playerAtk era ATK,
-  // ora usiamo un secondo parametro). Per ora approssimiamo: playerAtk include già
-  // l'effetto indiretto. Aggiungiamo uno scaling diretto sulla difesa stimata.
-  const defScaling = Math.max(1, Math.sqrt(playerAtk / 10));
+  const hpAtkScaling   = Math.min(atkRatio, 3.0);
 
   return {
-    hp:      Math.floor(enemyData.hp_base  * levelMult * hpAtkScaling),
-    attack:  Math.floor(enemyData.attack   * levelMult * defScaling),
-    defense: Math.floor(enemyData.defense  * levelMult),
+    hp:      Math.floor(enemyData.hp_base * levelMult * hpAtkScaling),
+    attack:  Math.floor(enemyData.attack  * levelMult * defMult),
+    defense: Math.floor(enemyData.defense * levelMult),
   };
+}
 
 
 
