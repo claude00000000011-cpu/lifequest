@@ -1733,3 +1733,179 @@
 .village-bg-merchant::before  { background: url('../assets/battle/sfondi/mercante.png') center/cover fixed, rgba(5,5,20,0.72); }
 .village-bg-academy::before   { background: url('../assets/battle/sfondi/accademia.png') center/cover fixed, rgba(5,5,20,0.72); }
 .village-bg-inventory::before { background: url('../assets/battle/sfondi/zaino.png') center/cover fixed, rgba(5,5,20,0.72); }
+
+
+
+}
+
+/* ── Mercato Globale ──────────────────────────────────────── */
+.market-screen { display: flex; flex-direction: column; gap: 8px; }
+
+.market-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+
+.market-filters {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.market-filters select {
+  flex: 1;
+  min-width: 90px;
+  font-family: var(--font-pixel);
+  font-size: 0.34rem;
+  background: var(--rpg-panel2);
+  color: var(--rpg-white);
+  border: 2px solid var(--rpg-border);
+  padding: 5px;
+  border-radius: 0;
+}
+
+.market-list { display: flex; flex-direction: column; gap: 6px; }
+
+.market-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: var(--rpg-panel);
+  border: 2px solid var(--rpg-border);
+}
+
+.market-item__icon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  flex-shrink: 0;
+  border: 1px solid var(--rpg-border);
+}
+
+.market-item__info { flex: 1; min-width: 0; }
+
+.market-item__name {
+  font-family: var(--font-pixel);
+  font-size: 0.42rem;
+  margin-bottom: 3px;
+  text-shadow: 1px 1px 0 #000;
+}
+
+.market-item__bonuses {
+  font-family: var(--font-pixel);
+  font-size: 0.32rem;
+  color: var(--rpg-gray);
+  margin: 2px 0;
+}
+
+.market-item__seller {
+  font-family: var(--font-pixel);
+  font-size: 0.32rem;
+  color: var(--rpg-gray);
+  margin-top: 3px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.market-item__buy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.market-item__price {
+  font-family: var(--font-pixel);
+  font-size: 0.45rem;
+  color: var(--rpg-gold);
+  text-shadow: 1px 1px 0 #000;
+  white-space: nowrap;
+}
+
+/* ── Amici ────────────────────────────────────────────────── */
+.friends-screen { display: flex; flex-direction: column; gap: 8px; }
+
+.friends-list { display: flex; flex-direction: column; gap: 5px; }
+
+.friend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: var(--rpg-panel);
+  border: 2px solid var(--rpg-border);
+}
+
+/* ── Chat ─────────────────────────────────────────────────── */
+.chat-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: calc(100dvh - 200px);
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 6px;
+  background: var(--rpg-panel);
+  border: 2px solid var(--rpg-border);
+  min-height: 200px;
+  max-height: 400px;
+}
+
+.chat-msg {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 5px 8px;
+  background: var(--rpg-panel2);
+  border-left: 2px solid var(--rpg-border);
+  max-width: 85%;
+  align-self: flex-start;
+}
+
+.chat-msg--me {
+  align-self: flex-end;
+  border-left: none;
+  border-right: 2px solid var(--rpg-gold-dark);
+  background: #1a1030;
+}
+
+.chat-msg__user {
+  font-family: var(--font-pixel);
+  font-size: 0.32rem;
+}
+
+.chat-msg__text {
+  font-family: var(--font-pixel);
+  font-size: 0.38rem;
+  color: var(--rpg-white);
+  line-height: 1.8;
+  word-break: break-word;
+}
+
+.chat-msg__time {
+  font-family: var(--font-pixel);
+  font-size: 0.28rem;
+  color: var(--rpg-gray);
+  align-self: flex-end;
+}
+
+.chat-input-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
