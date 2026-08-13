@@ -107,17 +107,23 @@ export function calcBattleStats(userId) {
   const luckRaw = base.luck + (stats.cultura || 0) * 0.08 + primStat * mult.luck;
   const luck = Math.max(0, parseFloat(Math.min(luckRaw, 50).toFixed(2)));
  
-  // Bonus equipaggiamento
+// Bonus equipaggiamento
   const equipment = DB.characterEquipment[userId] || [];
   const eqBonus   = calcEquipmentBonus(equipment);
- 
+
+  // Soft-cap anche sull'attack totale (item epici/leggendari non devono raddoppiare il danno)
+  // Regola: eqBonus.attack contribuisce al 100% fino a 50, poi al 50%
+  const eqAttackCapped = eqBonus.attack <= 50
+    ? eqBonus.attack
+    : 50 + Math.floor((eqBonus.attack - 50) * 0.5);
+
   return {
     hp:      hp      + eqBonus.hp,
-    attack:  attack  + eqBonus.attack,
+    attack:  attack  + eqAttackCapped,
     defense: defense + eqBonus.defense,
     speed:   speed   + eqBonus.speed,
     mana:    mana    + eqBonus.mana,
-    luck:    luck    + eqBonus.luck,
+    luck:    Math.min(luck + eqBonus.luck, 60), // hard-cap finale a 60% con equip
     level,
     classId,
   };
@@ -162,6 +168,25 @@ function calcEquipmentBonus(equipment) {
  * @param {string} userId
  * @returns {number} LP arrotondato
  */
+// ── calcEquipmentBonus ───────────────────────────────────────
+// Somma i bonus di tutti gli item equipaggiati dal personaggio.
+// equipment = DB.characterEquipment[userId] (array di righe character_equipment
+//             già joinate con battle_items dalla loadEquipment aggiornata).
+export function calcEquipmentBonus(equipment = []) {
+  const bonus = { hp: 0, attack: 0, defense: 0, speed: 0, mana: 0, luck: 0 };
+  for (const slot of equipment) {
+    // Dopo la patch di loadEquipment, ogni entry ha i campi bonus_* direttamente
+    const item = slot.battle_items || slot; // compatibilità con entrambe le strutture
+    bonus.hp      += item.bonus_hp       || 0;
+    bonus.attack  += item.bonus_attack   || 0;
+    bonus.defense += item.bonus_defense  || 0;
+    bonus.speed   += item.bonus_speed    || 0;
+    bonus.mana    += item.bonus_mana     || 0;
+    bonus.luck    += item.bonus_luck_pct || 0;
+  }
+  return bonus;
+}
+
 export function calcPowerLevel(userId) {
   const stats = calcBattleStats(userId);
   if (!stats) return 0;
@@ -178,16 +203,20 @@ export function calcPowerLevel(userId) {
     return acc;
   }, { attack: 0, defense: 0, hp: 0 });
 
-  const lp = Math.floor(
+const lp = Math.floor(
     level                              * 10   +
     (stats.attack  + enhBonus.attack)  * 2    +
     (stats.defense + enhBonus.defense) * 1.5  +
-    (stats.hp      + enhBonus.hp)      / 10   +
-    stats.speed                        * 1    +
-    stats.mana                         / 5
+    (stats.hp      + enhBonus.hp)      / 8    +  // era /10 — HP contribuisce di più
+    stats.speed                        * 1.5  +  // era 1 — speed più rilevante
+    stats.mana                         / 4       // era /5 — mana più rilevante
   );
-
-  return Math.max(1, lp);
+  // Bonus classi support: oracle e bard ricevono +5% LP finale
+  // per compensare il basso attack nella formula
+  const bc = DB.battleCharacters[userId];
+  const supportClasses = ['oracle', 'bard', 'high_priest', 'seer', 'singer', 'diplomat'];
+  const supportBonus = supportClasses.includes(bc?.class_id) ? 1.05 : 1.0;
+  return Math.max(1, Math.floor(lp * supportBonus));
 }
 
 
@@ -212,12 +241,10 @@ export async function syncBattleCharacter(userId) {
       .select('*')
       .eq('user_id', userId)
       .maybeSingle();
-
     if (error) {
       console.warn('[Battle] syncBattleCharacter error:', error.message);
       return;
     }
-
     if (!existing) {
       // 2. Prima volta: crea il personaggio
       await _createBattleCharacter(userId);
@@ -227,13 +254,12 @@ export async function syncBattleCharacter(userId) {
       persist();
       await _updateDerivedStats(userId, existing);
     }
-
-    // 4. Carica equipaggiamento e abilità
+    // 4. Carica equipaggiamento, abilità e catalogo item in parallelo
     await Promise.all([
       loadEquipment(userId),
       loadAbilities(userId),
+      loadItems(),  // popola DB.battleItems per economy.js
     ]);
-
   } catch (e) {
     console.warn('[Battle] syncBattleCharacter failed:', e);
   }
@@ -545,15 +571,42 @@ export async function loadEquipment(userId) {
   const bc = DB.battleCharacters[userId];
   if (!bc) return;
 
+  // Join con battle_items per avere i bonus direttamente accessibili
   const { data, error } = await supabase
     .from('character_equipment')
-    .select('*')
+    .select(`
+      id,
+      slot,
+      item_id,
+      equipped_at,
+      battle_items (
+        id,
+        name,
+        description,
+        rarity,
+        icon_path,
+        class_restriction,
+        level_req,
+        bonus_attack,
+        bonus_defense,
+        bonus_hp,
+        bonus_mana,
+        bonus_speed,
+        bonus_luck_pct,
+        bonus_secondary
+      )
+    `)
     .eq('character_id', bc.id);
 
-  if (!error && data) {
-    DB.characterEquipment[userId] = data;
-    persist();
+  if (error) {
+    console.warn('[Battle] loadEquipment error:', error.message);
+    return;
   }
+
+  // Filtra slot vuoti (item_id null) e item non trovati
+  const equipped = (data || []).filter(row => row.battle_items !== null);
+  DB.characterEquipment[userId] = equipped;
+  persist();
 }
 
 export async function loadAbilities(userId) {
