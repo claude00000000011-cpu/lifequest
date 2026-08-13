@@ -24,7 +24,8 @@ export async function renderStats() {
   const tabs = [
     { id: 'mine',        label: '👤 Profilo'   },
     { id: 'leaderboard', label: '🏆 Classifica' },
-    { id: 'calendar',   label: '📅 Calendario' },
+    { id: 'calendar',    label: '📅 Calendario' },
+    ...(isAdmin() ? [{ id: 'admin', label: '⚙️ Admin' }] : []),
   ];
 
   container.innerHTML = `
@@ -43,6 +44,7 @@ export async function renderStats() {
     case 'mine':        return renderMyStats();
     case 'leaderboard': return renderLeaderboard();
     case 'calendar':    return renderPersonalCalendar();
+    case 'admin':       return isAdmin() ? renderAdminPanel() : renderMyStats();
   }
 }
 
