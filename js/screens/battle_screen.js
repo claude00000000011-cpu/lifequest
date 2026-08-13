@@ -243,7 +243,7 @@ async function _handleAction(container, action, payload, abilityData = null) {
   }
 
   _battleState = newState;
-  _updateBars(container, newState);
+  (container, newState);
   _updateStatuses(container, newState);
   document.getElementById('battle-turn').textContent = Math.min(newState.turn, 10);
 
@@ -387,8 +387,19 @@ function _updateBars(container, s) {
     if (fill) fill.style.width = pct + '%';
     if (txt)  txt.textContent  = val;
   };
+  
   set('enemy-hp',  Math.round(s.enemy.hp  / s.enemy.hpMax  * 100), `${s.enemy.hp}/${s.enemy.hpMax}`);
   set('hero-hp',   Math.round(s.player.hp / s.player.hpMax * 100), `${s.player.hp}/${s.player.hpMax}`);
+
+  // Immortalità admin
+  if (window._adminImmortal && s.player.hp <= 0) {
+    s.player.hp = 1;
+    const fill = document.getElementById('hero-hp-fill');
+    const txt  = document.getElementById('hero-hp-val');
+    if (fill) fill.style.width = '1%';
+    if (txt)  txt.textContent  = `1/${s.player.hpMax}`;
+  }
+
   const heroManaFill = document.getElementById('hero-mana-fill');
   const heroManaVal  = document.getElementById('hero-mana-val');
   if (heroManaFill) heroManaFill.style.width = Math.round(s.player.mana / Math.max(1, s.player.manaMax) * 100) + '%';
@@ -420,8 +431,8 @@ function _classifyLog(msg) {
   if (msg.includes('danni') && !msg.includes('nemico')) return 'damage';
   if (msg.includes('PF') && msg.includes('+'))          return 'heal';
   if (msg.includes('veleno') || msg.includes('stord'))  return 'status';
-  if (msg.includes('Vittoria'))                          return 'win';
-  if (msg.includes('Sconfitta'))                         return 'lose';
+  if (msg.includes('Vittoria'))                         return 'win';
+  if (msg.includes('Sconfitta'))                        return 'lose';
   return 'info';
 }
 
