@@ -15,10 +15,20 @@ import { COMBAT, DUNGEONS }     from '../battle/config.js';
 import { advanceRoom, completeDungeon,
          defeatEnemy, getCurrentEnemy } from '../battle/dungeon.js';
 
+
+
+
+
+
 let _battleState = null;
 let _enemyData   = null;
 let _dungeonCtx  = null;
 let _animLock    = false;
+let _summonData  = null;  // dati alleato evocato
+
+
+
+
 const _sleep = ms => new Promise(r => setTimeout(r, ms));
 function _lockNav(lock) {
   document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -66,8 +76,35 @@ _lockNav(true);
     return;
   }
 
+  // Carica alleato evocato se presente
+  _summonData = null;
+  const { supabase } = await import('../../supabase.js');
+  const { data: summon } = await supabase
+    .from('active_summons')
+    .select('*, bc:battle_characters!active_summons_summoned_bc_id_fkey(*)')
+    .eq('summoner_id', CUR.id)
+    .eq('status', 'active')
+    .maybeSingle();
+
+  if (summon?.bc) {
+    _summonData = {
+      id:       summon.id,
+      bcId:     summon.summoned_bc_id,
+      hp:       summon.hp_current,
+      hpMax:    summon.hp_max,
+      attack:   summon.bc.attack  || 10,
+      defense:  summon.bc.defense || 5,
+      speed:    summon.bc.speed   || 5,
+      class_id: summon.bc.class_id || 'warrior',
+      isDead:   false,
+    };
+  }
+
   _battleState = initBattle(stats, enemyData, stats.level);
   _renderUI(container);
+
+
+         
 }
 
 // ── Render UI ─────────────────────────────────────────────────
@@ -137,6 +174,20 @@ const heroLoopGif = `/lifequest/assets/battle/classes/${heroClass}_loop.gif`;
                onerror="this.style.display='none'">
         </div>
 
+
+
+
+
+      <!-- Sprite alleato evocato (se presente) -->
+        ${_summonData ? `
+          <div class="battle-summon-sprite">
+            <img src="/lifequest/assets/battle/classes/${_summonData.class_id}_loop.gif"
+                 alt="Alleato"
+                 id="summon-sprite"
+                 onerror="this.style.display='none'">
+          </div>
+        ` : ''}
+
         <!-- Sprite eroe in basso a sinistra -->
         <div class="battle-hero-sprite">
           <img src="${escHtml(heroLoopGif)}"
@@ -144,6 +195,10 @@ const heroLoopGif = `/lifequest/assets/battle/classes/${heroClass}_loop.gif`;
                id="hero-sprite"
                onerror="this.style.display='none'">
         </div>
+
+
+
+
 
         <!-- Info eroe in basso a destra -->
         <div class="battle-hero-info-overlay">
@@ -157,8 +212,11 @@ const heroLoopGif = `/lifequest/assets/battle/classes/${heroClass}_loop.gif`;
             <div class="battle-bar-track"><div class="mana-fill" id="hero-mana-fill" style="width:100%"></div></div>
             <span class="battle-bar-value" id="hero-mana-val">${s.player.mana}/${s.player.manaMax}</span>
           </div>
+
+
+
+          
           <div id="hero-status" class="hero-status-effects"></div>
-        </div>
 
       </section>
 
@@ -312,15 +370,79 @@ async function _handleAction(container, action, payload, abilityData = null) {
     await _sleep(280);
   }
 
-  _battleState = newState;
+ _battleState = newState;
   _updateBars(container, newState);
   _updateStatuses(container, newState);
   document.getElementById('battle-turn').textContent = Math.min(newState.turn, 10);
+
+  // Attacco automatico alleato evocato
+  if (_summonData && !_summonData.isDead && !newState.isOver) {
+    await _sleep(400);
+    await _playSummonAttackAnim();
+    const summonDmg = Math.max(1, _summonData.attack - Math.floor(_battleState.enemy.defense * 0.3));
+    _battleState.enemy.hp = Math.max(0, _battleState.enemy.hp - summonDmg);
+    await _appendLog(container, `⚡ Alleato attacca per ${summonDmg} danni!`, 'damage');
+    _updateBars(container, _battleState);
+
+    // Controlla se il nemico è morto per l'attacco dell'alleato
+    if (_battleState.enemy.hp <= 0) {
+      _battleState.isOver = true;
+      _battleState.winner = 'player';
+      await _appendLog(container, '🏆 Vittoria!', 'win');
+      await _onBattleEnd(container, _battleState);
+      return;
+    }
+  }
+
+// Controlla se l'alleato ha ricevuto danni dal nemico e è morto
+  if (_summonData && !_summonData.isDead) {
+    // L'alleato subisce il 30% dei danni nemico ogni turno
+    const enemyAtk = _battleState.enemy.attack || 10;
+    const summonDmgTaken = Math.max(1, Math.floor(enemyAtk * 0.3) - Math.floor(_summonData.defense * 0.2));
+    _summonData.hp = Math.max(0, _summonData.hp - summonDmgTaken);
+
+    // Aggiorna barra HP alleato
+    const fill = document.getElementById('summon-hp-fill');
+    const val  = document.getElementById('summon-hp-val');
+    const pct  = Math.round((_summonData.hp / _summonData.hpMax) * 100);
+    if (fill) fill.style.width = pct + '%';
+    if (val)  val.textContent  = `${_summonData.hp}/${_summonData.hpMax}`;
+
+    if (_summonData.hp <= 0) {
+      _summonData.isDead = true;
+      await _appendLog(container, '💀 Il tuo alleato è caduto!', 'lose');
+      const sprite = document.getElementById('summon-sprite');
+      if (sprite) sprite.style.opacity = '0.3';
+
+      // Aggiorna stato su Supabase
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(6, 0, 0, 0);
+      const { supabase } = await import('../../supabase.js');
+      await supabase.from('active_summons').update({
+        status:     'dead',
+        died_at:    new Date().toISOString(),
+        revives_at: tomorrow.toISOString(),
+        hp_current: 0,
+      }).eq('summoner_id', CUR.id);
+    } else {
+      // Aggiorna HP su Supabase (ogni turno)
+      const { supabase } = await import('../../supabase.js');
+      await supabase.from('active_summons')
+        .update({ hp_current: _summonData.hp })
+        .eq('summoner_id', CUR.id);
+    }
+  }
 
   if (newState.isOver) {
     await _onBattleEnd(container, newState);
   } else {
     _animLock = false;
+
+
+
+
+           
     _setDisabled(container, false);
     const abl = (DB.characterAbilities[CUR.id] || [])
       .map(la => (DB.battleAbilities || []).find(ab => ab.id === la.ability_id))
@@ -336,11 +458,20 @@ async function _handleAction(container, action, payload, abilityData = null) {
 
 
 
-
-
-
+async function _playSummonAttackAnim() {
+  const sprite = document.getElementById('summon-sprite');
+  if (!sprite || !_summonData) return;
+  const attackGif = `/lifequest/assets/battle/classes/${_summonData.class_id}_attack.gif`;
+  const loopGif   = `/lifequest/assets/battle/classes/${_summonData.class_id}_loop.gif`;
+  sprite.src = attackGif;
+  await _sleep(800);
+  sprite.src = loopGif;
+}
 
 function _rebindActions(container, abilities) {
+
+
+
   container.querySelectorAll('.btn-battle-action').forEach(btn => {
     btn.addEventListener('click', async () => {
       if (_animLock || _battleState.isOver) return;
