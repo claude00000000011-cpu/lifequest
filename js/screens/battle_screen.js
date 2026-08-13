@@ -86,7 +86,7 @@ function _renderUI(container) {
 
 
          
-  const bgUrl = `/lifequest/assets/battle/sfondi/battaglia_${tier}.png`;
+  const bgUrl = `/lifequest-battle/assets/battle/sfondi/battaglia_${tier}.png`;
 const heroLoopGif = `/lifequest/assets/battle/classes/${heroClass}_loop.gif`;
 
 
