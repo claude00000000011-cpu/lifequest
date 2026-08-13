@@ -1222,9 +1222,14 @@ window._openPlayerProfile = async function(userId) {
     .from('character_equipment')
     .select('*, battle_items(*)')
     .eq('character_id', bc.id);
+
+
+
+         
   const myId = CUR.id;
-  const userA = myId < userId ? myId : userId;
-  const userB = myId < userId ? userId : myId;
+  const ids = [myId, userId].sort();
+  const userA = ids[0];
+  const userB = ids[1];
 
 
          
