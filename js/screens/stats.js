@@ -14,6 +14,10 @@ let _calMonth  = new Date();
 let _calDate   = null;
 let _calFilter = 'all';    // 'all' | 'quest' | 'study' | 'routine' | 'pvp'
 
+export function isAdmin() {
+  return CUR?.username === 'alexandervertigo';
+}
+
 export function switchStatsTab(t) { _statsTab = t; renderStats(); }
 
 export async function renderStats() {
