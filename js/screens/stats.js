@@ -404,8 +404,7 @@ export function isAdmin() {
   return CUR?.username === 'alexandervertigo';
 }
 
-// Aggiunge la tab Admin al render principale se sei admin
-const _origRenderStats = renderStats;
+export function switchStatsTab(t) { _statsTab = t; renderStats(); }
 
 export async function renderStats() {
   if (!CUR) return;
