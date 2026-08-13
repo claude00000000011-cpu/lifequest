@@ -270,32 +270,41 @@ export const EQUIPMENT_DEGRADATION = {
 };
  
 export const SMITH = {
-  upgradeMaxLevel:     5,
-  upgradeBonusPct:     0.10,
-  upgradeCost: { common: 80, uncommon: 120, rare: 200, epic: 500, legendary: 900, mythic: 1500 },
-  fusionSuccessRate:   0.60,
+  upgradeMaxLevel:         5,
+  upgradeBonusPct:         0.10,
+  // Aggiunti i tier mancanti per evitare errori di runtime
+  upgradeCost: { 
+    common:    80, 
+    uncommon:  120, 
+    rare:      200, 
+    epic:      500, 
+    legendary: 900, 
+    mythic:    1500 
+  },
+  fusionSuccessRate:       0.60,
   fusionMaterialsRequired: 2,
 };
 export const ECONOMY = {
-  goldNormalMin:     5,
-  goldNormalMax:     15,
-  goldBossMin:       40,
-  goldBossMax:       120,
-  goldPvpWin:        80,
-  goldPvpLoss:       20,
-  goldDungeonBonus:  60,
-  goldGuildQuestMin: 30,
-  goldGuildQuestMax: 100,
-  goldSellPct:       0.20,
-  targetDailyGold:   300,
- 
+  goldNormalMin:       5,
+  goldNormalMax:       15,
+  goldBossMin:         40,
+  goldBossMax:         120,
+  goldPvpWin:          80,
+  goldPvpLoss:         20,
+  goldDungeonBonus:    60,
+  goldGuildQuestMin:   30,
+  goldGuildQuestMax:   100,
+  goldSellPct:         0.20,
+  targetDailyGold:     300,
+
   LOOT_BOXES: {
-    wood:  { cost: 50,   pity: 10, rarityTarget: 'uncommon'  },
-    iron:  { cost: 150,  pity: 10, rarityTarget: 'rare'      },
-    gold:  { cost: 400,  pity: 10, rarityTarget: 'epic'      },
-   mythic:{ cost: 2500, pity: 10, rarityTarget: 'legendary' },
+    wood:   { cost: 50,   pity: 10, rarityTarget: 'uncommon'  },
+    iron:   { cost: 150,  pity: 10, rarityTarget: 'rare'      },
+    gold:   { cost: 400,  pity: 10, rarityTarget: 'epic'      },
+    // Aumentato a 2500 per bilanciare l'economia endgame
+    mythic: { cost: 2500, pity: 10, rarityTarget: 'legendary' }, 
   },
- 
+
   BOX_RATES: {
     wood:   { common: 0.60, uncommon: 0.40, rare: 0,    epic: 0,    legendary: 0,    mythic: 0 },
     iron:   { common: 0,    uncommon: 0.60, rare: 0.30, epic: 0.10, legendary: 0,    mythic: 0 },
@@ -303,17 +312,18 @@ export const ECONOMY = {
     mythic: { common: 0,    uncommon: 0,    rare: 0,    epic: 0.78, legendary: 0.20, mythic: 0.02 },
   },
  
-  MERCHANT: {
+MERCHANT: {
     rotationHours:    24,
     slotsAvailable:   6,
     priceHealSmall:   15,
     priceHealMedium:  35,
     priceHealLarge:   70,
     priceManaSmall:   15,
-    priceManLarge:    60,
+    priceManaLarge:   60, // Corretto da priceManLarge
     priceBombAoe:     40,
     rareItemMarkup:   1.50,
     dailyFreeItem:    1,
+  }
   },
 };
  
