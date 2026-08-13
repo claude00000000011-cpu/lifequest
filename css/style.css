@@ -303,6 +303,23 @@ select option { background: var(--bg-3); }
 }
 #app-main.hidden { display: none; }
 
+/* Blocca lo scroll che muove la barra browser */
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+#app-main {
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: calc(100dvh - var(--nav-height));
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+.screen {
+  display: block;
+  padding: 0.75rem 0.75rem 1rem;
+  animation: fadeIn 0.15s steps(3);
+}
 /* ── Screens ─────────────────────────────────────────────── */
 .screen {
   display: block;
@@ -341,10 +358,11 @@ select option { background: var(--bg-3); }
   display: flex;
   align-items: center;
   justify-content: space-around;
-  z-index: 100;
+  z-index: 7000;
   padding: 0 0.25rem;
   padding-bottom: env(safe-area-inset-bottom);
-  /* Niente backdrop-filter: stile pixel puro */
+  overscroll-behavior: none;
+  touch-action: none;
 }
 
 .nav-btn {
@@ -377,12 +395,39 @@ select option { background: var(--bg-3); }
 .hero-card {
   background: var(--bg-2);
   border: 2px solid var(--gold-dark);
-  border-radius: 0;
-  padding: 1.25rem;
-  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  margin-bottom: 0.6rem;
   position: relative;
   overflow: hidden;
   box-shadow: 4px 4px 0 rgba(0,0,0,0.6);
+}
+
+/* Riduco la griglia stats a 5 colonne compatte */
+.stats-mini {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 3px;
+  margin-top: 0.5rem;
+}
+.stat-mini-item {
+  background: var(--bg-3);
+  border: 2px solid var(--border);
+  padding: 0.35rem 0.2rem;
+  text-align: center;
+}
+.stat-mini-item__val {
+  font-family: var(--font-pixel);
+  font-size: 0.48rem;
+  color: var(--gold);
+  text-shadow: 1px 1px 0 #000;
+}
+.stat-mini-item__label {
+  font-family: var(--font-pixel);
+  font-size: 0.24rem;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
 }
 
 /* Angoli decorativi */
