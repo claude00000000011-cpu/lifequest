@@ -1273,9 +1273,14 @@ export async function syncCloudDataOnLogin(userId) {
     }
     persist();
 
-    // Sync personaggio battle (fire-and-forget)
+  // Sync personaggio battle + catalogo item (fire-and-forget)
     import('./battle/character.js').then(({ syncBattleCharacter }) => {
       syncBattleCharacter(userId);
+    });
+
+    // Precarica il catalogo item per economy.js
+    import('./battle/economy.js').then(({ loadItems }) => {
+      loadItems(true); // forceRefresh = true al login
     });
 
   } catch (e) {
