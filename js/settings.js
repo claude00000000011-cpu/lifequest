@@ -114,6 +114,21 @@ export function openSettings() {
                  value="${audio.bgmVolume}" ${!audio.bgmEnabled ? 'disabled' : ''}>
           <span class="set-val" id="set-bgm-val">${Math.round(audio.bgmVolume * 100)}%</span>
         </label>
+
+
+
+
+    <div class="settings-section">
+  <div class="settings-section-title">📱 Display</div>
+  <button class="btn-fullscreen" onclick="window._toggleFullscreen?.()">
+    ⛶ Schermo Intero
+  </button>
+  <div class="settings-hint">Nasconde la barra del browser</div>
+</div>
+
+
+
+        
       </div>
 
       <div class="settings-section">
@@ -244,3 +259,14 @@ export function initSettings() {
     document.body.appendChild(btn);
   }
 }
+window._toggleFullscreen = function() {
+  const el = document.documentElement;
+  if (!document.fullscreenElement) {
+    el.requestFullscreen?.() ||
+    el.webkitRequestFullscreen?.() ||
+    el.mozRequestFullScreen?.();
+  } else {
+    document.exitFullscreen?.() ||
+    document.webkitExitFullscreen?.();
+  }
+};
