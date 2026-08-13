@@ -8,6 +8,7 @@
 import { supabase }                     from '../../supabase.js';
 import { DB, CUR, persist }             from '../db.js';
 import { calcLevel }                    from '../xp.js';
+import { loadItems } from './economy.js';
 import {
   CLASS_BASE_STATS,
   CLASS_PRIMARY_STAT,
@@ -108,22 +109,17 @@ export function calcBattleStats(userId) {
   const luck = Math.max(0, parseFloat(Math.min(luckRaw, 50).toFixed(2)));
  
 // Bonus equipaggiamento
+ // Bonus equipaggiamento
   const equipment = DB.characterEquipment[userId] || [];
   const eqBonus   = calcEquipmentBonus(equipment);
 
-  // Soft-cap anche sull'attack totale (item epici/leggendari non devono raddoppiare il danno)
-  // Regola: eqBonus.attack contribuisce al 100% fino a 50, poi al 50%
-  const eqAttackCapped = eqBonus.attack <= 50
-    ? eqBonus.attack
-    : 50 + Math.floor((eqBonus.attack - 50) * 0.5);
-
   return {
     hp:      hp      + eqBonus.hp,
-    attack:  attack  + eqAttackCapped,
+    attack:  attack  + eqBonus.attack,
     defense: defense + eqBonus.defense,
     speed:   speed   + eqBonus.speed,
     mana:    mana    + eqBonus.mana,
-    luck:    Math.min(luck + eqBonus.luck, 60), // hard-cap finale a 60% con equip
+    luck:    Math.min(luck + eqBonus.luck, 60), // hard-cap finale 60
     level,
     classId,
   };
@@ -187,6 +183,59 @@ export function calcEquipmentBonus(equipment = []) {
   return bonus;
 }
 
+// ── calcEquipmentBonus ────────────────────────────────────────
+// Mappa i bonus RPG della tabella battle_items → stat di gioco.
+// La tabella ha stat RPG (strength, intelligence, ecc.) che
+// si sommano ai bonus diretti (bonus_attack, bonus_defense, ecc.).
+export function calcEquipmentBonus(equipment = []) {
+  const bonus = { hp: 0, attack: 0, defense: 0, speed: 0, mana: 0, luck: 0 };
+
+  for (const row of equipment) {
+    // loadEquipment fa il join, quindi i dati item sono in row.battle_items
+    const item = row.battle_items || row;
+    if (!item) continue;
+
+    // Bonus diretti (già in unità di gioco)
+    bonus.hp      += item.bonus_hp      || 0;
+    bonus.attack  += item.bonus_attack  || 0;
+    bonus.defense += item.bonus_defense || 0;
+    bonus.speed   += item.bonus_speed   || 0;
+    bonus.mana    += item.bonus_mana    || 0;
+    bonus.luck    += item.bonus_luck_pct || 0;
+
+    // Bonus stat RPG → conversione in stat di gioco
+    // strength:     +1 attack, +2 hp per punto
+    // intelligence: +1 attack magico (attack), +3 mana per punto
+    // agility:      +1 speed, +0.5 attack per punto
+    // vitality:     +5 hp per punto
+    // spirit:       +2 mana, +0.5 defense per punto
+    // charisma:     +1 luck per punto
+    const str = item.bonus_strength     || 0;
+    const int = item.bonus_intelligence || 0;
+    const agi = item.bonus_agility      || 0;
+    const vit = item.bonus_vitality     || 0;
+    const spi = item.bonus_spirit       || 0;
+    const cha = item.bonus_charisma     || 0;
+
+    bonus.attack  += Math.floor(str * 1   + agi * 0.5 + int * 1);
+    bonus.hp      += Math.floor(str * 2   + vit * 5);
+    bonus.mana    += Math.floor(int * 3   + spi * 2);
+    bonus.defense += Math.floor(spi * 0.5);
+    bonus.speed   += Math.floor(agi * 1);
+    bonus.luck    += Math.floor(cha * 1);
+  }
+
+  // Soft-cap: bonus_attack da equip non supera 50 in pieno,
+  // oltre dimezza il rendimento marginale
+  if (bonus.attack > 50) {
+    bonus.attack = 50 + Math.floor((bonus.attack - 50) * 0.5);
+  }
+  // Hard-cap luck totale da equip: max 20 punti
+  bonus.luck = Math.min(bonus.luck, 20);
+
+  return bonus;
+}
+
 export function calcPowerLevel(userId) {
   const stats = calcBattleStats(userId);
   if (!stats) return 0;
@@ -207,11 +256,11 @@ const lp = Math.floor(
     level                              * 10   +
     (stats.attack  + enhBonus.attack)  * 2    +
     (stats.defense + enhBonus.defense) * 1.5  +
-    (stats.hp      + enhBonus.hp)      / 8    +  // era /10 — HP contribuisce di più
-    stats.speed                        * 1.5  +  // era 1 — speed più rilevante
-    stats.mana                         / 4       // era /5 — mana più rilevante
+    (stats.hp      + enhBonus.hp)      / 8    +
+    stats.speed                        * 1.5  +
+    stats.mana                         / 4
   );
-  // Bonus classi support: oracle e bard ricevono +5% LP finale
+  // Classi support (oracle, bard) ricevono +5% LP finale
   // per compensare il basso attack nella formula
   const bc = DB.battleCharacters[userId];
   const supportClasses = ['oracle', 'bard', 'high_priest', 'seer', 'singer', 'diplomat'];
@@ -258,7 +307,7 @@ export async function syncBattleCharacter(userId) {
     await Promise.all([
       loadEquipment(userId),
       loadAbilities(userId),
-      loadItems(),  // popola DB.battleItems per economy.js
+      loadItems(),
     ]);
   } catch (e) {
     console.warn('[Battle] syncBattleCharacter failed:', e);
@@ -571,29 +620,24 @@ export async function loadEquipment(userId) {
   const bc = DB.battleCharacters[userId];
   if (!bc) return;
 
-  // Join con battle_items per avere i bonus direttamente accessibili
+  // Join con battle_items: porta tutti i bonus direttamente
   const { data, error } = await supabase
     .from('character_equipment')
     .select(`
       id,
       slot,
       item_id,
+      durability,
       equipped_at,
       battle_items (
-        id,
-        name,
-        description,
-        rarity,
-        icon_path,
-        class_restriction,
-        level_req,
-        bonus_attack,
-        bonus_defense,
-        bonus_hp,
-        bonus_mana,
-        bonus_speed,
-        bonus_luck_pct,
-        bonus_secondary
+        id, name, description, rarity, icon_path,
+        class_id, class_restriction, level_req,
+        bonus_attack, bonus_defense, bonus_hp,
+        bonus_mana, bonus_speed, bonus_luck_pct,
+        bonus_strength, bonus_intelligence, bonus_agility,
+        bonus_vitality, bonus_spirit, bonus_charisma,
+        bonus_luck, bonus_secondary,
+        heal_pct, mana_restore_pct, damage_flat, absorb_pct
       )
     `)
     .eq('character_id', bc.id);
@@ -603,8 +647,8 @@ export async function loadEquipment(userId) {
     return;
   }
 
-  // Filtra slot vuoti (item_id null) e item non trovati
-  const equipped = (data || []).filter(row => row.battle_items !== null);
+  // Filtra righe con item_id null o item non trovato in battle_items
+  const equipped = (data || []).filter(row => row.item_id && row.battle_items);
   DB.characterEquipment[userId] = equipped;
   persist();
 }
