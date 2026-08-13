@@ -630,6 +630,39 @@ export function getBattleChar(userId) {
   return DB.battleCharacters?.[userId] || null;
 }
 
+
+
+
+/**
+ * Ricalcola e salva il power_level su Supabase.
+ * Chiamare dopo: equip/unequip, enhancement, acquisto item.
+ * @param {string} userId
+ */
+export async function syncPowerLevel(userId) {
+  const bc = DB.battleCharacters[userId];
+  if (!bc) return;
+
+  const lp = calcPowerLevel(userId);
+  if (lp === bc.power_level) return; // nessun cambiamento, skip
+
+  const { error } = await supabase
+    .from('battle_characters')
+    .update({ power_level: lp })
+    .eq('user_id', userId);
+
+  if (error) {
+    console.warn('[Battle] syncPowerLevel error:', error.message);
+    return;
+  }
+
+  DB.battleCharacters[userId].power_level = lp;
+  persist();
+}
+
+
+
+
+  
 /**
  * Controlla se il personaggio può accedere a un dato dungeon tier.
  */
