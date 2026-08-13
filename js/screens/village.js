@@ -476,35 +476,53 @@ function renderInventoryItem(entry, item) {
 async function renderSmith(bc) {
   const inv   = await loadInventory(CUR.id);
   const equip = DB.characterEquipment?.[CUR.id] || [];
+  const { loadEnhancements, getEnhancementFromCache, getStarDisplay, calcEnhancementCost, canEnhance } = await import('../battle/enhancement.js');
+  await loadEnhancements(CUR.id);
 
-  // Oggetti da riparare (durabilità < 100)
   const toRepair = equip.filter(s => s.item_id && (s.durability ?? 100) < 100);
-
   const { EQUIPMENT_DEGRADATION } = await import('../battle/config.js');
+
+  // Solo item non consumabili per il potenziamento
+  const enhanceable = inv.filter(entry => {
+    const item = (DB.battleItems || []).find(i => i.id === entry.item_id);
+    return item && item.slot !== 'consumable';
+  });
+
+  const rarColors = {
+    common:'#9CA3AF', uncommon:'#22C55E', rare:'#3B82F6',
+    epic:'#7C3AED', legendary:'#F59E0B', mythic:'#DC2626'
+  };
 
   return `
     <div class="smith-screen">
+
+      <!-- NPC -->
       <div class="smith-npc">
         <div class="smith-avatar">🔨</div>
         <div class="smith-speech">
-          "Porto ogni lama al suo antico splendore. Porto pazienza — e Gold!"
+          "Porto ogni lama al suo massimo potenziale. Portami copie e Gold!"
         </div>
       </div>
 
+      <!-- RIPARAZIONE -->
       <div class="village-section-title">🔧 Riparazione</div>
       ${toRepair.length === 0
-        ? '<div class="empty-note" style="padding:1rem">Tutto il tuo equipaggiamento è in perfette condizioni.</div>'
+        ? '<div class="empty-note" style="padding:0.75rem 1rem;color:var(--text-3)">Tutto l\'equipaggiamento è in perfette condizioni.</div>'
         : `<div class="smith-repair-list">
             ${toRepair.map(s => {
               const item  = (DB.battleItems || []).find(i => i.id === s.item_id);
               if (!item) return '';
               const cost  = EQUIPMENT_DEGRADATION.repairCost[item.rarity] || 50;
-              const canPay= (bc.gold || 0) >= cost;
-              const repId = `equip_${s.slot}`;
+              const canPay = (bc.gold || 0) >= cost;
               return `
                 <div class="repair-item">
+                  <div class="repair-item__icon">
+                    ${item.icon_path
+                      ? `<img src="${escHtml(item.icon_path)}" class="smith-item-gif" alt="${escHtml(item.name)}">`
+                      : slotEmoji(s.slot)}
+                  </div>
                   <div class="repair-item__info">
-                    <span>${slotEmoji(s.slot)} ${escHtml(item.name)}</span>
+                    <span class="repair-item__name">${escHtml(item.name)}</span>
                     <span class="repair-dur" style="color:${s.durability < 30 ? 'var(--danger)' : 'var(--warning)'}">
                       ${s.durability}% durabilità
                     </span>
@@ -520,20 +538,85 @@ async function renderSmith(bc) {
           </div>`
       }
 
+      <!-- POTENZIAMENTO -->
       <div class="village-section-title" style="margin-top:1.25rem">⬆️ Potenziamento</div>
-      <div class="smith-info-card">
-        <p style="font-size:0.85rem;color:var(--text-2);line-height:1.6">
-          Il Fabbro può potenziare qualsiasi oggetto fino a <strong>+5 livelli</strong>,
-          aumentando tutti i bonus del <strong>+10%</strong> per livello.<br>
-          Può anche fondere 2 oggetti della stessa rarità in uno della rarità superiore
-          (probabilità di successo: <strong>60%</strong>).<br><br>
-          <span style="color:var(--text-3)">🔧 Potenziamento e fusione disponibili dalla Fase D.</span>
-        </p>
-      </div>
+      ${enhanceable.length === 0
+        ? '<div class="empty-note" style="padding:0.75rem 1rem;color:var(--text-3)">Nessun oggetto potenziabile. Ottieni equipaggiamento dai dungeon o dalle casse!</div>'
+        : `<div class="smith-enhance-list">
+            ${await Promise.all(enhanceable.map(async entry => {
+              const item  = (DB.battleItems || []).find(i => i.id === entry.item_id);
+              if (!item) return '';
+              const color = rarColors[item.rarity] || '#9CA3AF';
+              const enh   = getEnhancementFromCache(entry.id, CUR.id);
+              const lvl   = enh?.enhancement_lvl || 1;
+              const cost  = await calcEnhancementCost(entry.id, CUR.id);
+              const check = await canEnhance(entry.id, CUR.id);
+
+              // Conta copie disponibili (esclusa questa)
+              const copies = inv.filter(i =>
+                i.item_id === entry.item_id && i.id !== entry.id
+              ).reduce((sum, i) => sum + (i.quantity || 1), 0);
+
+              const bonusLines = enh ? [
+                enh.bonus_attack  > 0 ? `+${enh.bonus_attack} ATK`           : '',
+                enh.bonus_defense > 0 ? `+${enh.bonus_defense} DEF`          : '',
+                enh.bonus_hp      > 0 ? `+${enh.bonus_hp} PF`                : '',
+                enh.crit_rate     > 0 ? `+${enh.crit_rate}% Critico`         : '',
+                enh.crit_damage   > 0 ? `+${enh.crit_damage}% Danno Critico` : '',
+                enh.burn_chance   > 0 ? `+${enh.burn_chance}% Bruciatura`    : '',
+                enh.poison_chance > 0 ? `+${enh.poison_chance}% Veleno`      : '',
+                enh.dot_damage    > 0 ? `+${enh.dot_damage} Danno/turno`     : '',
+              ].filter(Boolean).join(' · ') : '';
+
+              return `
+                <div class="enhance-item" style="border-color:${color}44">
+
+                  <!-- Icona item -->
+                  <div class="enhance-item__icon" style="background:${color}22">
+                    ${item.icon_path
+                      ? `<img src="${escHtml(item.icon_path)}" class="smith-item-gif" alt="${escHtml(item.name)}">`
+                      : slotEmoji(item.slot)}
+                  </div>
+
+                  <!-- Info -->
+                  <div class="enhance-item__info">
+                    <div class="enhance-item__name" style="color:${color}">
+                      ${escHtml(item.name)}
+                      <span class="enhance-star">⭐${lvl}</span>
+                    </div>
+                    <div class="enhance-item__rarity badge" style="background:${color}22;color:${color}">
+                      ${item.rarity}
+                    </div>
+                    ${bonusLines ? `<div class="enhance-item__bonuses">${bonusLines}</div>` : ''}
+
+                    <!-- Costo prossimo up -->
+                    ${cost ? `
+                      <div class="enhance-item__cost">
+                        ${cost.onlyGold
+                          ? `<span>🪙 ${cost.goldCost}G (solo Gold)</span>`
+                          : `<span>🪙 ${cost.goldCost}G</span>
+                             <span>📦 ${cost.copiesNeeded} cop. (hai ${copies})</span>`
+                        }
+                      </div>
+                    ` : ''}
+                  </div>
+
+                  <!-- Bottone -->
+                  <button class="btn-sm ${check.canEnhance ? 'btn-primary' : ''}"
+                          ${!check.canEnhance ? 'disabled' : ''}
+                          title="${!check.canEnhance ? escHtml(check.reason || '') : `Potenzia a ⭐${lvl + 1}`}"
+                          onclick="window._enhanceItem?.('${entry.id}')">
+                    ⬆️ +1
+                  </button>
+
+                </div>
+              `;
+            })).then(r => r.join(''))}
+          </div>`
+      }
     </div>
   `;
 }
-
 // ── ACCADEMIA ─────────────────────────────────────────────────
 
 function renderAcademy(bc, level) {
