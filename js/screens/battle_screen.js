@@ -19,7 +19,7 @@ let _battleState = null;
 let _enemyData   = null;
 let _dungeonCtx  = null;
 let _animLock    = false;
-
+const _sleep = ms => new Promise(r => setTimeout(r, ms));
 function _lockNav(lock) {
   document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.disabled = lock;
@@ -496,4 +496,3 @@ function _setDisabled(container, disabled) {
   container.querySelectorAll('.btn-battle-action,.btn-battle-item,#btn-flee').forEach(b => { b.disabled = disabled; });
 }
 
-function _sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
