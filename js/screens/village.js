@@ -542,7 +542,14 @@ async function renderSmith(bc) {
       <div class="village-section-title" style="margin-top:1.25rem">⬆️ Potenziamento</div>
       ${enhanceable.length === 0
         ? '<div class="empty-note" style="padding:0.75rem 1rem;color:var(--text-3)">Nessun oggetto potenziabile. Ottieni equipaggiamento dai dungeon o dalle casse!</div>'
-        : `<div class="smith-enhance-list">
+         : `<div class="smith-filter-bar">
+            ${['tutti','common','uncommon','rare','epic','legendary','mythic'].map(r => `
+              <button class="smith-filter-btn" onclick="window._smithFilter?.('${r}')" data-rarity="${r}">
+                ${r === 'tutti' ? 'Tutti' : r}
+              </button>
+            `).join('')}
+          </div>
+          <div class="smith-enhance-list" id="smith-enhance-list">
             ${await Promise.all(enhanceable.map(async entry => {
               const item  = (DB.battleItems || []).find(i => i.id === entry.item_id);
               if (!item) return '';
