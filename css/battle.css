@@ -311,3 +311,36 @@
   position: relative;
   z-index: 1;
 }
+
+
+
+/* ── FABBRO POTENZIAMENTO ─────────────────────────────────── */
+.smith-enhance-list        { display:flex; flex-direction:column; gap:0.75rem; }
+
+.enhance-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.enhance-item__icon {
+  width: 52px; height: 52px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.6rem; flex-shrink: 0;
+}
+
+.smith-item-gif { width: 44px; height: 44px; object-fit: contain; }
+
+.enhance-item__info        { flex: 1; min-width: 0; }
+.enhance-item__name        { font-weight: 700; font-size: 0.9rem; display:flex; align-items:center; gap:0.4rem; }
+.enhance-star              { font-size: 0.85rem; background: #1a1a2e; padding: 1px 6px; border-radius: 6px; }
+.enhance-item__rarity      { font-size: 0.7rem; padding: 1px 6px; border-radius: 4px; display:inline-block; margin-top:0.2rem; }
+.enhance-item__bonuses     { font-size: 0.75rem; color: var(--text-2); margin-top: 0.25rem; }
+.enhance-item__cost        { display:flex; gap:0.75rem; font-size:0.78rem; color:var(--text-2); margin-top:0.3rem; }
+
+.repair-item__icon         { width:40px; height:40px; display:flex; align-items:center; justify-content:center; font-size:1.4rem; }
