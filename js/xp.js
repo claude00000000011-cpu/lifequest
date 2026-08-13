@@ -60,15 +60,6 @@ export function streakMult(streak = 0) {
   return 1;
 }
 
-// ── Streak ───────────────────────────────────────────────────
-
-export function streakMult(streak = 0) {
-  if (streak >= 30) return 1.5;
-  if (streak >= 14) return 1.35;
-  if (streak >= 7)  return 1.2;
-  if (streak >= 3)  return 1.1;
-  return 1;
-}
 
 function updateStreak(user) {
   const t          = today();
