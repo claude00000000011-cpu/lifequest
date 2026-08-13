@@ -110,7 +110,7 @@ const heroLoopGif = `/lifequest/assets/battle/classes/${heroClass}_loop.gif`;
 
         <!-- Sprite nemico in alto a destra -->
         <div class="battle-enemy-sprite">
-          <img src="${escHtml(_enemyData.icon_path || '')}"
+         <img src="${escHtml(_enemyData.loop_gif || _enemyData.icon_path || '')}"
                alt="${escHtml(s.enemy.name)}"
                id="enemy-sprite"
                onerror="this.style.display='none'">
