@@ -254,8 +254,15 @@ async function _handleAction(container, action, payload, abilityData = null) {
   _animLock = true;
   _setDisabled(container, true);
 
+  // Animazione attacco eroe
+  if (['attack', 'ability'].includes(action)) await _playAttackAnim('hero');
+
   const newState = processPlayerAction(_battleState, action, payload, abilityData);
   const newLogs  = newState.log;
+
+  // Animazione attacco nemico
+  const enemyAttacked = newLogs.some(l => l.includes('nemico') && l.includes('danni'));
+  if (enemyAttacked) await _playAttackAnim('enemy');
 
   for (const msg of newLogs) {
     await _appendLog(container, msg, _classifyLog(msg));
@@ -263,7 +270,6 @@ async function _handleAction(container, action, payload, abilityData = null) {
   }
 
   _battleState = newState;
-  (container, newState);
   _updateBars(container, newState);
   _updateStatuses(container, newState);
   document.getElementById('battle-turn').textContent = Math.min(newState.turn, 10);
@@ -273,7 +279,6 @@ async function _handleAction(container, action, payload, abilityData = null) {
   } else {
     _animLock = false;
     _setDisabled(container, false);
-    // Ricostruisci tasti abilità (per cooldown)
     const abl = (DB.characterAbilities[CUR.id] || [])
       .map(la => (DB.battleAbilities || []).find(ab => ab.id === la.ability_id))
       .filter(Boolean).filter(ab => ab.type !== 'passive').slice(0, 4);
