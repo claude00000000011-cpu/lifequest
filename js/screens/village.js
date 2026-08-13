@@ -198,12 +198,6 @@ function renderVillageMap(bc, level) {
     <div class="village-map">
       <!-- Benvenuto -->
       <div class="village-welcome-card">
-        <div class="village-scene">
-          <div class="village-building" onclick="window._switchVillageTab?.('port')"    title="Porto — Dungeon">⛵<span>Porto</span></div>
-          <div class="village-building" onclick="window._switchVillageTab?.('merchant')" title="Mercante">🛒<span>Mercante</span></div>
-          <div class="village-building" onclick="window._switchVillageTab?.('smith')"   title="Fabbro">🔨<span>Fabbro</span></div>
-          <div class="village-building" onclick="window._switchVillageTab?.('academy')" title="Accademia">📜<span>Accademia</span></div>
-        </div>
         <p class="village-welcome-text">Benvenuto nel Villaggio, eroe. Scegli la tua prossima mossa.</p>
       </div>
 
@@ -225,8 +219,6 @@ function renderVillageMap(bc, level) {
       </div>
     </div>
   `;
-  // Chiama dopo che il DOM è stato inserito
-  setTimeout(() => window._loadEconomySummary?.(), 50);
 }
 
 // ── PORTO (Dungeon) ───────────────────────────────────────────
