@@ -85,8 +85,8 @@ function calcEnemyScaling(enemyData, playerLevel, playerAtk = 10) {
  
   return {
     hp:      Math.floor(enemyData.hp_base      * levelMult * hpAtkScaling),
-    attack:  Math.floor(enemyData.attack_base  * levelMult),
-    defense: Math.floor(enemyData.defense_base * levelMult),
+  attack:  Math.floor(enemyData.attack  * levelMult),
+defense: Math.floor(enemyData.defense * levelMult),
   };
 }
  
