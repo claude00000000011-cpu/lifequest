@@ -297,7 +297,11 @@ async function _onBattleEnd(container, state) {
     }
     await incrementDailyLimit(CUR.id, 'pve_count');
     if (rewards.itemRarity) {
-      const pool = DB.battleItems.filter(i => i.rarity === rewards.itemRarity && i.slot !== 'consumable');
+      const pool = DB.battleItems.filter(i =>
+        i.rarity === rewards.itemRarity &&
+        i.slot !== 'consumable' &&
+        i.icon_path !== null
+      );
       itemDropped = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
     }
   } else {
@@ -307,6 +311,7 @@ async function _onBattleEnd(container, state) {
 
   _showEndOverlay(container, won, goldEarned, xpBonus, itemDropped);
 }
+
 
 function _showEndOverlay(container, won, gold, xp = 0, item = null) {
   const root = container.querySelector('#battle-root');
