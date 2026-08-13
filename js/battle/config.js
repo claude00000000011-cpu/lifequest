@@ -201,24 +201,24 @@ export const DUNGEONS = [
     dropRateNormal:   0.28,
     dropRateBoss:     0.75,
   },
-  {
-    tier:             5,
-    minLevel:         50,
-    normalRooms:      4,
-    enemiesMin:       2,
-    enemiesMax:       4,
-    goldPerEnemy:     70,
-    goldBoss:          450,
-    xpBonus:           750,
-    goldBonus:         380,
-    enemyHpBase:       950,  // era 700
-    bossHpMult:        4.0,  // era 5.0
-    enemyAttackBase:   90,   // era 80
-    bossAttackMult:    2.5,  // era 3.0
-    enemyDefenseBase:  55,   // era 45
-    scalingPerLevel:   0.04,
-    dropRateNormal:    0.35,
-    dropRateBoss:      0.85,
+ {
+    tier:               5,
+    minLevel:           50,
+    normalRooms:        4,
+    enemiesMin:         2,
+    enemiesMax:         4,
+    goldPerEnemy:       70,
+    goldBoss:           450,
+    xpBonus:            750,
+    goldBonus:          380,
+    enemyHpBase:        850,  // Bilanciato a 850
+    bossHpMult:         3.5,  // Boss più accessibile (3.5 anziché 4.0)
+    enemyAttackBase:    90,
+    bossAttackMult:     2.5,
+    enemyDefenseBase:   35,   // Ridotto da 55 a 35 per evitare l'effetto "spugna blindata"
+    scalingPerLevel:    0.035,// Scalato leggermente al ribasso (0.035 anziché 0.04)
+    dropRateNormal:     0.35,
+    dropRateBoss:       0.85,
   },
 ];
  
