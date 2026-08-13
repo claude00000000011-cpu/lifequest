@@ -1,11 +1,9 @@
 // ============================================================
 // js/settings.js — Schermata Impostazioni LifeQuest
-// Volume BGM/SFX, sfondi rotativi, font size
 // ============================================================
 
 import { getAudioSettings, updateAudioSettings, playSound } from './audio.js';
 
-// ── Impostazioni UI (font size, sfondi) ──────────────────────
 const UI_KEY = 'lq_ui_settings';
 
 function loadUiSettings() {
@@ -18,39 +16,31 @@ function saveUiSettings(s) {
 }
 
 let _ui = {
-  fontSize:       'normal',  // 'small' | 'normal' | 'large'
-  bgEnabled:      true,
+  fontSize:  'normal',
+  bgEnabled: true,
   ...loadUiSettings()
 };
 
-// ── Font size ─────────────────────────────────────────────────
 const FONT_SCALES = { small: '0.85', normal: '1', large: '1.18' };
 
 export function applyFontSize(size) {
   _ui.fontSize = size;
   saveUiSettings(_ui);
-  document.documentElement.style.setProperty(
-    '--font-scale', FONT_SCALES[size] || '1'
-  );
+  document.documentElement.style.setProperty('--font-scale', FONT_SCALES[size] || '1');
 }
 
-// ── Sfondi rotativi ───────────────────────────────────────────
 const BG_BASE = '/lifequest/assets/backgrounds/';
 
-// Fasce orarie → array di sfondi (verranno scelti casualmente dentro la fascia)
 const BG_SCHEDULE = [
-  { from:  6, to: 17, images: ['SFONDO 2 ROTAZIONE (COLORE CHIARO PER GIORNO).png',
-                                'SFONDO 2 ROTAZIONE.png'] },
-  { from: 17, to: 21, images: ['SFONDO 1 ROTAZIONE (COLORE CALDO PER CREPUSCOLO).png',
-                                'SFONDO 1 ROTAZIONE.png'] },
+  { from:  6, to: 17, images: ['SFONDO 2 ROTAZIONE (COLORE CHIARO PER GIORNO).png', 'SFONDO 2 ROTAZIONE.png'] },
+  { from: 17, to: 21, images: ['SFONDO 1 ROTAZIONE (COLORE CALDO PER CREPUSCOLO).png', 'SFONDO 1 ROTAZIONE.png'] },
   { from: 21, to:  6, images: ['SFONDO 3 ROTAZIONE (COLORE SCURO PER NOTTE).png'] },
 ];
 
 function getCurrentBgImage() {
   const h = new Date().getHours();
   const slot = BG_SCHEDULE.find(s =>
-    s.from < s.to ? h >= s.from && h < s.to
-                  : h >= s.from || h < s.to   // fascia notturna che attraversa mezzanotte
+    s.from < s.to ? h >= s.from && h < s.to : h >= s.from || h < s.to
   ) || BG_SCHEDULE[2];
   const imgs = slot.images;
   return BG_BASE + imgs[Math.floor(Math.random() * imgs.length)];
@@ -61,7 +51,6 @@ let _bgInterval = null;
 export function startBgRotation() {
   if (!_ui.bgEnabled) return;
   _applyBg();
-  // Controlla ogni ora se cambiare fascia
   clearInterval(_bgInterval);
   _bgInterval = setInterval(_applyBg, 60 * 60 * 1000);
 }
@@ -69,22 +58,16 @@ export function startBgRotation() {
 export function stopBgRotation() {
   clearInterval(_bgInterval);
   _bgInterval = null;
-  // Rimuovi sfondo da tutti i target
-  document.querySelectorAll('.lq-bg-target').forEach(el => {
-    el.style.removeProperty('--lq-bg');
-  });
+  document.body.style.removeProperty('--lq-bg');
 }
 
 function _applyBg() {
   if (!_ui.bgEnabled) return;
   const url = getCurrentBgImage();
-  // Applica come CSS custom property su body + auth screen
   document.body.style.setProperty('--lq-bg', `url("${url}")`);
 }
 
-// ── Render pannello impostazioni ──────────────────────────────
 export function openSettings() {
-  // Rimuovi se già aperto
   document.getElementById('settings-overlay')?.remove();
 
   const audio = getAudioSettings();
@@ -98,7 +81,7 @@ export function openSettings() {
         <button class="settings-close" id="settings-close">✕</button>
       </div>
 
-      <!-- AUDIO -->
+      <!-- BGM -->
       <div class="settings-section">
         <div class="settings-section-title">🎵 Musica (BGM)</div>
         <label class="settings-toggle-row">
@@ -114,23 +97,9 @@ export function openSettings() {
                  value="${audio.bgmVolume}" ${!audio.bgmEnabled ? 'disabled' : ''}>
           <span class="set-val" id="set-bgm-val">${Math.round(audio.bgmVolume * 100)}%</span>
         </label>
-
-
-
-
-    <div class="settings-section">
-  <div class="settings-section-title">📱 Display</div>
-  <button class="btn-fullscreen" onclick="window._toggleFullscreen?.()">
-    ⛶ Schermo Intero
-  </button>
-  <div class="settings-hint">Nasconde la barra del browser</div>
-</div>
-
-
-
-        
       </div>
 
+      <!-- SFX -->
       <div class="settings-section">
         <div class="settings-section-title">🔊 Effetti Sonori (SFX)</div>
         <label class="settings-toggle-row">
@@ -166,29 +135,30 @@ export function openSettings() {
         <div class="settings-section-title">🔤 Dimensione Testo</div>
         <div class="settings-font-row">
           <button class="font-size-btn ${_ui.fontSize === 'small'  ? 'active' : ''}" data-size="small">A</button>
-          <button class="font-size-btn ${_ui.fontSize === 'normal' ? 'active' : ''}" data-size="normal"
-                  style="font-size:1.1em">A</button>
-          <button class="font-size-btn ${_ui.fontSize === 'large'  ? 'active' : ''}" data-size="large"
-                  style="font-size:1.3em">A</button>
+          <button class="font-size-btn ${_ui.fontSize === 'normal' ? 'active' : ''}" data-size="normal" style="font-size:1.1em">A</button>
+          <button class="font-size-btn ${_ui.fontSize === 'large'  ? 'active' : ''}" data-size="large" style="font-size:1.3em">A</button>
         </div>
         <div class="settings-hint">Piccolo · Normale · Grande</div>
+      </div>
+
+      <!-- DISPLAY -->
+      <div class="settings-section">
+        <div class="settings-section-title">📱 Display</div>
+        <button class="btn-fullscreen" onclick="window._toggleFullscreen?.()">
+          ⛶ Schermo Intero
+        </button>
+        <div class="settings-hint">Nasconde la barra del browser</div>
       </div>
 
     </div>
   `;
 
-  // Chiudi cliccando fuori dal pannello
-  overlay.addEventListener('click', e => {
-    if (e.target === overlay) closeSettings();
-  });
-
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeSettings(); });
   document.body.appendChild(overlay);
   requestAnimationFrame(() => overlay.classList.add('settings-overlay--open'));
 
-  // ── Event listeners ──
   document.getElementById('settings-close').onclick = closeSettings;
 
-  // BGM toggle
   document.getElementById('set-bgm-enabled').onchange = e => {
     const en = e.target.checked;
     updateAudioSettings({ bgmEnabled: en });
@@ -197,29 +167,25 @@ export function openSettings() {
     else      { import('./audio.js').then(m => m.resumeBgm()); }
   };
 
-  // BGM volume
   document.getElementById('set-bgm-vol').oninput = e => {
     const v = parseFloat(e.target.value);
     updateAudioSettings({ bgmVolume: v });
     document.getElementById('set-bgm-val').textContent = Math.round(v * 100) + '%';
   };
 
-  // SFX toggle
   document.getElementById('set-sfx-enabled').onchange = e => {
     const en = e.target.checked;
     updateAudioSettings({ sfxEnabled: en });
     document.getElementById('set-sfx-vol').disabled = !en;
   };
 
-  // SFX volume
   document.getElementById('set-sfx-vol').oninput = e => {
     const v = parseFloat(e.target.value);
     updateAudioSettings({ sfxVolume: v });
     document.getElementById('set-sfx-val').textContent = Math.round(v * 100) + '%';
-    playSound('tap'); // anteprima
+    playSound('tap');
   };
 
-  // Sfondi toggle
   document.getElementById('set-bg-enabled').onchange = e => {
     _ui.bgEnabled = e.target.checked;
     saveUiSettings(_ui);
@@ -227,7 +193,6 @@ export function openSettings() {
     else stopBgRotation();
   };
 
-  // Font size
   document.querySelectorAll('.font-size-btn').forEach(btn => {
     btn.onclick = () => {
       document.querySelectorAll('.font-size-btn').forEach(b => b.classList.remove('active'));
@@ -249,7 +214,6 @@ export function initSettings() {
   applyFontSize(_ui.fontSize);
   if (_ui.bgEnabled) startBgRotation();
 
-  // Bottone ⚙️ globale — iniettato una sola volta
   if (!document.getElementById('settings-fab')) {
     const btn = document.createElement('button');
     btn.id = 'settings-fab';
@@ -259,6 +223,7 @@ export function initSettings() {
     document.body.appendChild(btn);
   }
 }
+
 window._toggleFullscreen = function() {
   const el = document.documentElement;
   if (!document.fullscreenElement) {
