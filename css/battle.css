@@ -1702,3 +1702,34 @@
     transition-duration: 0.01ms !important;
   }
 }
+/* ── FIX bottoni width ───────────────────────────────────── */
+.merchant-item .btn-sm,
+.merchant-item .btn-primary,
+.loot-box-card .btn-sm,
+.loot-box-card .btn-primary,
+.dungeon-card .btn-sm,
+.dungeon-card .btn-primary,
+.oracle-offer .btn-sm,
+.oracle-offer .btn-primary,
+.inv-item__actions .btn-sm,
+.enhance-item__footer .btn-sm,
+.repair-item .btn-sm {
+  width: auto !important;
+  display: inline-block;
+}
+
+/* ── FIX sfondi villaggio ────────────────────────────────── */
+.village-bg-map::before,
+.village-bg-port::before,
+.village-bg-merchant::before,
+.village-bg-academy::before,
+.village-bg-inventory::before {
+  background-blend-mode: normal;
+  background: none;
+}
+
+.village-bg-map::before       { background: url('../assets/battle/sfondi/villaggio.png') center/cover fixed, rgba(5,5,20,0.72); }
+.village-bg-port::before      { background: url('../assets/battle/sfondi/porto.png') center/cover fixed, rgba(5,5,20,0.72); }
+.village-bg-merchant::before  { background: url('../assets/battle/sfondi/mercante.png') center/cover fixed, rgba(5,5,20,0.72); }
+.village-bg-academy::before   { background: url('../assets/battle/sfondi/accademia.png') center/cover fixed, rgba(5,5,20,0.72); }
+.village-bg-inventory::before { background: url('../assets/battle/sfondi/zaino.png') center/cover fixed, rgba(5,5,20,0.72); }
