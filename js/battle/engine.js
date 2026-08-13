@@ -70,7 +70,7 @@ export function initBattle(playerStats, enemyData, playerLevel, support = null, 
 // PATCH: ora scala gli HP anche in base all'ATK reale del giocatore,
 // così nemici e giocatore rimangono in tensione anche con stat alte.
  
-function calcEnemyScaling(enemyData, playerLevel, playerAtk = 10) {
+function calcEnemyScaling(enemyData, playerLevel, playerAtk = 10, playerDef = 10) {
   const dungeonConfig = getDungeonConfig(enemyData.tier);
   const minLevel      = dungeonConfig?.minLevel || 1;
   const excess        = Math.max(0, playerLevel - minLevel);
