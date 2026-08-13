@@ -69,15 +69,23 @@ export async function renderVillage() {
   }
 
 // Rendering della tab corrente
-  const bgClass = {
+ const bgClass = {
     map:       'village-bg-map',
     port:      'village-bg-port',
     merchant:  'village-bg-merchant',
+    market:    'village-bg-merchant',
     inventory: 'village-bg-inventory',
     academy:   'village-bg-academy',
     smith:     'village-bg-map',
+    friends:   'village-bg-map',
+    chat:      'village-bg-map',
   }[_villageTab] || 'village-bg-map';
 
+
+
+
+
+         
   container.className = bgClass;
 container.innerHTML = `
     ${renderVillageHeader(bc, user, level)}
@@ -146,16 +154,29 @@ function renderVillageHeader(bc, user, level) {
 // TAB NAV
 // ════════════════════════════════════════════════════════════
 
+
+
+
+
+
 function renderVillageTabs(bc, level) {
   const tabs = [
     { id: 'map',       icon: '🗺️',  label: 'Villaggio' },
     { id: 'port',      icon: '⛵',  label: 'Porto'     },
     { id: 'merchant',  icon: '🛒',  label: 'Mercante'  },
+    { id: 'market',    icon: '🏪',  label: 'Mercato'   },
     { id: 'inventory', icon: '🎒',  label: 'Zaino'     },
     { id: 'smith',     icon: '🔨',  label: 'Fabbro'    },
     { id: 'academy',   icon: '📜',  label: 'Accademia' },
+    { id: 'friends',   icon: '👥',  label: 'Amici'     },
+    { id: 'chat',      icon: '💬',  label: 'Chat'      },
   ];
 
+
+
+
+
+         
   return `
     <div class="tab-row village-tabs">
       ${tabs.map(t => `
@@ -177,9 +198,12 @@ async function renderVillageTabContent(bc, user, level) {
     case 'map':       return renderVillageMap(bc, level);
     case 'port':      return await renderPort(bc, level);
     case 'merchant':  return await renderMerchant(bc, level);
+    case 'market':    return await renderMarket(bc);
     case 'inventory': return await renderInventory(bc, user);
     case 'smith':     return await renderSmith(bc);
     case 'academy':   return renderAcademy(bc, level);
+    case 'friends':   return await renderFriends();
+    case 'chat':      return await renderGameChat();
     default:          return renderVillageMap(bc, level);
   }
 }
@@ -848,6 +872,275 @@ function renderError(msg) {
 // WINDOW._* — AZIONI GLOBALI
 // ════════════════════════════════════════════════════════════
 
+
+
+
+// ── MERCATO GLOBALE ───────────────────────────────────────────
+
+let _marketFilter = { slot: 'tutti', rarity: 'tutti', class_id: 'tutti' };
+
+async function renderMarket(bc) {
+  const { supabase } = await import('../../supabase.js');
+
+  // Pulizia listing scaduti (sold/cancelled non mostrarli)
+  let query = supabase
+    .from('market_listings')
+    .select(`
+      id, price, quantity, created_at, seller_id,
+      battle_items ( id, name, slot, rarity, class_id, icon_path,
+        bonus_attack, bonus_defense, bonus_hp, bonus_mana, bonus_speed ),
+      battle_characters ( id, user_id,
+        users ( id, username, avatar_url ) )
+    `)
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if (_marketFilter.slot    !== 'tutti') query = query.eq('battle_items.slot',     _marketFilter.slot);
+  if (_marketFilter.rarity  !== 'tutti') query = query.eq('battle_items.rarity',   _marketFilter.rarity);
+  if (_marketFilter.class_id !== 'tutti') query = query.eq('battle_items.class_id', _marketFilter.class_id);
+
+  const { data: listings, error } = await query;
+  if (error) console.warn('[Market] load error:', error.message);
+
+  const rarColors = { common:'#9CA3AF', uncommon:'#22C55E', rare:'#3B82F6',
+                      epic:'#7C3AED', legendary:'#F59E0B', mythic:'#DC2626' };
+
+  // Oggetti dello zaino del giocatore (per mettere in vendita)
+  const inv = await loadInventory(CUR.id);
+  const sellable = inv.filter(e => {
+    const item = e.battle_items || (DB.battleItems || []).find(i => i.id === e.item_id);
+    return item && item.slot !== 'consumable';
+  });
+
+  return `
+    <div class="market-screen">
+
+      <!-- Header -->
+      <div class="market-header">
+        <div class="village-section-title" style="margin:0">🏪 Mercato Globale</div>
+        <button class="btn-sm btn-primary" onclick="window._openSellModal?.()">+ Vendi</button>
+      </div>
+
+      <!-- Filtri -->
+      <div class="market-filters">
+        <select onchange="window._setMarketFilter?.('slot', this.value)">
+          <option value="tutti">Tutti gli slot</option>
+          ${['weapon','armor','helmet','leggings','gloves','shoes','ring','cloak','talisman','pet'].map(s =>
+            `<option value="${s}" ${_marketFilter.slot === s ? 'selected' : ''}>${s}</option>`
+          ).join('')}
+        </select>
+        <select onchange="window._setMarketFilter?.('rarity', this.value)">
+          <option value="tutti">Tutte le rarità</option>
+          ${['common','uncommon','rare','epic','legendary','mythic'].map(r =>
+            `<option value="${r}" ${_marketFilter.rarity === r ? 'selected' : ''}>${r}</option>`
+          ).join('')}
+        </select>
+        <select onchange="window._setMarketFilter?.('class_id', this.value)">
+          <option value="tutti">Tutte le classi</option>
+          ${['warrior','mage','shadow','oracle','bard'].map(c =>
+            `<option value="${c}" ${_marketFilter.class_id === c ? 'selected' : ''}>${c}</option>`
+          ).join('')}
+        </select>
+      </div>
+
+      <!-- Lista annunci -->
+      <div class="market-list">
+        ${!listings?.length
+          ? '<div class="empty-note" style="padding:1rem">Nessun oggetto in vendita. Sii il primo!</div>'
+          : listings.map(l => {
+              const item    = l.battle_items;
+              const seller  = l.battle_characters?.users;
+              if (!item) return '';
+              const color   = rarColors[item.rarity] || '#9CA3AF';
+              const isMe    = l.seller_id === DB.battleCharacters?.[CUR.id]?.id;
+              const bonuses = buildBonusText(item);
+              return `
+                <div class="market-item rarity-border-${item.rarity}">
+                  <div class="market-item__icon" style="background:${color}22">
+                    ${item.icon_path
+                      ? `<img src="${escHtml(item.icon_path)}" style="width:36px;height:36px;object-fit:contain;image-rendering:pixelated" alt="">`
+                      : slotEmoji(item.slot)}
+                  </div>
+                  <div class="market-item__info">
+                    <div class="market-item__name" style="color:${color}">${escHtml(item.name)}</div>
+                    <div style="display:flex;gap:4px;flex-wrap:wrap;margin:2px 0">
+                      <span class="badge">${item.slot}</span>
+                      <span class="badge rarity-${item.rarity}">${item.rarity}</span>
+                      ${item.class_id ? `<span class="badge">${item.class_id}</span>` : ''}
+                    </div>
+                    ${bonuses ? `<div class="market-item__bonuses">${bonuses}</div>` : ''}
+                    <div class="market-item__seller">
+                      🧑 @${escHtml(seller?.username || '?')}
+                      ${!isMe ? `
+                        <button class="btn-sm" style="font-size:0.3rem;padding:2px 5px"
+                                onclick="window._addGameFriend?.('${seller?.id}', '${escHtml(seller?.username || '')}')">
+                          +Amico
+                        </button>
+                        <button class="btn-sm" style="font-size:0.3rem;padding:2px 5px"
+                                onclick="window._viewUserProfile?.('${seller?.id}')">
+                          Profilo
+                        </button>
+                      ` : '<span style="color:var(--rpg-gold);font-size:0.35rem"> (tu)</span>'}
+                    </div>
+                  </div>
+                  <div class="market-item__buy">
+                    <div class="market-item__price">🪙 ${l.price.toLocaleString()}</div>
+                    ${isMe
+                      ? `<button class="btn-sm btn-danger" onclick="window._cancelListing?.('${l.id}')">Ritira</button>`
+                      : `<button class="btn-sm btn-primary"
+                                 onclick="window._buyFromMarket?.('${l.id}', ${l.price})"
+                                 ${(bc.gold || 0) < l.price ? 'disabled title="Gold insufficienti"' : ''}>
+                           Compra
+                         </button>`
+                    }
+                  </div>
+                </div>
+              `;
+            }).join('')
+        }
+      </div>
+
+      <!-- Registro vendite -->
+      <div class="village-section-title" style="margin-top:1.5rem">📋 Le mie vendite</div>
+      <div id="market-sales-log">
+        <div style="color:var(--rpg-gray);font-family:var(--font-pixel);font-size:0.38rem;padding:0.5rem">
+          Caricamento…
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal vendita (nascosto) -->
+    <div id="sell-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9000;
+         align-items:center;justify-content:center;padding:1rem">
+      <div style="background:var(--rpg-panel);border:3px solid var(--rpg-border-gold);
+                  padding:1.5rem;width:100%;max-width:340px;position:relative">
+        <div style="font-family:var(--font-pixel);font-size:0.55rem;color:var(--rpg-gold);margin-bottom:1rem">
+          🏪 Metti in vendita
+        </div>
+        <div style="margin-bottom:0.75rem">
+          <label style="font-family:var(--font-pixel);font-size:0.36rem;color:var(--rpg-gray);display:block;margin-bottom:4px">
+            Oggetto
+          </label>
+          <select id="sell-item-select" style="width:100%;font-family:var(--font-pixel);font-size:0.38rem;
+                  background:var(--rpg-panel2);color:var(--rpg-white);border:2px solid var(--rpg-border);padding:6px">
+            <option value="">— Seleziona —</option>
+            ${sellable.map(e => {
+              const item = e.battle_items || (DB.battleItems || []).find(i => i.id === e.item_id);
+              if (!item) return '';
+              return `<option value="${e.id}" data-item-id="${item.id}">${escHtml(item.name)} (${item.rarity})</option>`;
+            }).join('')}
+          </select>
+        </div>
+        <div style="margin-bottom:0.75rem">
+          <label style="font-family:var(--font-pixel);font-size:0.36rem;color:var(--rpg-gray);display:block;margin-bottom:4px">
+            Prezzo (Gold)
+          </label>
+          <input type="number" id="sell-price-input" min="1" placeholder="Es. 500"
+                 style="width:100%;font-family:var(--font-pixel);font-size:0.42rem;
+                        background:var(--rpg-panel2);color:var(--rpg-white);border:2px solid var(--rpg-border);padding:8px">
+        </div>
+        <div style="display:flex;gap:8px;margin-top:1rem">
+          <button class="btn-primary" style="flex:1" onclick="window._confirmSellListing?.()">Pubblica</button>
+          <button class="btn-secondary" style="flex:1" onclick="window._closeSellModal?.()">Annulla</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ── AMICI DI GIOCO ────────────────────────────────────────────
+
+async function renderFriends() {
+  const { supabase } = await import('../../supabase.js');
+  const myId = CUR.id;
+
+  const { data, error } = await supabase
+    .from('game_friends')
+    .select('user_a, user_b, users!game_friends_user_a_fkey(id,username,avatar_url), users!game_friends_user_b_fkey(id,username,avatar_url)')
+    .or(`user_a.eq.${myId},user_b.eq.${myId}`);
+
+  if (error) console.warn('[Friends]', error.message);
+
+  const friends = (data || []).map(row => {
+    const isA = row.user_a === myId;
+    return isA ? row['users!game_friends_user_b_fkey'] : row['users!game_friends_user_a_fkey'];
+  }).filter(Boolean);
+
+  return `
+    <div class="friends-screen">
+      <div class="village-section-title">👥 Amici di Gioco (${friends.length})</div>
+      ${!friends.length
+        ? '<div class="empty-note" style="padding:1rem">Nessun amico ancora. Aggiungili dal Mercato!</div>'
+        : `<div class="friends-list">
+            ${friends.map(f => `
+              <div class="friend-item">
+                <div class="friend-avatar">
+                  ${f.avatar_url
+                    ? `<img src="${escHtml(f.avatar_url)}" style="width:36px;height:36px;border-radius:0;object-fit:cover">`
+                    : `<div style="width:36px;height:36px;background:var(--rpg-accent);display:flex;align-items:center;justify-content:center;font-family:var(--font-pixel);font-size:0.5rem">
+                         ${escHtml(f.username.slice(0,2).toUpperCase())}
+                       </div>`}
+                </div>
+                <div style="flex:1;font-family:var(--font-pixel);font-size:0.42rem">
+                  @${escHtml(f.username)}
+                </div>
+                <button class="btn-sm" onclick="window._viewUserProfile?.('${f.id}')">Profilo</button>
+                <button class="btn-sm btn-danger" onclick="window._removeGameFriend?.('${f.id}')">Rimuovi</button>
+              </div>
+            `).join('')}
+          </div>`
+      }
+    </div>
+  `;
+}
+
+// ── CHAT DI GIOCO ─────────────────────────────────────────────
+
+async function renderGameChat() {
+  const { supabase } = await import('../../supabase.js');
+
+  // Pulizia messaggi > 24h
+  await supabase.rpc('cleanup_game_chat');
+
+  const { data: messages } = await supabase
+    .from('game_chat')
+    .select('id, user_id, username, message, created_at')
+    .order('created_at', { ascending: true })
+    .limit(100);
+
+  return `
+    <div class="chat-screen">
+      <div class="village-section-title">💬 Chat di Gioco</div>
+      <div class="chat-messages" id="chat-messages">
+        ${!(messages?.length)
+          ? '<div class="empty-note" style="padding:1rem">Nessun messaggio. Di\' qualcosa!</div>'
+          : messages.map(m => {
+              const isMe = m.user_id === CUR.id;
+              return `
+                <div class="chat-msg ${isMe ? 'chat-msg--me' : ''}">
+                  <span class="chat-msg__user" style="color:${isMe ? 'var(--rpg-gold)' : 'var(--rpg-gray)'}">
+                    @${escHtml(m.username)}
+                  </span>
+                  <span class="chat-msg__text">${escHtml(m.message)}</span>
+                  <span class="chat-msg__time">${new Date(m.created_at).toLocaleTimeString('it-IT', {hour:'2-digit',minute:'2-digit'})}</span>
+                </div>
+              `;
+            }).join('')}
+      </div>
+      <div class="chat-input-row">
+        <input type="text" id="chat-input" placeholder="Scrivi un messaggio…" maxlength="200"
+               style="flex:1;font-family:var(--font-pixel);font-size:0.38rem;background:var(--rpg-panel2);
+                      color:var(--rpg-white);border:2px solid var(--rpg-border);padding:8px"
+               onkeydown="if(event.key==='Enter') window._sendChatMessage?.()">
+        <button class="btn-sm btn-primary" onclick="window._sendChatMessage?.()">Invia</button>
+      </div>
+    </div>
+  `;
+}
+
+
+
 window._switchVillageTab = switchVillageTab;
 
 // Carica l'economy summary inline dopo render mappa
@@ -1136,7 +1429,192 @@ window._smithFilter = function(rarity) {
 };
 
 
+// ── MERCATO — azioni ──────────────────────────────────────────
 
+window._setMarketFilter = function(key, val) {
+  _marketFilter[key] = val;
+  switchVillageTab('market');
+};
+
+window._openSellModal = function() {
+  const modal = document.getElementById('sell-modal');
+  if (modal) modal.style.display = 'flex';
+};
+
+window._closeSellModal = function() {
+  const modal = document.getElementById('sell-modal');
+  if (modal) modal.style.display = 'none';
+};
+
+window._confirmSellListing = async function() {
+  const select = document.getElementById('sell-item-select');
+  const priceInput = document.getElementById('sell-price-input');
+  const inventoryId = select?.value;
+  const price = parseInt(priceInput?.value || '0');
+
+  if (!inventoryId) return toast('Seleziona un oggetto', 'error');
+  if (!price || price < 1) return toast('Inserisci un prezzo valido', 'error');
+
+  const { supabase } = await import('../../supabase.js');
+  const bc = getBattleChar(CUR.id);
+  if (!bc) return;
+
+  const inv = DB.battleInventory?.[CUR.id] || [];
+  const entry = inv.find(i => i.id === inventoryId);
+  if (!entry) return toast('Oggetto non trovato', 'error');
+
+  const { error } = await supabase.from('market_listings').insert({
+    seller_id:    bc.id,
+    item_id:      entry.item_id,
+    inventory_id: inventoryId,
+    quantity:     1,
+    price,
+    status:       'active',
+  });
+
+  if (error) return toast('Errore nella pubblicazione: ' + error.message, 'error');
+
+  playSound('gold');
+  toast('Oggetto messo in vendita! 🏪', 'success');
+  window._closeSellModal?.();
+  switchVillageTab('market');
+};
+
+window._buyFromMarket = async function(listingId, price) {
+  const bc = getBattleChar(CUR.id);
+  if (!bc) return;
+  if ((bc.gold || 0) < price) return toast('Gold insufficienti', 'error');
+
+  if (!confirm(`Acquistare per 🪙 ${price} Gold?`)) return;
+
+  const { supabase } = await import('../../supabase.js');
+
+  // Leggi il listing
+  const { data: listing, error: le } = await supabase
+    .from('market_listings')
+    .select('*')
+    .eq('id', listingId)
+    .eq('status', 'active')
+    .single();
+
+  if (le || !listing) return toast('Annuncio non più disponibile', 'error');
+
+  // Transazione: aggiorna listing, trasferisci gold, aggiungi a inventario
+  const { error: ue } = await supabase
+    .from('market_listings')
+    .update({ status: 'sold', sold_at: new Date().toISOString() })
+    .eq('id', listingId);
+
+  if (ue) return toast('Errore nell\'acquisto', 'error');
+
+  // Scala gold acquirente
+  await import('../battle/character.js').then(({ updateGold: ug }) =>
+    ug(CUR.id, -price, 'market_buy', listingId)
+  );
+
+  // Dai gold al venditore (trova il suo user_id)
+  const { data: sellerBc } = await supabase
+    .from('battle_characters')
+    .select('user_id')
+    .eq('id', listing.seller_id)
+    .single();
+
+  if (sellerBc?.user_id) {
+    await supabase
+      .from('battle_characters')
+      .update({ gold: supabase.rpc('increment_gold', { bc_id: listing.seller_id, amount: price }) })
+      .eq('id', listing.seller_id);
+  }
+
+  // Aggiungi item all'inventario acquirente
+  await addToInventory(CUR.id, bc.id, listing.item_id);
+
+  // Log vendita
+  await supabase.from('market_sales').insert({
+    listing_id: listingId,
+    buyer_id:   bc.id,
+    seller_id:  listing.seller_id,
+    item_id:    listing.item_id,
+    quantity:   1,
+    price,
+  });
+
+  playSound('buy');
+  toast('Acquisto completato! 🎉', 'success');
+  switchVillageTab('market');
+};
+
+window._cancelListing = async function(listingId) {
+  if (!confirm('Ritirare questo annuncio?')) return;
+  const { supabase } = await import('../../supabase.js');
+  await supabase.from('market_listings').update({ status: 'cancelled' }).eq('id', listingId);
+  toast('Annuncio ritirato', 'info');
+  switchVillageTab('market');
+};
+
+// ── AMICI — azioni ────────────────────────────────────────────
+
+window._addGameFriend = async function(userId, username) {
+  if (userId === CUR.id) return toast('Non puoi aggiungere te stesso', 'error');
+  const { supabase } = await import('../../supabase.js');
+
+  const userA = CUR.id < userId ? CUR.id : userId;
+  const userB = CUR.id < userId ? userId : CUR.id;
+
+  const { error } = await supabase.from('game_friends').insert({ user_a: userA, user_b: userB });
+  if (error?.code === '23505') return toast(`@${username} è già tra i tuoi amici`, 'info');
+  if (error) return toast('Errore: ' + error.message, 'error');
+
+  playSound('tap');
+  toast(`@${username} aggiunto agli amici! 👥`, 'success');
+};
+
+window._removeGameFriend = async function(userId) {
+  if (!confirm('Rimuovere questo amico?')) return;
+  const { supabase } = await import('../../supabase.js');
+
+  const userA = CUR.id < userId ? CUR.id : userId;
+  const userB = CUR.id < userId ? userId : CUR.id;
+
+  await supabase.from('game_friends').delete().eq('user_a', userA).eq('user_b', userB);
+  toast('Amico rimosso', 'info');
+  switchVillageTab('friends');
+};
+
+// ── CHAT — azioni ─────────────────────────────────────────────
+
+window._sendChatMessage = async function() {
+  const input = document.getElementById('chat-input');
+  const message = input?.value.trim();
+  if (!message) return;
+  if (message.length > 200) return toast('Messaggio troppo lungo (max 200 caratteri)', 'error');
+
+  const { supabase } = await import('../../supabase.js');
+  const { error } = await supabase.from('game_chat').insert({
+    user_id:  CUR.id,
+    username: CUR.username,
+    message,
+  });
+
+  if (error) return toast('Errore invio messaggio', 'error');
+
+  input.value = '';
+  playSound('tap');
+
+  // Aggiungi messaggio al DOM senza ricaricare
+  const msgs = document.getElementById('chat-messages');
+  if (msgs) {
+    const div = document.createElement('div');
+    div.className = 'chat-msg chat-msg--me';
+    div.innerHTML = `
+      <span class="chat-msg__user" style="color:var(--rpg-gold)">@${escHtml(CUR.username)}</span>
+      <span class="chat-msg__text">${escHtml(message)}</span>
+      <span class="chat-msg__time">${new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}</span>
+    `;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+};
 
 
 
