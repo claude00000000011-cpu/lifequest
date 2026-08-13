@@ -242,12 +242,22 @@ function _bindEvents(container, abilities) {
     });
   });
 
-  container.querySelector('#btn-flee')?.addEventListener('click', () => {
+
+
+
+
+         
+container.querySelector('#btn-flee')?.addEventListener('click', () => {
     if (_animLock) return;
+    playSound('flee');
     _battleState.isOver = true;
     _battleState.winner = null;
     _showEndOverlay(container, null, 0);
   });
+
+
+
+         
 }
 
 
