@@ -1311,3 +1311,25 @@ select {
   color: #b0b0d0 !important;
   text-shadow: 0 1px 3px #000;
 }
+
+
+
+
+/* ── Scala UI su desktop — simula 150% ── */
+@media (min-width: 768px) {
+  html {
+    font-size: 20px;
+  }
+  .bottom-nav {
+    height: 88px;
+  }
+  :root {
+    --nav-height: 88px;
+  }
+  .nav-btn .nav-icon {
+    font-size: 1.8rem;
+  }
+  .nav-btn span:not(.nav-icon) {
+    font-size: 0.32rem;
+  }
+}
