@@ -625,7 +625,7 @@ function renderInventoryItem(entry, item, userId) {
   const isEquip = item.slot !== 'consumable';
 
   // Verifica classe e livello prima di mostrare il bottone
-  const canEquip = isEquip && canEquipItem(userId, item);
+ const canEquip = isEquip;
   const equipBtn = isEquip
     ? (canEquip
         ? `<button class="btn-sm btn-primary"
