@@ -46,10 +46,24 @@ export let DB = loadDB();
 export function persist() { saveDB(DB); }
 
 export function loadSession() {
+  console.log('[DB] loadSession() — inizio scan chiavi:', SESSION_KEYS);
   for (const key of SESSION_KEYS) {
     const raw = localStorage.getItem(key);
-    if (raw) { try { return JSON.parse(raw); } catch { /* continua */ } }
+    if (!raw) { console.log(`[DB]   ${key} → vuota`); continue; }
+    try {
+      const parsed = JSON.parse(raw);
+      // Scarta sessioni Supabase (hanno access_token, non username)
+      if (!parsed || !parsed.id || !parsed.username) {
+        console.warn(`[DB]   ${key} → scartata (non è un utente LifeQuest):`, Object.keys(parsed || {}));
+        continue;
+      }
+      console.log(`[DB]   ${key} → utente trovato:`, parsed.username, '| id:', parsed.id);
+      return parsed;
+    } catch (e) {
+      console.warn(`[DB]   ${key} → JSON corrotto, skip:`, e.message);
+    }
   }
+  console.log('[DB] loadSession() → nessuna sessione valida, mostro auth screen');
   return null;
 }
 
