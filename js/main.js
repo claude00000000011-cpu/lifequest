@@ -40,7 +40,7 @@ function bootApp(user) {
   Moderation.getBannedWords();
   console.log('[Boot] → bootApp() completata');
 }
-}
+
 
 // ── DOMContentLoaded ──────────────────────────────────────────
 
