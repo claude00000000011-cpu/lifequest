@@ -1143,3 +1143,127 @@ select {
     justify-content: center;
   }
 }
+
+
+
+/* ══════════════════════════════════════════════════════
+   PATCH STATS UI — leggibilità, compattezza, trofei
+   ══════════════════════════════════════════════════════ */
+
+/* ── Contenitore stats centrato su desktop ─────────── */
+@media (min-width: 768px) {
+  #screen-stats,
+  #stats-content {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+}
+
+/* ── Sfondo semi-trasparente su tutta la scheda profilo ── */
+.profile-section {
+  background: rgba(10, 10, 26, 0.75);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.profile-section h2 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  text-shadow: 0 1px 6px #000, 1px 1px 0 #000;
+  margin: 0.25rem 0 0.1rem;
+}
+.profile-rank {
+  text-shadow: 0 1px 4px #000;
+}
+.profile-social-row strong,
+.profile-social-row span {
+  text-shadow: 0 1px 4px #000;
+}
+
+/* ── Stats grid: label grande, valore piccolo ─────── */
+.stats-grid {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+  margin-bottom: 0.5rem;
+}
+.stat-card {
+  background: rgba(10, 10, 26, 0.82);
+  backdrop-filter: blur(6px);
+  padding: 0.5rem 0.4rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+/* Label = grande e prominente */
+.stat-card__label {
+  font-size: 0.58rem;
+  font-weight: 700;
+  color: #e8e8f8;
+  text-shadow: 0 1px 4px #000;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  order: 1;
+}
+/* Valore = più piccolo sotto */
+.stat-card__value {
+  font-size: 1.1rem;
+  font-weight: 800;
+  text-shadow: 0 1px 6px #000;
+  order: 2;
+}
+.progress-bar {
+  order: 3;
+  width: 100%;
+}
+
+/* ── Section titles con sfondo ───────────────────── */
+.section-title {
+  background: rgba(10, 10, 26, 0.75);
+  backdrop-filter: blur(4px);
+  padding: 0.3rem 0.6rem;
+  margin: 0.6rem 0 0.4rem;
+  display: inline-block;
+}
+
+/* ── Trofei — griglia emoji invece di testo grezzo ── */
+.trophy-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 0.75rem;
+}
+.trophy-chip {
+  background: rgba(200, 160, 0, 0.15);
+  border: 1px solid var(--gold-dark);
+  padding: 0.3rem 0.6rem;
+  font-size: 0.75rem;
+  color: var(--gold);
+  text-shadow: 0 1px 3px #000;
+  cursor: default;
+}
+/* Nasconde il testo ID grezzo, mostra solo l'emoji 🏆 */
+.trophy-chip {
+  font-size: 0;
+}
+.trophy-chip::before {
+  content: '🏆';
+  font-size: 1.2rem;
+}
+
+/* ── Generi e lingue con sfondo ──────────────────── */
+.genre-grid,
+.lang-chips {
+  background: rgba(10, 10, 26, 0.65);
+  backdrop-filter: blur(4px);
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* ── Privacy e azioni con sfondo ─────────────────── */
+.privacy-section,
+.profile-actions {
+  background: rgba(10, 10, 26, 0.75) !important;
+  backdrop-filter: blur(6px);
+}
