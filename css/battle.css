@@ -1947,3 +1947,173 @@
   align-items: center;
   gap: 6px;
 }
+
+
+
+/* ════════════════════════════════════════════════════════════
+   HUD VILLAGGIO — Nuovo layout 3 colonne (Problema 2)
+   ════════════════════════════════════════════════════════════ */
+
+.village-header {
+  background: rgba(10,10,26,0.92);
+  border-bottom: 3px solid var(--rpg-border-gold);
+  padding: 6px 8px 6px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  backdrop-filter: blur(4px);
+}
+
+/* ── Riga 1: 3 colonne ── */
+.village-hud-top {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+/* Blocco 1: icona+nome+classe */
+.village-class-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0,0,0,0.45);
+  border: 2px solid rgba(255,215,0,0.3);
+  padding: 4px 8px 4px 5px;
+  min-width: 0;
+}
+.village-class-icon { font-size: 1.2rem; flex-shrink: 0; }
+.village-hero-name  { font-family: var(--font-pixel); font-size: 0.38rem; color: var(--rpg-gray); }
+.village-hero-class { font-family: var(--font-pixel); font-size: 0.44rem; margin-top: 2px; text-shadow: 1px 1px 0 #000; }
+
+/* Blocco 2: Livello di combattimento */
+.village-combat-level {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(0,0,0,0.55);
+  border: 2px solid rgba(255,255,255,0.15);
+  padding: 4px 10px;
+  min-width: 110px;
+  text-align: center;
+}
+.village-combat-level__label {
+  font-family: var(--font-pixel);
+  font-size: 0.3rem;
+  color: var(--rpg-gray);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1.8;
+}
+.village-combat-level__val {
+  font-family: var(--font-pixel);
+  font-size: 0.7rem;
+  color: var(--rpg-white);
+  text-shadow: 1px 1px 0 #000;
+  line-height: 1.3;
+}
+
+/* Blocco 3: Gold */
+.village-gold-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(0,0,0,0.5);
+  border: 2px solid var(--rpg-gold-dark);
+  padding: 4px 8px;
+  font-family: var(--font-pixel);
+  font-size: 0.5rem;
+  color: var(--rpg-gold);
+  text-shadow: 1px 1px 0 #000;
+  white-space: nowrap;
+}
+.village-gold-icon { font-size: 0.85rem; }
+
+/* ── Riga 2: barre HP/Mana/PA affiancate ── */
+.village-stats-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 6px;
+  align-items: center;
+}
+.village-stat-pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.vstat-icon { font-size: 0.75rem; flex-shrink: 0; }
+.vstat-bar-wrap {
+  flex: 1;
+  height: 7px;
+  background: #000;
+  border: 1px solid rgba(255,255,255,0.15);
+  overflow: hidden;
+  min-width: 0;
+}
+.vstat-bar { height: 100%; transition: width 0.4s steps(8); }
+.hp-bar   { background: var(--rpg-hp); }
+.mana-bar { background: var(--rpg-mp); }
+.vstat-val {
+  font-family: var(--font-pixel);
+  font-size: 0.33rem;
+  color: var(--rpg-white);
+  white-space: nowrap;
+  text-shadow: 1px 1px 0 #000;
+  flex-shrink: 0;
+}
+
+/* PA pill (senza barra) */
+.village-pa-pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-pixel);
+  font-size: 0.38rem;
+  color: #fbbf24;
+  white-space: nowrap;
+  flex-shrink: 0;
+  text-shadow: 1px 1px 0 #000;
+}
+
+/* ════════════════════════════════════════════════════════════
+   TAB NAV VILLAGGIO con frecce integrate
+   ════════════════════════════════════════════════════════════ */
+.village-tabs-wrap {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  background: var(--rpg-panel2);
+  border-bottom: 2px solid var(--rpg-border);
+}
+
+.village-tabs-arrow {
+  flex-shrink: 0;
+  width: 28px;
+  background: linear-gradient(to right, var(--rpg-panel2), transparent);
+  border: none;
+  color: var(--rpg-gold);
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  padding: 0;
+  transition: opacity 0.15s;
+}
+.village-tabs-arrow--right {
+  background: linear-gradient(to left, var(--rpg-panel2), transparent);
+}
+.village-tabs-arrow:disabled { opacity: 0.2; cursor: default; }
+
+.village-tabs {
+  flex: 1;
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+  scroll-behavior: smooth;
+  gap: 0;
+}
+.village-tabs::-webkit-scrollbar { display: none; }
