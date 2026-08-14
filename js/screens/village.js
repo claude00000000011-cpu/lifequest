@@ -96,6 +96,29 @@ export async function renderVillage() {
 
 
 
+
+
+
+
+
+// Frecce tab: aggiorna stato e scroll automatico alla tab attiva
+  setTimeout(() => {
+    _updateVillageTabArrows();
+    const activeBtn = document.querySelector('.village-tabs .tab-btn--active');
+    activeBtn?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    document.getElementById('village-tabs-scroll')?.addEventListener('scroll', _updateVillageTabArrows);
+  }, 100);
+
+
+
+
+
+
+
+
+
+         
+
          
   container.className = bgClass;
 container.innerHTML = `
