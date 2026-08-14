@@ -25,6 +25,8 @@ import { checkDungeonAccess,
          startDungeon, getActiveDungeon } from '../battle/dungeon.js';
 import { ECONOMY, PROGRESSION,
          DUNGEONS, GUILDS }         from '../battle/config.js';
+import { renderDungeonMap, renderDungeonDetail } from './dungeon_map.js';
+import { startDungeonBattle }                    from './dungeon_battle.js';
 
 // ── Stato navigazione villaggio ───────────────────────────────
 let _villageTab = 'map';  // 'map'|'merchant'|'port'|'smith'|'academy'|'oracle'|'inventory'
@@ -179,7 +181,8 @@ function renderVillageTabs(bc, level) {
     { id: 'smith',     icon: '🔨',  label: 'Fabbro'    },
     { id: 'academy',   icon: '📜',  label: 'Accademia' },
     { id: 'friends',   icon: '👥',  label: 'Amici'     },
-    { id: 'chat',      icon: '💬',  label: 'Chat'      },
+     { id: 'chat',      icon: '💬',  label: 'Chat'      },
+    { id: 'dungeon_map', icon: '🗺️', label: 'Mappa Dungeon' },
   ];
 
 
@@ -213,10 +216,51 @@ async function renderVillageTabContent(bc, user, level) {
     case 'smith':     return await renderSmith(bc);
     case 'academy':   return renderAcademy(bc, level);
     case 'friends':   return await renderFriends();
-     case 'chat': {
+    case 'chat': {
       const chatHtml = await renderGameChat();
       setTimeout(() => window._initChatRealtime?.(), 100);
       return chatHtml;
+    }
+    case 'dungeon_map': {
+      const contentEl = document.getElementById('village-content');
+      const playerLevel = level; // già calcolato sopra
+
+      const showMap = () => {
+        renderDungeonMap(contentEl, playerLevel, (dungeon, state) => {
+          showDetail(dungeon);
+        });
+      };
+
+      const showDetail = (dungeon) => {
+        renderDungeonDetail(contentEl, dungeon, playerLevel,
+          (dungeon, room) => {
+            const player = {
+              maxHp:   bc.hp_base,
+              hp:      bc.hp_current,
+              attack:  bc.attack,
+              defense: bc.defense,
+              speed:   bc.speed,
+            };
+            startDungeonBattle(contentEl, dungeon, room, player,
+              (dungeon, nextRoom) => {
+                if (nextRoom) {
+                  startDungeonBattle(contentEl, dungeon, nextRoom, player,
+                    (d, r) => showDetail(d),
+                    showMap
+                  );
+                } else {
+                  showMap();
+                }
+              },
+              showMap
+            );
+          },
+          showMap
+        );
+      };
+
+      showMap();
+      return '';
     }
     default:          return renderVillageMap(bc, level);
   }
