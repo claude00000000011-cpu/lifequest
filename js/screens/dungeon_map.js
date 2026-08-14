@@ -6,7 +6,7 @@
 import { WORLD_DUNGEONS } from '../battle/config.js';
 
 // ─── STORAGE ─────────────────────────────────────────────────────────────────
-// Se hai un backend, sostituisci queste due funzioni con chiamate API.
+// Se hai un backend, sostituisci queste due funzioni con chiamate API. 
 // La struttura del JSON salvato è identica alla risposta del backend.
 
 function loadProgress() {
