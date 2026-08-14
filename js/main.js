@@ -1,6 +1,6 @@
 // ============================================================
 // main.js — Entry point di LifeQuest
-// ============================================================ 
+// ============================================================
 
 import { loadSession, setCUR, DB } from './db.js';
 import { initModals } from './modals.js';
@@ -27,20 +27,12 @@ function hideSplash() {
 // ── Boot ──────────────────────────────────────────────────────
 
 function bootApp(user) {
-  console.log('[Boot] bootApp() — utente:', user?.username, '| id:', user?.id);
-  const authEl = document.getElementById('auth-screen');
-  const appEl  = document.getElementById('app-main');
-  console.log('[Boot] auth-screen presente:', !!authEl, '| app-main presente:', !!appEl);
-  authEl?.classList.add('hidden');
-  appEl?.classList.remove('hidden');
-  console.log('[Boot] → gotoTab("home")');
+  document.getElementById('auth-screen')?.classList.add('hidden');
+  document.getElementById('app-main')?.classList.remove('hidden');
   gotoTab('home');
-  console.log('[Boot] → playBgm("home")');
   playBgm('home');
   Moderation.getBannedWords();
-  console.log('[Boot] → bootApp() completata');
 }
-
 
 // ── DOMContentLoaded ──────────────────────────────────────────
 
@@ -53,21 +45,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   setTimeout(hideSplash, 1500);
 
-const session = loadSession();
-  console.log('[Main] DOMContentLoaded — sessione:', session ? `trovata (${session.username})` : 'assente');
+  const session = loadSession();
   if (session) {
     setCUR(session);
-    console.log('[Main] → avvio bootApp tra 1600ms');
-    setTimeout(() => {
-      console.log('[Main] → bootApp() chiamata');
-      bootApp(session);
-    }, 1600);
+    setTimeout(() => bootApp(session), 1600);
   } else {
     setTimeout(() => {
-      console.log('[Main] → nessuna sessione, mostro auth-screen');
       hideSplash();
       document.getElementById('auth-screen')?.classList.remove('hidden');
-      playBgm('home');
+      playBgm('home'); // BGM anche sulla schermata login
     }, 1500);
   }
 
