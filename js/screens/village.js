@@ -173,16 +173,16 @@ function renderVillageHeader(bc, user, level) {
 
 function renderVillageTabs(bc, level) {
   const tabs = [
-    { id: 'map',       icon: '🗺️',  label: 'Villaggio' },
-    { id: 'port',      icon: '⛵',  label: 'Porto'     },
-    { id: 'merchant',  icon: '🛒',  label: 'Mercante'  },
-    { id: 'market',    icon: '🏪',  label: 'Mercato'   },
-    { id: 'inventory', icon: '🎒',  label: 'Zaino'     },
-    { id: 'smith',     icon: '🔨',  label: 'Fabbro'    },
-    { id: 'academy',   icon: '📜',  label: 'Accademia' },
-    { id: 'friends',   icon: '👥',  label: 'Amici'     },
-     { id: 'chat',      icon: '💬',  label: 'Chat'      },
-    { id: 'dungeon_map', icon: '🗺️', label: 'Mappa Dungeon' },
+   { id: 'map',         icon: '🗺️',  label: 'Villaggio'         },
+    { id: 'merchant',    icon: '🛒',  label: 'Mercante'           },
+    { id: 'market',      icon: '🏪',  label: 'Mercato'            },
+    { id: 'inventory',   icon: '🎒',  label: 'Zaino'              },
+    { id: 'smith',       icon: '🔨',  label: 'Fabbro'             },
+    { id: 'academy',     icon: '📜',  label: 'Accademia'          },
+    { id: 'dungeon_map', icon: '📖',  label: 'Storia'             },
+    { id: 'port',        icon: '⚔️',  label: 'Dungeon Giornalieri'},
+    { id: 'friends',     icon: '👥',  label: 'Amici'              },
+    { id: 'chat',        icon: '💬',  label: 'Chat'               },
   ];
 
 
