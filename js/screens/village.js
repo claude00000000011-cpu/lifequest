@@ -530,29 +530,41 @@ async function renderMerchant() {
   `;
 }
 
+
+
+
+
+
+
+
+
+
+
 // ── INVENTARIO ────────────────────────────────────────────────
 
 async function renderInventory(bc, user) {
-  const inv  = await loadInventory(CUR.id);
+  const inv   = await loadInventory(CUR.id);
   const equip = DB.characterEquipment?.[CUR.id] || [];
-
   const rarityOrder = { mythic:5, legendary:4, epic:3, rare:2, uncommon:1, common:0 };
   const sorted = [...inv].sort((a, b) =>
     (rarityOrder[b.items?.rarity] || 0) - (rarityOrder[a.items?.rarity] || 0)
   );
 
-  const slots = ['weapon','armor','helmet','accessory1','accessory2'];
-  const slotLabels = { weapon:'⚔️ Arma', armor:'🛡️ Armatura', helmet:'⛑️ Elmo',
-                       accessory1:'💍 Acc. 1', accessory2:'📿 Acc. 2' };
+  // ── slot aggiornati ai 10 nuovi ──
+  const slots = ['weapon','armor','helmet','leggings','gloves','shoes','ring','cloak','talisman','pet'];
+  const slotLabels = {
+    weapon:'⚔️ Arma', armor:'🛡️ Armatura', helmet:'⛑️ Elmo',
+    leggings:'👖 Gambali', gloves:'🧤 Guanti', shoes:'👟 Scarpe',
+    ring:'💍 Anello', cloak:'🧣 Mantello', talisman:'📿 Talismano', pet:'🐾 Pet'
+  };
 
   return `
     <div class="inventory-screen">
-      <!-- Equipaggiamento attivo -->
       <div class="village-section-title">⚔️ Equipaggiamento</div>
       <div class="equipment-slots">
         ${slots.map(slot => {
           const s    = equip.find(e => e.slot === slot);
-          const item = s ? (DB.battleItems || []).find(i => i.id === s.item_id) : null;
+          const item = s?.item || null; // <-- usa il join, non DB.battleItems
           return `
             <div class="equip-slot equip-slot--${slot} ${item ? 'equip-slot--filled' : ''}">
               <div class="equip-slot__label">${slotLabels[slot]}</div>
@@ -561,6 +573,10 @@ async function renderInventory(bc, user) {
                   <div class="equip-item-icon">${slotEmoji(slot)}</div>
                   <div class="equip-item-name">${escHtml(item.name)}</div>
                   <div class="equip-item-dur">Durabilità: ${s.durability}%</div>
+                  <button class="btn-sm btn-danger"
+                    onclick="window._unequipItem?.('${s.id}', '${slot}')">
+                    Rimuovi
+                  </button>
                 </div>
               ` : `<div class="equip-slot__empty">Vuoto</div>`}
             </div>
@@ -568,7 +584,6 @@ async function renderInventory(bc, user) {
         }).join('')}
       </div>
 
-      <!-- Inventario -->
       <div class="village-section-title" style="margin-top:1.25rem">
         🎒 Zaino (${sorted.length} oggetti)
       </div>
@@ -576,9 +591,9 @@ async function renderInventory(bc, user) {
         ? '<div class="empty-state" style="padding:2rem">Nessun oggetto. Esplora i dungeon o apri casse loot!</div>'
         : `<div class="inventory-list">
             ${sorted.map(entry => {
-              const item = entry.battle_items || (DB.battleItems || []).find(i => i.id === entry.item_id);
+              const item = entry.item || entry.battle_items || null;
               if (!item) return '';
-              return renderInventoryItem(entry, item);
+              return renderInventoryItem(entry, item, CUR.id);
             }).join('')}
           </div>`
       }
@@ -586,11 +601,39 @@ async function renderInventory(bc, user) {
   `;
 }
 
-function renderInventoryItem(entry, item) {
+
+
+
+
+
+
+
+function renderInventoryItem(entry, item, userId) {
   const rarColors = { common:'#9CA3AF', uncommon:'#22C55E', rare:'#3B82F6',
                       epic:'#7C3AED', legendary:'#F59E0B', mythic:'#DC2626' };
-  const color     = rarColors[item.rarity] || '#9CA3AF';
-  const bonuses   = buildBonusText(item);
+  const color   = rarColors[item.rarity] || '#9CA3AF';
+  const bonuses = buildBonusText(item);
+  const isEquip = item.slot !== 'consumable';
+
+  // verifica classe e livello prima di mostrare il bottone
+  const canEquip = isEquip && canEquipItem(userId, item);
+  const equipBtn = isEquip ? (canEquip
+    ? `<button class="btn-sm btn-primary"
+         onclick="window._equipItem?.('${entry.id}','${item.slot}')">
+         Equipaggia
+       </button>`
+    : `<span class="btn-sm btn-disabled" title="Classe o livello insufficiente">
+         🔒 Non utilizzabile
+       </span>`
+  ) : '';
+
+  const sellBtn = item.slot === 'consumable' && (entry.quantity || 1) > 1
+    ? `<button class="btn-sm btn-danger"
+         onclick="window._sellItem?.('${entry.id}', 1)">Vendi 1</button>
+       <button class="btn-sm btn-danger"
+         onclick="window._sellItem?.('${entry.id}', ${entry.quantity})">Vendi tutti</button>`
+    : `<button class="btn-sm btn-danger"
+         onclick="window._sellItem?.('${entry.id}', 1)">Vendi</button>`;
 
   return `
     <div class="inv-item rarity-border-${item.rarity}" data-inv-id="${entry.id}">
@@ -600,23 +643,13 @@ function renderInventoryItem(entry, item) {
         <div class="inv-item__slot badge">${escHtml(item.slot)}</div>
         ${bonuses ? `<div class="inv-item__bonuses">${bonuses}</div>` : ''}
         ${item.slot === 'consumable' ? `<div class="inv-item__qty">×${entry.quantity || 1}</div>` : ''}
+        ${item.class_restriction?.length
+          ? `<div class="inv-item__class">Classe: ${item.class_restriction.join(', ')}</div>`
+          : ''}
       </div>
       <div class="inv-item__actions">
-        ${item.slot !== 'consumable' ? `
-          <button class="btn-sm btn-primary" onclick="window._equipItem?.('${entry.id}', '${item.slot}')">
-            Equipaggia
-          </button>
-        ` : ''}
-
-
-        
-        ${item.slot === 'consumable' && (entry.quantity || 1) > 1
-  ? `<button class="btn-sm btn-danger" onclick="window._sellItem?.('${entry.id}', 1)">Vendi 1</button>
-     <button class="btn-sm btn-danger" onclick="window._sellItem?.('${entry.id}', ${entry.quantity})">Vendi tutti</button>`
-  : `<button class="btn-sm btn-danger" onclick="window._sellItem?.('${entry.id}', 1)">Vendi</button>`
-}
-
-        
+        ${equipBtn}
+        ${sellBtn}
       </div>
     </div>
   `;
