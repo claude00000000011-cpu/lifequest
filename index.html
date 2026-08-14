@@ -727,20 +727,15 @@ body { font-size: calc(1rem * var(--font-scale)); }
 </style>
 
 
-
 <script>
-  // Nav toggle
   (function() {
     const nav = document.getElementById('bottom-nav');
     const btn = document.createElement('button');
     btn.id = 'nav-toggle';
     btn.textContent = '▼';
-    btn.setAttribute('aria-label', 'Mostra/nascondi navigazione');
-    document.body.appendChild(btn);
-
-    let visible = true;
     btn.classList.add('nav-visible');
-
+    document.body.appendChild(btn);
+    let visible = true;
     btn.addEventListener('click', () => {
       visible = !visible;
       nav.classList.toggle('nav--collapsed', !visible);
@@ -750,6 +745,7 @@ body { font-size: calc(1rem * var(--font-scale)); }
     });
   })();
 </script>
+
 
   
 </body>
