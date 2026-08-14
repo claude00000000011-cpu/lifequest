@@ -728,7 +728,28 @@ body { font-size: calc(1rem * var(--font-scale)); }
 
 
 
+<script>
+  // Nav toggle
+  (function() {
+    const nav = document.getElementById('bottom-nav');
+    const btn = document.createElement('button');
+    btn.id = 'nav-toggle';
+    btn.textContent = '▼';
+    btn.setAttribute('aria-label', 'Mostra/nascondi navigazione');
+    document.body.appendChild(btn);
 
+    let visible = true;
+    btn.classList.add('nav-visible');
+
+    btn.addEventListener('click', () => {
+      visible = !visible;
+      nav.classList.toggle('nav--collapsed', !visible);
+      btn.classList.toggle('nav-visible', visible);
+      btn.classList.toggle('nav-hidden', !visible);
+      btn.textContent = visible ? '▼' : '▲';
+    });
+  })();
+</script>
 
   
 </body>
