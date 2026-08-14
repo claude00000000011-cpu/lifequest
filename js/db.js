@@ -7,6 +7,8 @@ import { DB_KEY, SESSION_KEY, SESSION_KEYS, ROUTINE_ITEMS } from './config.js';
 function mkDB() {
   return {
     version:           5,
+
+    // ── Core app ──────────────────────────────────────────────
     users:             {},
     quests:            [],
     exams:             [],
@@ -25,7 +27,46 @@ function mkDB() {
     discussions:       [],
     discussionReplies: [],
     bannedWords:       [],
-    notifications:     [],   // { id, toUserId, type, fromUsername, extra, read, createdAt }
+    notifications:     [],
+
+    // ── Battle system — cataloghi globali (array) ─────────────
+    battleItems:       [],
+    battleEnemies:     [],
+    battleClasses:     [],
+    battleAbilities:   [],
+    lootBoxes:         [],
+    enhancementConfig: [],
+
+    // ── Battle system — dati per utente (oggetti keyed by userId) ─
+    battleCharacters:  {},
+    characterEquipment:{},
+    characterAbilities:{},
+    battleInventory:   {},
+    dungeonProgress:   {},
+    dungeonSessions:   {},
+    dailyBattleLimits: {},
+    activeSummons:     {},
+    itemEnhancements:  {},
+
+    // ── Social / Guild ────────────────────────────────────────
+    guilds:            [],
+    guildMembers:      [],
+    guildRaids:        [],
+    guildWars:         [],
+    gameChat:          [],
+    gameFriends:       {},
+
+    // ── Mercato / Economia ────────────────────────────────────
+    marketListings:    [],
+    marketSales:       [],
+    goldTransactions:  {},
+    lootBoxHistory:    {},
+
+    // ── PvP ───────────────────────────────────────────────────
+    pvpRankings:       [],
+    pvpSeasons:        [],
+    battles:           [],
+    battleLeaderboard: [],
   };
 }
 
