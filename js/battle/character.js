@@ -127,6 +127,14 @@ export function calcBattleStats(userId) {
 
 
 
+
+
+
+
+
+
+
+
 /**
  * Somma i bonus di tutti gli oggetti equipaggiati.
  * @param {Array} equipment — array slot equipment
@@ -138,10 +146,10 @@ function calcEquipmentBonus(equipment) {
 
   equipment.forEach(slot => {
     if (!slot.item_id) return;
-    const item = (DB.battleItems || []).find(i => i.id === slot.item_id);
+    const item = slot.item; // <-- ora viene dal join, non da DB.battleItems
     if (!item) return;
 
-    const dur  = (slot.durability ?? 100) / 100; // efficacia 0-1
+    const dur = (slot.durability ?? 100) / 100;
     bonus.hp      += Math.floor((item.bonus_hp      || 0) * dur);
     bonus.attack  += Math.floor((item.bonus_attack  || 0) * dur);
     bonus.defense += Math.floor((item.bonus_defense || 0) * dur);
@@ -152,6 +160,11 @@ function calcEquipmentBonus(equipment) {
 
   return bonus;
 }
+
+
+
+
+
 
 
 
@@ -539,6 +552,24 @@ export async function incrementDailyLimit(userId, field) {
   }
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // ── Caricamento dati da Supabase ──────────────────────────────
 
 export async function loadEquipment(userId) {
@@ -547,7 +578,15 @@ export async function loadEquipment(userId) {
 
   const { data, error } = await supabase
     .from('character_equipment')
-    .select('*')
+    .select(`
+      *,
+      item:battle_items (
+        id, name, slot, rarity, icon_path, durability,
+        bonus_hp, bonus_attack, bonus_defense, bonus_speed,
+        bonus_mana, bonus_luck_pct, class_restriction,
+        buy_price, sell_price, level_req
+      )
+    `)
     .eq('character_id', bc.id);
 
   if (!error && data) {
@@ -555,6 +594,17 @@ export async function loadEquipment(userId) {
     persist();
   }
 }
+
+
+
+
+
+
+
+
+
+
+
 
 export async function loadAbilities(userId) {
   const bc = DB.battleCharacters[userId];
@@ -694,3 +744,23 @@ export function canAccessDungeon(userId, tier) {
   const delta = tier - 1;
   return level >= dungeon.minLevel && delta <= PROGRESSION.dungeonLevelCap;
 }
+
+
+
+
+export function canEquipItem(userId, item) {
+  const bc = DB.battleCharacters[userId];
+  if (!bc) return false;
+
+  // Verifica classe
+  if (item.class_restriction?.length > 0) {
+    if (!item.class_restriction.includes(bc.class_id)) return false;
+  }
+
+  // Verifica level requirement
+  const level = calcLevel(DB.users[userId]?.xp || 0);
+  if (item.level_req && level < item.level_req) return false;
+
+  return true;
+}
+
