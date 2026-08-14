@@ -91,28 +91,27 @@ function renderMyStats() {
         <p class="xp-bar__label">${xp.toLocaleString()} / ${next.toLocaleString()} XP</p>
       </div>
 
-      <div class="profile-social-row">
+  <div class="profile-social-row">
         <div><strong>${(user.following || []).length}</strong><span>Seguiti</span></div>
         <div><strong>${(user.followers || []).length}</strong><span>Follower</span></div>
         <div><strong>🔥 ${user.streak || 0}</strong><span>Streak</span></div>
       </div>
-    </div>
 
-    <h3 class="section-title">📊 Statistiche</h3>
-    <div class="stats-grid">
-      ${Object.entries(user.stats || {}).map(([key, val]) => `
-        <div class="stat-card" style="border-color:${STAT_COLORS[key] || '#7c3aed'}">
-          <div class="stat-card__label">${key.charAt(0).toUpperCase() + key.slice(1)}</div>
-          <div class="stat-card__value" style="color:${STAT_COLORS[key] || '#7c3aed'}">
-            ${val.toLocaleString()}
-          </div>
-          <div class="progress-bar">
-            <div class="progress-bar__fill"
-                 style="width:${Math.min(100, Math.round(val / 100))}%;
-                        background:${STAT_COLORS[key] || '#7c3aed'}">
+      <div class="stats-grid stats-grid--inline">
+        ${Object.entries(user.stats || {}).map(([key, val]) => `
+          <div class="stat-card" style="border-color:${STAT_COLORS[key] || '#7c3aed'}">
+            <div class="stat-card__label">${key.charAt(0).toUpperCase() + key.slice(1)}</div>
+            <div class="stat-card__value" style="color:${STAT_COLORS[key] || '#7c3aed'}">
+              ${val.toLocaleString()}
             </div>
-          </div>
-        </div>`).join('')}
+            <div class="progress-bar">
+              <div class="progress-bar__fill"
+                   style="width:${Math.min(100, Math.round(val / 100))}%;
+                          background:${STAT_COLORS[key] || '#7c3aed'}">
+              </div>
+            </div>
+          </div>`).join('')}
+      </div>
     </div>
 
     <h3 class="section-title">📚 Generi preferiti</h3>
