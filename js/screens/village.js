@@ -54,10 +54,11 @@ export async function renderVillage() {
   if (!container) return;
 
   // Carica dati necessari
-  await Promise.all([
+ await Promise.all([
     syncBattleCharacter(CUR.id),
     loadItems(),
     loadBattleClasses(),
+    loadEquipment(CUR.id),
   ]);
 
   const bc    = getBattleChar(CUR.id);
