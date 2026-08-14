@@ -7,10 +7,14 @@ import { renderBattleResult } from './dungeon_map.js';
 export function startDungeonBattle(containerEl, dungeon, room, player, onContinue, onMap) {
   const enemy = buildEnemyForRoom(room, dungeon);
 
-  window._storyBattleResolve = (outcome, playerHpEnd) => {
+window._storyBattleResolve = (outcome, playerHpEnd) => {
     window._storyBattleResolve = null;
-    renderBattleResult(containerEl, dungeon, room, outcome, playerHpEnd, onContinue, onMap);
-    // Torna alla schermata villaggio/storia
+    if (outcome === 'win-back') {
+      // Ha vinto ma vuole tornare alla mappa — salva progresso e mostra mappa
+      onContinue(dungeon, null);
+    } else {
+      renderBattleResult(containerEl, dungeon, room, outcome, playerHpEnd, onContinue, onMap);
+    }
     window._gotoTab?.('battle');
     window._switchVillageTab?.('dungeon_map');
   };
