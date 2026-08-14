@@ -602,6 +602,7 @@ function _showEndOverlay(container, won, gold, xp = 0, item = null) {
   const overlay = document.createElement('div');
   overlay.className = `battle-end-overlay ${won ? 'battle-win' : won === null ? '' : 'battle-loss'}`;
   const isDungeon = !!_dungeonCtx?.dungeon;
+  const isStory   = !!_dungeonCtx?.storyMode;
   overlay.innerHTML = `
     <div class="battle-end-content">
       <div class="battle-end-icon">${won === null ? '🏃' : won ? '🏆' : '💀'}</div>
@@ -646,8 +647,47 @@ function _showEndOverlay(container, won, gold, xp = 0, item = null) {
 
 
          
-  // Se siamo in un dungeon e abbiamo vinto, gestisci avanzamento stanza
-  if (isDungeon && won) {
+// Modalità Storia — gestisci avanzamento stanza
+  if (isStory && won) {
+    const btnArea = overlay.querySelector('#battle-end-btn-area');
+    btnArea.innerHTML = `
+      <button class="btn-primary" id="btn-story-continue">⚔️ Prossima stanza →</button>
+      <button class="btn-secondary" id="btn-story-back" style="margin-top:0.5rem">← Torna alla mappa</button>
+    `;
+    btnArea.querySelector('#btn-story-continue')?.addEventListener('click', () => {
+      if (window._storyBattleResolve) {
+        window._storyBattleResolve('win', Math.max(0, Math.floor(_battleState?.player?.hp ?? 0)));
+      }
+    });
+    btnArea.querySelector('#btn-story-back')?.addEventListener('click', () => {
+      if (window._storyBattleResolve) {
+        window._storyBattleResolve('win-back', Math.max(0, Math.floor(_battleState?.player?.hp ?? 0)));
+      }
+      window._gotoTab?.('battle');
+      window._switchVillageTab?.('dungeon_map');
+    });
+  } else if (isStory && !won) {
+    // Sconfitta in modalità Storia — solo torna alla mappa
+    overlay.querySelector('#btn-back-from-battle')?.replaceWith((() => {
+      const b = document.createElement('button');
+      b.className = 'btn-secondary';
+      b.textContent = '← Torna alla mappa';
+      b.addEventListener('click', () => {
+        if (window._storyBattleResolve) {
+          window._storyBattleResolve('loss', 0);
+        }
+        window._gotoTab?.('battle');
+        window._switchVillageTab?.('dungeon_map');
+      });
+      return b;
+    })());
+  } else if (isDungeon && won) {
+
+
+
+
+
+           
     const btnArea = overlay.querySelector('#battle-end-btn-area');
     const advance = advanceRoom();
 
