@@ -102,15 +102,12 @@ export async function doLogin() {
     DB.users[data.id] = merged;
     persist();
 
-   setCUR(merged);
-    console.log('[Auth] doLogin → setCUR ok, utente:', merged.username);
+    setCUR(merged);
     playSound('login');
     toast(`Bentornato, ${merged.username}! 🔥`, 'success');
-    console.log('[Auth] → chiamo bootApp()');
     bootApp();
 
     // Sync asincrono post-login
-    console.log('[Auth] → syncCloudDataOnLogin avviato');
     syncCloudDataOnLogin(merged.id);
     Moderation.getBannedWords();
 
