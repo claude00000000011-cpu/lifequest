@@ -42,25 +42,37 @@
 
 /* ── Centramento desktop ────────────────────────────── */
 @media (min-width: 768px) {
-  #app-main,
-  .bottom-nav,
-  #nav-toggle {
+  /* Solo nav e toggle si centrano con position fixed */
+  .bottom-nav {
     max-width: 768px;
     left: 50%;
     transform: translateX(-50%);
     right: auto;
-  }
-  .bottom-nav {
     width: 768px;
   }
+  .bottom-nav.nav--collapsed {
+    transform: translateX(-50%) translateY(100%);
+  }
   #nav-toggle {
-    /* sovrascrive il transform per il toggle */
     left: 50%;
     transform: translateX(-50%);
+  }
+  /* Il contenuto si centra con margin auto */
+  #app-main {
+    max-width: 768px;
+    margin: 0 auto;
+    left: auto;
+    right: auto;
   }
   .screen {
     max-width: 768px;
     margin: 0 auto;
+  }
+  /* Auth screen centrata normalmente */
+  #auth-screen {
+    max-width: 100%;
+    left: auto;
+    transform: none;
   }
 }
 
