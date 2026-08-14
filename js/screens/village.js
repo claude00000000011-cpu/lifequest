@@ -27,6 +27,8 @@ import { ECONOMY, PROGRESSION,
          DUNGEONS, GUILDS }         from '../battle/config.js';
 import { renderDungeonMap, renderDungeonDetail } from './dungeon_map.js';
 import { startDungeonBattle }                    from './dungeon_battle.js';
+import { loadEquipment, canEquipItem, getBattleChar,
+         syncBattleCharacter, syncPowerLevel } from '../battle/character.js';
 
 // ── Stato navigazione villaggio ───────────────────────────────
 let _villageTab = 'map';  // 'map'|'merchant'|'port'|'smith'|'academy'|'oracle'|'inventory'
