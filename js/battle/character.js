@@ -146,7 +146,7 @@ function calcEquipmentBonus(equipment) {
 
   equipment.forEach(slot => {
     if (!slot.item_id) return;
-    const item = slot.item; // <-- ora viene dal join, non da DB.battleItems
+    const item = slot.item; // <-- dal join, non da DB.battleItems
     if (!item) return;
 
     const dur = (slot.durability ?? 100) / 100;
@@ -160,7 +160,6 @@ function calcEquipmentBonus(equipment) {
 
   return bonus;
 }
-
 
 
 
@@ -581,7 +580,7 @@ export async function loadEquipment(userId) {
     .select(`
       *,
       item:battle_items (
-        id, name, slot, rarity, icon_path, durability,
+        id, name, slot, rarity, icon_path,
         bonus_hp, bonus_attack, bonus_defense, bonus_speed,
         bonus_mana, bonus_luck_pct, class_restriction,
         buy_price, sell_price, level_req
@@ -748,11 +747,18 @@ export function canAccessDungeon(userId, tier) {
 
 
 
+/**
+ * Verifica se il personaggio può equipaggiare un item.
+ * Controlla classe e level_req.
+ * @param {string} userId
+ * @param {object} item — oggetto da battle_items
+ * @returns {boolean}
+ */
 export function canEquipItem(userId, item) {
   const bc = DB.battleCharacters[userId];
   if (!bc) return false;
 
-  // Verifica classe
+  // Verifica restrizione di classe
   if (item.class_restriction?.length > 0) {
     if (!item.class_restriction.includes(bc.class_id)) return false;
   }
@@ -763,4 +769,3 @@ export function canEquipItem(userId, item) {
 
   return true;
 }
-
