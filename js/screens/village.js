@@ -2192,3 +2192,48 @@ window._sendChatMessage = async function() {
 
 
 
+
+
+
+window._equipItem = async function(inventoryId, itemId, slot) {
+  const bc = getBattleChar(CUR.id);
+  if (!bc) return toast('Personaggio non trovato', 'error');
+
+  const { supabase: sb } = await import('../../supabase.js');
+
+  const { error } = await sb
+    .from('character_equipment')
+    .upsert({
+      character_id: bc.id,
+      slot,
+      item_id:     itemId,
+      durability:  100,
+      equipped_at: new Date().toISOString()
+    }, { onConflict: 'character_id,slot' });
+
+  if (error) {
+    console.error('[Equip] error:', error.message);
+    return toast(
+      error.message.includes('non autorizzata')
+        ? 'Classe non autorizzata per questo item'
+        : `Errore: ${error.message}`,
+      'error'
+    );
+  }
+
+  await loadEquipment(CUR.id);
+  await syncBattleCharacter(CUR.id);
+  await syncPowerLevel(CUR.id);
+
+  playSound('equip');
+  toast('Oggetto equipaggiato! ⚔️', 'success');
+  renderVillage();
+};
+
+
+
+
+
+
+
+
