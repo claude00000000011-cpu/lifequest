@@ -126,14 +126,22 @@ function renderMyStats() {
       }).join('')}
     </div>
 
-    ${trophies.length ? `
-      <h3 class="section-title">🏆 Trofei (${trophies.length})</h3>
-      <div class="trophy-grid">
-        ${trophies.map(id => {
-          const { TROPHY_DEFS } = window._trophyDefs || {};
-          return `<div class="trophy-chip" title="${id}">🏆 ${id}</div>`;
-        }).join('')}
-      </div>` : ''}
+
+
+
+ <h3 class="section-title">🏆 Trofei (${trophies.length})</h3>
+    <button onclick="window._openTrophiesModal?.()" 
+      style="width:100%;background:rgba(200,160,0,0.12);border:1px solid var(--gold-dark);
+             padding:0.6rem;font-family:var(--font-pixel);font-size:0.35rem;
+             color:var(--gold);cursor:pointer;margin-bottom:0.75rem;letter-spacing:0.5px">
+      ${trophies.length === 0 ? 'Nessun trofeo ancora' : `Vedi tutti i ${trophies.length} trofei →`}
+    </button>
+
+
+
+
+
+
 
     <h3 class="section-title">🌍 Lingue</h3>
     <div class="lang-chips">
@@ -811,5 +819,16 @@ window._adminRemoveBannedWord = async function(word) {
   await supabase.from('banned_words').delete().eq('word', word);
   toast(`"${word}" rimosso.`, 'success');
   window._adminViewBanned?.();
+};
+
+
+
+
+
+window._openTrophiesModal = async function() {
+  const { renderTrophiesModal } = await import('../trophies.js');
+  const user = DB.users[CUR.id] || CUR;
+  renderTrophiesModal(user.trophies || [], user.username);
+  document.getElementById('modal-trophies')?.classList.remove('modal--hidden');
 };
 
