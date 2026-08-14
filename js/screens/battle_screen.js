@@ -615,11 +615,37 @@ function _showEndOverlay(container, won, gold, xp = 0, item = null) {
     </div>
   `;
 
-  // Bottone "Villaggio" — sempre presente come fallback
+
+
+
+
+
+
+
+
+         
+// Bottone "Villaggio" — sempre presente come fallback
   overlay.querySelector('#btn-back-from-battle')?.addEventListener('click', () => {
-    window._gotoVillage?.();
+    if (_dungeonCtx?.storyMode && window._storyBattleResolve) {
+      window._storyBattleResolve(won ? 'win' : 'loss', Math.max(0, Math.floor(state?.player?.hp ?? 0)));
+      window._gotoTab?.('battle');
+      window._switchVillageTab?.('dungeon_map');
+    } else {
+      window._gotoVillage?.();
+    }
   });
 
+
+
+
+
+
+
+
+
+
+
+         
   // Se siamo in un dungeon e abbiamo vinto, gestisci avanzamento stanza
   if (isDungeon && won) {
     const btnArea = overlay.querySelector('#battle-end-btn-area');
@@ -648,14 +674,32 @@ function _showEndOverlay(container, won, gold, xp = 0, item = null) {
           <button class="btn-primary" id="btn-next-room">⚔️ Stanza ${advance.nextRoom?.index} →</button>
           <button class="btn-secondary" id="btn-flee-dungeon" style="margin-top:0.5rem">🏃 Abbandona</button>
         `;
-        btnArea.querySelector('#btn-next-room')?.addEventListener('click', () => {
+
+
+
+
+               
+       btnArea.querySelector('#btn-next-room')?.addEventListener('click', () => {
           overlay.remove();
           renderBattleScreen(nextEnemy, _dungeonCtx);
         });
         btnArea.querySelector('#btn-flee-dungeon')?.addEventListener('click', () => {
-          import('../battle/dungeon.js').then(m => m.abandonDungeon());
-          window._gotoVillage?.();
+          if (_dungeonCtx?.storyMode && window._storyBattleResolve) {
+            window._storyBattleResolve('flee', 0);
+            window._gotoTab?.('battle');
+            window._switchVillageTab?.('dungeon_map');
+          } else {
+            import('../battle/dungeon.js').then(m => m.abandonDungeon());
+            window._gotoVillage?.();
+          }
         });
+
+
+
+
+
+
+               
       }
     }
   }
