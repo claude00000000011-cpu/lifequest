@@ -1,5 +1,5 @@
 // ============================================================
-// js/battle/economy.js — Economia Battle System LifeQuest
+// js/battle/economy.js — Economia Battle System LifeQuest - test 1 03:15 prima riparazione dopo ore che il sito non va (controllare deploy)
 // Gold, casse loot con pity system, mercante, drop oggetti.
 // ============================================================
 
