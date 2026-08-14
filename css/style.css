@@ -1137,3 +1137,9 @@ select {
 
 
 
+/* ── Bottom nav centrata su desktop ── */
+@media (min-width: 768px) {
+  .bottom-nav {
+    justify-content: center;
+  }
+}
