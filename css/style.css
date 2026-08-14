@@ -1291,3 +1291,23 @@ select {
   height: 4px;
   margin: 2px 0 0;
 }
+
+
+
+
+/* ── Fix leggibilità scritte su sfondo scuro ── */
+.stat-card__label,
+.profile-social-row span,
+.xp-bar__label,
+.hero-username,
+.stat-mini-item__label,
+.quest-xp,
+.post-card__time,
+.leaderboard-user span,
+.empty-note,
+.auth-field label,
+.auth-hint,
+.feed-loading {
+  color: #b0b0d0 !important;
+  text-shadow: 0 1px 3px #000;
+}
