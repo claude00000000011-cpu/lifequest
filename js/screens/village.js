@@ -550,12 +550,18 @@ async function renderInventory(bc, user) {
     (rarityOrder[b.items?.rarity] || 0) - (rarityOrder[a.items?.rarity] || 0)
   );
 
-  // ── slot aggiornati ai 10 nuovi ──
   const slots = ['weapon','armor','helmet','leggings','gloves','shoes','ring','cloak','talisman','pet'];
   const slotLabels = {
-    weapon:'⚔️ Arma', armor:'🛡️ Armatura', helmet:'⛑️ Elmo',
-    leggings:'👖 Gambali', gloves:'🧤 Guanti', shoes:'👟 Scarpe',
-    ring:'💍 Anello', cloak:'🧣 Mantello', talisman:'📿 Talismano', pet:'🐾 Pet'
+    weapon:   '⚔️ Arma',
+    armor:    '🛡️ Armatura',
+    helmet:   '⛑️ Elmo',
+    leggings: '👖 Gambali',
+    gloves:   '🧤 Guanti',
+    shoes:    '👟 Scarpe',
+    ring:     '💍 Anello',
+    cloak:    '🧣 Mantello',
+    talisman: '📿 Talismano',
+    pet:      '🐾 Pet'
   };
 
   return `
@@ -564,7 +570,7 @@ async function renderInventory(bc, user) {
       <div class="equipment-slots">
         ${slots.map(slot => {
           const s    = equip.find(e => e.slot === slot);
-          const item = s?.item || null; // <-- usa il join, non DB.battleItems
+          const item = s?.item || null;
           return `
             <div class="equip-slot equip-slot--${slot} ${item ? 'equip-slot--filled' : ''}">
               <div class="equip-slot__label">${slotLabels[slot]}</div>
@@ -606,26 +612,27 @@ async function renderInventory(bc, user) {
 
 
 
-
-
 function renderInventoryItem(entry, item, userId) {
-  const rarColors = { common:'#9CA3AF', uncommon:'#22C55E', rare:'#3B82F6',
-                      epic:'#7C3AED', legendary:'#F59E0B', mythic:'#DC2626' };
+  const rarColors = {
+    common:'#9CA3AF', uncommon:'#22C55E', rare:'#3B82F6',
+    epic:'#7C3AED', legendary:'#F59E0B', mythic:'#DC2626'
+  };
   const color   = rarColors[item.rarity] || '#9CA3AF';
   const bonuses = buildBonusText(item);
   const isEquip = item.slot !== 'consumable';
 
-  // verifica classe e livello prima di mostrare il bottone
+  // Verifica classe e livello prima di mostrare il bottone
   const canEquip = isEquip && canEquipItem(userId, item);
-  const equipBtn = isEquip ? (canEquip
-    ? `<button class="btn-sm btn-primary"
-         onclick="window._equipItem?.('${entry.id}','${item.slot}')">
-         Equipaggia
-       </button>`
-    : `<span class="btn-sm btn-disabled" title="Classe o livello insufficiente">
-         🔒 Non utilizzabile
-       </span>`
-  ) : '';
+  const equipBtn = isEquip
+    ? (canEquip
+        ? `<button class="btn-sm btn-primary"
+             onclick="window._equipItem?.('${entry.id}', '${item.id}', '${item.slot}')">
+             Equipaggia
+           </button>`
+        : `<span class="btn-sm btn-disabled" title="Classe o livello insufficiente">
+             🔒 Non utilizzabile
+           </span>`)
+    : '';
 
   const sellBtn = item.slot === 'consumable' && (entry.quantity || 1) > 1
     ? `<button class="btn-sm btn-danger"
@@ -642,9 +649,13 @@ function renderInventoryItem(entry, item, userId) {
         <div class="inv-item__name" style="color:${color}">${escHtml(item.name)}</div>
         <div class="inv-item__slot badge">${escHtml(item.slot)}</div>
         ${bonuses ? `<div class="inv-item__bonuses">${bonuses}</div>` : ''}
-        ${item.slot === 'consumable' ? `<div class="inv-item__qty">×${entry.quantity || 1}</div>` : ''}
+        ${item.slot === 'consumable'
+          ? `<div class="inv-item__qty">×${entry.quantity || 1}</div>`
+          : ''}
         ${item.class_restriction?.length
-          ? `<div class="inv-item__class">Classe: ${item.class_restriction.join(', ')}</div>`
+          ? `<div class="inv-item__class">
+               Classe: ${item.class_restriction.map(c => `<span class="badge badge--class">${c}</span>`).join(' ')}
+             </div>`
           : ''}
       </div>
       <div class="inv-item__actions">
