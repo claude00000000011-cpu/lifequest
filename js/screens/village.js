@@ -116,47 +116,67 @@ container.innerHTML = `
 // ════════════════════════════════════════════════════════════
 
 function renderVillageHeader(bc, user, level) {
-  const classData = (DB.battleClasses || []).find(c => c.id === bc.class_id);
-  const classIcon = { warrior:'⚔️', mage:'🔮', bard:'🎸', shadow:'🗡️', oracle:'☀️' }[bc.class_id] || '⚔️';
-  const classColor= { warrior:'#DC2626', mage:'#3B82F6', bard:'#F59E0B', shadow:'#6B7280', oracle:'#A855F7' }[bc.class_id] || 'var(--accent)';
+  const classData  = (DB.battleClasses || []).find(c => c.id === bc.class_id);
+  const classIcon  = { warrior:'⚔️', mage:'🔮', bard:'🎸', shadow:'🗡️', oracle:'☀️' }[bc.class_id] || '⚔️';
+  const classColor = { warrior:'#DC2626', mage:'#3B82F6', bard:'#F59E0B', shadow:'#6B7280', oracle:'#A855F7' }[bc.class_id] || 'var(--accent)';
+
+  // Livello di combattimento dal power_level in DB (aggiornato da syncBattleCharacter)
+  const combatLevel = bc.power_level ?? '—';
+
+  const hpPct   = Math.round((bc.hp_current / Math.max(1, bc.hp_base)) * 100);
+  const manaPct = Math.round((bc.mana_current / Math.max(1, bc.mana_max)) * 100);
 
   return `
     <div class="village-header">
-      <div class="village-hero">
+
+      <!-- Riga 1: Personaggio | Livello combattimento | Gold -->
+      <div class="village-hud-top">
+
         <div class="village-class-badge" style="background:${classColor}22;border-color:${classColor}44">
           <span class="village-class-icon">${classIcon}</span>
-          <div class="village-hero-info">
+          <div>
             <div class="village-hero-name">@${escHtml(user.username)}</div>
             <div class="village-hero-class" style="color:${classColor}">
               ${escHtml(classData?.name || 'Senza Classe')} · Lv.${level}
             </div>
           </div>
         </div>
+
+        <div class="village-combat-level">
+          <div class="village-combat-level__label">Livello di<br>combattimento</div>
+          <div class="village-combat-level__val" id="village-combat-level">${combatLevel}</div>
+        </div>
+
         <div class="village-gold-badge">
           <span class="village-gold-icon">🪙</span>
-          <span class="village-gold-amount" id="village-gold">${(bc.gold || 0).toLocaleString()}</span>
+          <span id="village-gold">${(bc.gold || 0).toLocaleString()}</span>
         </div>
+
       </div>
 
+      <!-- Riga 2: HP | Mana | PA -->
       <div class="village-stats-bar">
+
         <div class="village-stat-pill">
           <span class="vstat-icon">❤️</span>
           <div class="vstat-bar-wrap">
-            <div class="vstat-bar hp-bar" style="width:${Math.round((bc.hp_current / bc.hp_base) * 100)}%"></div>
+            <div class="vstat-bar hp-bar" style="width:${hpPct}%"></div>
           </div>
           <span class="vstat-val">${bc.hp_current}/${bc.hp_base}</span>
         </div>
+
         <div class="village-stat-pill">
           <span class="vstat-icon">💙</span>
           <div class="vstat-bar-wrap">
-            <div class="vstat-bar mana-bar" style="width:${Math.round((bc.mana_current / Math.max(1, bc.mana_max)) * 100)}%"></div>
+            <div class="vstat-bar mana-bar" style="width:${manaPct}%"></div>
           </div>
           <span class="vstat-val">${bc.mana_current}/${bc.mana_max}</span>
         </div>
-        <div class="village-stat-pill">
-          <span class="vstat-icon">✨</span>
-          <span class="vstat-val">${bc.skill_points} PA</span>
+
+        <div class="village-pa-pill">
+          ✨ ${bc.skill_points} PA
         </div>
+
       </div>
     </div>
   `;
@@ -173,35 +193,54 @@ function renderVillageHeader(bc, user, level) {
 
 function renderVillageTabs(bc, level) {
   const tabs = [
-   { id: 'map',         icon: '🗺️',  label: 'Villaggio'         },
-    { id: 'merchant',    icon: '🛒',  label: 'Mercante'           },
-    { id: 'market',      icon: '🏪',  label: 'Mercato'            },
-    { id: 'inventory',   icon: '🎒',  label: 'Zaino'              },
-    { id: 'smith',       icon: '🔨',  label: 'Fabbro'             },
-    { id: 'academy',     icon: '📜',  label: 'Accademia'          },
-    { id: 'dungeon_map', icon: '📖',  label: 'Storia'             },
-    { id: 'port',        icon: '⚔️',  label: 'Dungeon Giornalieri'},
-    { id: 'friends',     icon: '👥',  label: 'Amici'              },
-    { id: 'chat',        icon: '💬',  label: 'Chat'               },
+    { id: 'map',         icon: '🗺️',  label: 'Villaggio'          },
+    { id: 'merchant',    icon: '🛒',  label: 'Mercante'            },
+    { id: 'market',      icon: '🏪',  label: 'Mercato'             },
+    { id: 'inventory',   icon: '🎒',  label: 'Zaino'               },
+    { id: 'smith',       icon: '🔨',  label: 'Fabbro'              },
+    { id: 'academy',     icon: '📜',  label: 'Accademia'           },
+    { id: 'dungeon_map', icon: '📖',  label: 'Storia'              },
+    { id: 'port',        icon: '⚔️',  label: 'Dungeon Giornalieri' },
+    { id: 'friends',     icon: '👥',  label: 'Amici'               },
+    { id: 'chat',        icon: '💬',  label: 'Chat'                },
   ];
 
-
-
-
-
-         
   return `
-    <div class="tab-row village-tabs">
-      ${tabs.map(t => `
-        <button class="tab-btn ${_villageTab === t.id ? 'tab-btn--active' : ''}"
-                onclick="window._switchVillageTab?.('${t.id}')">
-          ${t.icon} ${t.label}
-        </button>
-      `).join('')}
+    <div class="village-tabs-wrap">
+      <button class="village-tabs-arrow" id="vtab-arrow-left" onclick="window._villageTabScroll?.(-120)" aria-label="Scorri sinistra">‹</button>
+      <div class="tab-row village-tabs" id="village-tabs-scroll">
+        ${tabs.map(t => `
+          <button class="tab-btn ${_villageTab === t.id ? 'tab-btn--active' : ''}"
+                  onclick="window._switchVillageTab?.('${t.id}')">
+            ${t.icon} ${t.label}
+          </button>
+        `).join('')}
+      </div>
+      <button class="village-tabs-arrow village-tabs-arrow--right" id="vtab-arrow-right" onclick="window._villageTabScroll?.(120)" aria-label="Scorri destra">›</button>
     </div>
   `;
 }
 
+// Aggiungi questa funzione globale subito dopo renderVillageTabs
+window._villageTabScroll = function(delta) {
+  const el = document.getElementById('village-tabs-scroll');
+  if (!el) return;
+  el.scrollBy({ left: delta, behavior: 'smooth' });
+  setTimeout(_updateVillageTabArrows, 200);
+};
+
+function _updateVillageTabArrows() {
+  const el    = document.getElementById('village-tabs-scroll');
+  const left  = document.getElementById('vtab-arrow-left');
+  const right = document.getElementById('vtab-arrow-right');
+  if (!el || !left || !right) return;
+  left.disabled  = el.scrollLeft < 4;
+  right.disabled = el.scrollLeft >= el.scrollWidth - el.clientWidth - 4;
+}
+
+// Chiama dopo ogni renderVillage — aggiungi in fondo alla funzione renderVillage,
+// dentro il setTimeout esistente o subito dopo il container.innerHTML = ...
+// setTimeout(_updateVillageTabArrows, 100);
 // ════════════════════════════════════════════════════════════
 // CONTENUTO TAB
 // ════════════════════════════════════════════════════════════
