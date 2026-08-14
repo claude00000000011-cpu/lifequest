@@ -1,0 +1,26 @@
+name: Cleanup Deployments
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cleanup old deployments
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REPO="QuestYourLife/lifequest"
+          CUTOFF=$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ)
+          
+          IDS=$(gh api -X GET /repos/$REPO/deployments --paginate | \
+            jq --arg cutoff "$CUTOFF" \
+            '[.[] | select(.created_at < $cutoff)] | sort_by(.created_at) | reverse | .[50:] | .[].id')
+          
+          for id in $IDS; do
+            gh api -X POST /repos/$REPO/deployments/$id/statuses -f state='inactive' > /dev/null 2>&1
+            gh api -X DELETE /repos/$REPO/deployments/$id
+            echo "Eliminato $id"
+          done
