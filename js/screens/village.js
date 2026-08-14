@@ -221,47 +221,50 @@ async function renderVillageTabContent(bc, user, level) {
       setTimeout(() => window._initChatRealtime?.(), 100);
       return chatHtml;
     }
-    case 'dungeon_map': {
-      const contentEl = document.getElementById('village-content');
-      const playerLevel = level; // già calcolato sopra
-
-      const showMap = () => {
-        renderDungeonMap(contentEl, playerLevel, (dungeon, state) => {
-          showDetail(dungeon);
-        });
-      };
-
-      const showDetail = (dungeon) => {
-        renderDungeonDetail(contentEl, dungeon, playerLevel,
-          (dungeon, room) => {
-            const player = {
-              maxHp:   bc.hp_base,
-              hp:      bc.hp_current,
-              attack:  bc.attack,
-              defense: bc.defense,
-              speed:   bc.speed,
-            };
-            startDungeonBattle(contentEl, dungeon, room, player,
-              (dungeon, nextRoom) => {
-                if (nextRoom) {
-                  startDungeonBattle(contentEl, dungeon, nextRoom, player,
-                    (d, r) => showDetail(d),
-                    showMap
-                  );
-                } else {
-                  showMap();
-                }
-              },
-              showMap
-            );
-          },
-          showMap
-        );
-      };
-
-      showMap();
+case 'dungeon_map': {
+      setTimeout(() => {
+        const contentEl = document.getElementById('village-content');
+        const playerLevel = level;
+        const showMap = () => {
+          renderDungeonMap(contentEl, playerLevel, (dungeon, state) => {
+            showDetail(dungeon);
+          });
+        };
+        const showDetail = (dungeon) => {
+          renderDungeonDetail(contentEl, dungeon, playerLevel,
+            (dungeon, room) => {
+              const player = {
+                maxHp:   bc.hp_base,
+                hp:      bc.hp_current,
+                attack:  bc.attack,
+                defense: bc.defense,
+                speed:   bc.speed,
+              };
+              startDungeonBattle(contentEl, dungeon, room, player,
+                (dungeon, nextRoom) => {
+                  if (nextRoom) {
+                    startDungeonBattle(contentEl, dungeon, nextRoom, player,
+                      (d, r) => showDetail(d),
+                      showMap
+                    );
+                  } else {
+                    showMap();
+                  }
+                },
+                showMap
+              );
+            },
+            showMap
+          );
+        };
+        showMap();
+      }, 50);
       return '';
     }
+
+
+               
+    
     default:          return renderVillageMap(bc, level);
   }
 }
