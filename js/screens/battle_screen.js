@@ -627,7 +627,7 @@ function _showEndOverlay(container, won, gold, xp = 0, item = null) {
 // Bottone "Villaggio" — sempre presente come fallback
   overlay.querySelector('#btn-back-from-battle')?.addEventListener('click', () => {
     if (_dungeonCtx?.storyMode && window._storyBattleResolve) {
-      window._storyBattleResolve(won ? 'win' : 'loss', Math.max(0, Math.floor(state?.player?.hp ?? 0)));
+            window._storyBattleResolve(won ? 'win' : 'loss', Math.max(0, Math.floor(_battleState?.player?.hp ?? 0)));
       window._gotoTab?.('battle');
       window._switchVillageTab?.('dungeon_map');
     } else {
