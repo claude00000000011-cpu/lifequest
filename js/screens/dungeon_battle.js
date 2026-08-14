@@ -75,34 +75,20 @@ function buildEnemy(room, bossData) {
  * Deve ritornare Promise<{ outcome: 'win'|'loss'|'flee', playerHpEnd: number }>
  */
 function startExistingBattle(player, enemy) {
-  // ── RIMUOVI QUESTO STUB E COLLEGA IL TUO SISTEMA ──
-  //
-  // Esempi di come potrebbe essere strutturata la chiamata reale:
-  //
-  // A) Il tuo sistema ritorna già una Promise:
-  //    return BattleSystem.start({ player, enemy });
-  //
-  // B) Il tuo sistema usa callback:
-  //    return new Promise((resolve) => {
-  //      BattleSystem.start(player, enemy, (result) => resolve(result));
-  //    });
-  //
-  // C) Il tuo sistema cambia schermata e salva il risultato in localStorage:
-  //    return new Promise((resolve) => {
-  //      localStorage.setItem('pending_battle', JSON.stringify({ player, enemy }));
-  //      switchScreen('battle');
-  //      window.addEventListener('battle_end', (e) => resolve(e.detail), { once: true });
-  //    });
-  //
-  // ─────────────────────────────────────────────────
-  // STUB per test immediato (simula una battaglia):
   return new Promise((resolve) => {
-    setTimeout(() => {
-      const win = Math.random() > 0.35; // 65% di vincere (solo per test)
-      resolve({
-        outcome:    win ? 'win' : 'loss',
-        playerHpEnd: win ? Math.round(player.maxHp * 0.6) : 0,
+    // Registra il callback — _showEndOverlay lo chiamerà dopo la battaglia
+    window._storyBattleResolve = (outcome, playerHpEnd) => {
+      window._storyBattleResolve = null;
+      resolve({ outcome, playerHpEnd });
+    };
+    // Porta il giocatore alla schermata battaglia
+    import('./battle_screen.js').then(m => {
+      m.renderBattleScreen?.(enemy, {
+        dungeon: false,      // non usa il sistema dungeon giornalieri
+        storyMode: true,     // flag per identificare modalità Storia
       });
-    }, 800); // simula 0.8s di battaglia
+    });
+    // Porta il focus sulla schermata battaglia
+    window._gotoTab?.('battle');
   });
 }
