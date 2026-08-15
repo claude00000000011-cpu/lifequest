@@ -422,7 +422,13 @@ async function renderPort(bc, level) {
     tierInfo.map(t => checkDungeonAccess(CUR.id, t.tier))
   );
 
-  const activeDungeon = getActiveDungeon();
+ // Controlla sessione attiva: prima in memoria, poi su Supabase
+  let activeDungeon = getActiveDungeon();
+  if (!activeDungeon) {
+    const { resumeDungeon } = await import('../battle/dungeon.js');
+    const result = await resumeDungeon(CUR.id);
+    if (result.ok) activeDungeon = result.dungeon;
+  }
 
   return `
     <div class="village-port">
