@@ -724,14 +724,33 @@ export async function loadBattleAbilities(classId = null) {
 
 export async function loadItems() {
   if (DB.battleItems?.length) return;
-
   const { data, error } = await supabase
-    .from('battle_items')  // era 'items'
+    .from('battle_items')
     .select('*');
-
   if (!error && data) {
     DB.battleItems = data;
     persist();
+  }
+
+  // Carica anche i range rarità per generateProceduralItem
+  if (!DB.equipmentRarities || !Object.keys(DB.equipmentRarities).length) {
+    const { data: rarData, error: rarError } = await supabase
+      .from('equipment_rarities')
+      .select('*');
+    if (!rarError && rarData) {
+      DB.equipmentRarities = Object.fromEntries(rarData.map(r => [r.rarity, {
+        attackMin:      r.attack_min,
+        attackMax:      r.attack_max,
+        defenseMin:     r.defense_min,
+        defenseMax:     r.defense_max,
+        hpMin:          r.hp_min,
+        hpMax:          r.hp_max,
+        secondarySlots: r.secondary_slots,
+        secMin:         r.sec_min,
+        secMax:         r.sec_max,
+      }]));
+      persist();
+    }
   }
 }
 
