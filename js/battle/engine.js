@@ -183,13 +183,18 @@ function doAttack(s, attacker, defender) {
     return s;
   }
  
-  const rawDmg = COMBAT.damageFormula(atk.attack, def.defense);
-  const varied = applyVariance(rawDmg, COMBAT.damageVariance);
- 
-  // Crit: luck% + bonus base PvE per il giocatore
-  const critChance = (atk.luck || 0) + (attacker === 'player' ? (COMBAT.critBonusPve || 0) : 0);
+ const cc      = DB.combatConfig || {};
+  const K       = cc.def_constant      ?? 80;
+  const variance= cc.damage_variance   ?? 0.10;
+  const critMult= cc.crit_multiplier   ?? 1.5;
+  const critCap = cc.crit_cap_pct      ?? 25;
+
+  const rawDmg  = COMBAT.damage(atk.attack, def.defense, K);
+  const varied  = applyVariance(rawDmg, variance);
+
+  const critChance = Math.min(critCap, atk.luck || 0);
   const isCrit     = Math.random() * 100 < critChance;
-  const finalDmg   = isCrit ? Math.floor(varied * COMBAT.critMultiplier) : varied;
+  const finalDmg   = isCrit ? Math.floor(varied * critMult) : varied;
  
   s[defender].hp = Math.max(0, def.hp - finalDmg);
  
@@ -447,8 +452,9 @@ function doEnemyAttack(s, multiplier = 1.0) {
   const enemy = s.enemy;
   let effectiveAtk = enemy.attack;
  
-  if (enemy.isPhase2) {
-    effectiveAtk = Math.floor(effectiveAtk * (1 + BOSS_MECHANICS.phase2AttackBonus));
+if (enemy.isPhase2) {
+    const p2bonus = (DB.combatConfig?.phase2_atk_bonus ?? BOSS_MECHANICS.phase2AttackBonus);
+    effectiveAtk = Math.floor(effectiveAtk * (1 + p2bonus));
   }
  
   const attackBuff = enemy.activeBuffs.filter(b => b.type === 'attackBuff').length;
@@ -459,8 +465,12 @@ function doEnemyAttack(s, multiplier = 1.0) {
   const guardMult    = s.player._guarding ? (1 + COMBAT.guardDefBonus) : 1;
   const effectiveDef = Math.floor(s.player.defense * guardMult);
  
-  const rawDmg   = COMBAT.damageFormula(effectiveAtk, effectiveDef);
-  const finalDmg = applyVariance(rawDmg, COMBAT.damageVariance);
+  const cc       = DB.combatConfig || {};
+  const K        = cc.def_constant    ?? 80;
+  const variance = cc.damage_variance ?? 0.10;
+
+  const rawDmg   = COMBAT.damage(effectiveAtk, effectiveDef, K);
+  const finalDmg = applyVariance(rawDmg, variance);
  
   s.player.hp        = Math.max(0, s.player.hp - finalDmg);
   s.player._guarding = false;
@@ -483,7 +493,8 @@ function processBossMechanics(s) {
   const hpPct = boss.hp / boss.hpMax;
  
   // Fase 2
-  if (!boss.isPhase2 && hpPct <= BOSS_MECHANICS.phase2HpThreshold) {
+  const p2threshold = DB.combatConfig?.phase2_threshold ?? BOSS_MECHANICS.phase2HpThreshold;
+  if (!boss.isPhase2 && hpPct <= p2threshold) {
     s.enemy.isPhase2 = true;
     s.log.push(`⚠️ ${boss.name} entra in FASE 2! Il suo potere aumenta!`);
   }
@@ -548,15 +559,15 @@ function tickStatusEffects(s, target) {
   effects.forEach(eff => {
     if (eff.turnsLeft <= 0) return;
  
-    if (eff.type === 'poison') {
-      const dmg    = COMBAT.poisonDamagePerStack * eff.stacks;
+   if (eff.type === 'poison') {
+      const dmg    = (DB.combatConfig?.poison_damage_per_stack ?? 5) * eff.stacks;
       s[target].hp = Math.max(0, s[target].hp - dmg);
       s.log.push(`☠️ ${target === 'player' ? 'Soffri' : `${s.enemy.name} soffre`} per ${dmg} danni da veleno.`);
       if (s[target].hp === 0) s = checkVictory(s, target);
     }
  
-    if (eff.type === 'regen' && target === 'player') {
-      const heal  = COMBAT.regenHealPerStack * eff.stacks;
+  if (eff.type === 'regen' && target === 'player') {
+      const heal  = (DB.combatConfig?.regen_heal_per_stack ?? 8) * eff.stacks;
       s.player.hp = Math.min(s.player.hpMax, s.player.hp + heal);
       s.log.push(`💚 Rigenerazione: recuperi ${heal} PF.`);
     }
