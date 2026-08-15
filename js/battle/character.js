@@ -88,36 +88,32 @@ const bc      = DB.battleCharacters[userId];
   // Ogni stat reale ha un soft-cap implicito nel moltiplicatore ridotto.
   // I valori minimi sono clamped a 1 per evitare stat negative da bug.
  
-  const hp = Math.max(10, Math.floor(
-    base.hp
-    + (stats.corpo || 0) * 1.5        // era 2 — corpo meno dominante
-    + level * base.hpPerLevel
-    + primStat * mult.hp
-  ));
- 
-  const attack = Math.max(1, Math.floor(
-    base.attack
-    + primStat * mult.attack
-  ));
- 
-  const defense = Math.max(1, Math.floor(
-    base.defense
-    + (stats.corpo || 0) * 0.6        // era 0.8
-    + primStat * mult.defense
-  ));
- 
-  const speed = Math.max(1, Math.floor(
-    base.speed
-    + (stats.sfide || 0) * 0.4        // era 0.5
-    + primStat * mult.speed
-  ));
- 
-  const mana = Math.max(0, Math.floor(
-    base.mana
-    + (stats.mente || 0) * 1.2        // era 1.5
-    + primStat * mult.mana
-    + level * base.manaPerLevel
-  ));
+ const primStatPts  = Math.floor((primStat || 0) / 1000);
+const hpBase  = base.hp  + level * base.hpPerLevel;
+const atkBase = base.attack + level * 2;
+const defBase = base.defense + level * 1.5;
+const manaBase = base.mana + level * base.manaPerLevel;
+const spdBase = base.speed + level * 0.1;
+
+const hp = Math.max(10, Math.floor(
+  hpBase * (1 + primStatPts * mult.hp)
+));
+
+const attack = Math.max(1, Math.floor(
+  atkBase * (1 + primStatPts * mult.attack)
+));
+
+const defense = Math.max(1, Math.floor(
+  defBase * (1 + primStatPts * mult.defense)
+));
+
+const speed = Math.max(1, Math.floor(
+  spdBase * (1 + primStatPts * mult.speed)
+));
+
+const mana = Math.max(0, Math.floor(
+  manaBase * (1 + primStatPts * mult.mana)
+));
  
   // Soft-cap fortuna: oltre 50 i ritorni marginali sono quasi nulli.
   // Questo corregge il bug oracle luck=226 causato da sociale alto.
