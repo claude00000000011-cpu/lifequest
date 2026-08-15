@@ -156,7 +156,7 @@ container.innerHTML = `
 // ════════════════════════════════════════════════════════════
 
 function renderVillageHeader(bc, user, level) {
-  const classData  = (DB.battleClasses || []).find(c => c.id === bc.class_id);
+    const classData  = DB.battleClasses?.[bc.class_id] || null;
   const classIcon  = { warrior:'⚔️', mage:'🔮', bard:'🎸', shadow:'🗡️', oracle:'☀️' }[bc.class_id] || '⚔️';
   const classColor = { warrior:'#DC2626', mage:'#3B82F6', bard:'#F59E0B', shadow:'#6B7280', oracle:'#A855F7' }[bc.class_id] || 'var(--accent)';
 
@@ -297,6 +297,28 @@ function _updateVillageTabArrows() {
 // ════════════════════════════════════════════════════════════
 
 async function renderVillageTabContent(bc, user, level) {
+  // Tutorial prima-volta dopo scelta classe
+  if (DB._showClassTutorial) {
+    DB._showClassTutorial = false;
+    return `
+      <div class="tutorial-screen" style="padding:1.5rem;max-width:480px;margin:0 auto">
+        <div style="font-size:2.5rem;text-align:center;margin-bottom:1rem">⚔️</div>
+        <h2 style="text-align:center;margin-bottom:1rem">Benvenuto, Eroe!</h2>
+        <div class="tutorial-card" style="background:var(--card-bg);border-radius:12px;padding:1.2rem;margin-bottom:1rem;border:1px solid var(--border)">
+          <p style="margin-bottom:0.8rem">🌍 <strong>Il tuo mondo è qui.</strong> Il Villaggio è la tua base: esplora la mappa, entra nei dungeon, potenzia il tuo personaggio.</p>
+          <p style="margin-bottom:0.8rem">📈 <strong>I punti esperienza (XP) si guadagnano solo nella vita reale</strong> — completando quest, studiando, leggendo, allenandoti e svolgendo attività quotidiane.</p>
+          <p style="margin-bottom:0.8rem">⚔️ <strong>Salendo di livello</strong> le tue statistiche di combattimento crescono automaticamente in base alla tua classe.</p>
+          <p style="margin-bottom:0.8rem">🎒 <strong>Equipaggiamento:</strong> trova oggetti nei dungeon, compra al mercante, potenziamoli al fabbro — ogni pezzo migliora le tue stat in battaglia.</p>
+          <p style="margin-bottom:0">🗺️ <strong>Modalità Storia:</strong> 17 dungeon da affrontare in ordine. Ogni dungeon ha 10 stanze e un boss finale. Completa un dungeon per sbloccare il successivo.</p>
+        </div>
+        <button class="btn-primary" style="width:100%;padding:0.9rem;font-size:1rem"
+                onclick="this.closest('.tutorial-screen').remove(); window._switchVillageTab?.('map')">
+          Inizia l'avventura! 🚀
+        </button>
+      </div>
+    `;
+  }
+
   switch (_villageTab) {
     case 'map':       return renderVillageMap(bc, level);
     case 'port':      return await renderPort(bc, level);
@@ -942,7 +964,10 @@ function renderAcademy(bc, level) {
   }
 
   const classAbilities = (DB.battleAbilities || []).filter(a => a.class_id === bc.class_id);
-  const learned        = new Set((DB.characterAbilities?.[CUR.id] || []).map(a => a.ability_id));
+   // Mappa ability_id → livello attuale (0 = non appresa)
+  const learnedMap = Object.fromEntries(
+    (DB.characterAbilities?.[CUR.id] || []).map(a => [a.ability_id, a.level || 1])
+  );
   const { SKILL_POINTS, ABILITY_LEVEL_COSTS } = { SKILL_POINTS: { resetCost: 300 }, ABILITY_LEVEL_COSTS: [
     { pa:1, gold:0, minCharLevel:1 },
     { pa:2, gold:50, minCharLevel:5 },
@@ -980,35 +1005,46 @@ function renderAcademy(bc, level) {
           <div class="ability-branch__label">Ramo ${branch}</div>
           <div class="ability-branch__list">
             ${abilities.sort((a,b) => a.level - b.level).map(ab => {
-              const isLearned  = learned.has(ab.id);
-              const cost       = ABILITY_LEVEL_COSTS[ab.level - 1] || ABILITY_LEVEL_COSTS[0];
-              const canLearn   = !isLearned && bc.skill_points >= cost.pa && level >= cost.minCharLevel;
-              const notEnoughLv= level < cost.minCharLevel;
-              const notEnoughPa= bc.skill_points < cost.pa;
 
+
+
+                     
+             const currentLv  = learnedMap[ab.id] || 0;
+              const isLearned  = currentLv > 0;
+              const nextLv     = currentLv + 1;
+              const paCost     = nextLv === 1 ? (ab.pa_cost || 1) : nextLv;
+              const goldCost   = nextLv === 1 ? (ab.gold_cost || 0) : nextLv * 100;
+              const minLevel   = ab.min_char_level || 1;
+              const canUpgrade = bc.skill_points >= paCost && bc.gold >= goldCost && level >= minLevel;
+              const notEnoughLv= level < minLevel;
+              const notEnoughPa= bc.skill_points < paCost;
+              const notEnoughG = bc.gold < goldCost;
               return `
                 <div class="ability-card ${isLearned ? 'ability-card--learned' : ''} ${ab.type === 'ultimate' ? 'ability-card--ultimate' : ''}">
                   <div class="ability-card__header">
                     <span class="ability-type-badge">${typeIcon[ab.type] || '⚡'}</span>
                     <strong>${escHtml(ab.name)}</strong>
-                    ${isLearned ? '<span class="badge badge--green">Appresa</span>' : ''}
+                    ${isLearned ? `<span class="badge badge--green">Lv.${currentLv}</span>` : ''}
                   </div>
                   <p class="ability-desc">${escHtml(ab.description || '')}</p>
                   <div class="ability-costs">
-                    <span>🎯 ${cost.pa} PA</span>
-                    ${cost.gold > 0 ? `<span>🪙 ${cost.gold}G</span>` : ''}
-                    <span style="color:var(--text-3)">Min Lv.${cost.minCharLevel}</span>
+                    <span>🎯 ${paCost} PA</span>
+                    ${goldCost > 0 ? `<span>🪙 ${goldCost}G</span>` : ''}
+                    <span style="color:var(--text-3)">Min Lv.${minLevel}</span>
                   </div>
-                  ${!isLearned ? `
-                    <button class="btn-sm ${canLearn ? 'btn-primary' : ''}"
-                            ${!canLearn ? 'disabled' : ''}
-                            onclick="window._learnAbility?.('${ab.id}')"
-                            title="${notEnoughLv ? `Richiede Lv.${cost.minCharLevel}` : notEnoughPa ? 'PA insufficienti' : 'Impara'}">
-                      ${notEnoughLv ? `🔒 Lv.${cost.minCharLevel}` : notEnoughPa ? `${cost.pa} PA` : 'Impara'}
-                    </button>
-                  ` : '<div class="ability-learned-badge">✅</div>'}
+                  <button class="btn-sm ${canUpgrade ? 'btn-primary' : ''}"
+                          ${!canUpgrade ? 'disabled' : ''}
+                          onclick="window._learnAbility?.('${ab.id}')"
+                          title="${notEnoughLv ? `Richiede Lv.${minLevel}` : notEnoughPa ? 'PA insufficienti' : notEnoughG ? 'Gold insufficienti' : isLearned ? `Potenzia a Lv.${nextLv}` : 'Impara'}">
+                    ${notEnoughLv ? `🔒 Lv.${minLevel}` : isLearned ? `⬆️ Potenzia (Lv.${nextLv})` : 'Impara'}
+                  </button>
                 </div>
               `;
+
+
+
+
+                     
             }).join('')}
           </div>
         </div>
@@ -1813,13 +1849,17 @@ window._loadEconomySummary = async function() {
 
 // Chiamato dopo il render mappa
 
-// Scelta classe
 window._selectClass = async function(classId) {
   if (!confirm(`Sei sicuro di voler scegliere ${classId}? La scelta è definitiva.`)) return;
   const { ok, error } = await chooseClass(CUR.id, classId);
   if (!ok) return toast(error || 'Errore', 'error');
   playSound('class_select');
+  // Forza reload del personaggio da Supabase prima di rerenderizzare
+  const { syncBattleCharacter } = await import('../battle/character.js');
+  await syncBattleCharacter(CUR.id);
   toast(`Classe ${classId} scelta! Buona fortuna, eroe. ⚔️`, 'success');
+  // Mostra tutorial prima-volta
+  DB._showClassTutorial = true;
   renderVillage();
 };
 
@@ -2044,10 +2084,16 @@ window._openResetDialog = async function() {
   await sb.from('character_abilities').delete().eq('character_id', bc.id);
   DB.characterAbilities[CUR.id] = [];
 
-  // Restituisce i PA spesi (conta dalle abilità dimenticate)
-  const paRefund = (DB.battleAbilities || [])
-    .filter(a => a.class_id === bc.class_id)
-    .reduce((sum, a) => sum + (a.pa_cost || 1), 0);
+// Restituisce solo i PA effettivamente spesi sulle abilità apprese
+  const learned = DB.characterAbilities[CUR.id] || [];
+  const paRefund = learned.reduce((sum, ca) => {
+    const ab = (DB.battleAbilities || []).find(a => a.id === ca.ability_id);
+    if (!ab) return sum;
+    const lv = ca.level || 1;
+    // Livello 1: pa_cost base; livelli 2+: 1+2+...+lv = lv*(lv+1)/2 - 1 + pa_cost
+    const paSpent = (ab.pa_cost || 1) + (lv > 1 ? Array.from({length: lv - 1}, (_, i) => i + 2).reduce((a, b) => a + b, 0) : 0);
+    return sum + paSpent;
+  }, 0);
 
   await sb.from('battle_characters').update({ skill_points: (bc.skill_points || 0) + paRefund }).eq('id', bc.id);
   DB.battleCharacters[CUR.id].skill_points = (bc.skill_points || 0) + paRefund;
