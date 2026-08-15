@@ -527,15 +527,43 @@ async function _playAttackAnim(who = 'hero') {
 async function _onBattleEnd(container, state) {
   const won = state.winner === 'player';
   let goldEarned = 0, itemDropped = null;
-  if (won) {
+
+
+
+
+
+         
+if (won) {
     playSound('victory');
-    const rewards = calcPveRewards(_enemyData, calcBattleStats(CUR.id)?.luck || 3, _dungeonCtx.tier || 1);
+
+    // Usa defeatEnemy se siamo in un dungeon — gestisce streak, progresso stanza e moltiplicatore gold
+    let rewards;
+    if (_dungeonCtx?.dungeon && _enemyData) {
+      const { defeatEnemy } = await import('../battle/dungeon.js');
+      const dungeonRewards = await defeatEnemy(CUR.id, _enemyData);
+      rewards = {
+        gold:       dungeonRewards?.gold       || 0,
+        itemRarity: dungeonRewards?.itemRarity || null,
+      };
+    } else {
+      const { incrementFightStreak, calcStreakMultiplier } = await import('../battle/character.js');
+      const streak     = await incrementFightStreak(CUR.id);
+      const streakMult = calcStreakMultiplier(streak);
+      rewards = calcPveRewards(_enemyData, calcBattleStats(CUR.id)?.luck || 3, _dungeonCtx?.tier || 1, streakMult);
+    }
+
     goldEarned = rewards.gold;
     if (goldEarned > 0) {
       await updateGold(CUR.id, goldEarned, 'pve');
       playSound('gold');
     }
     await incrementDailyLimit(CUR.id, 'pve_count');
+
+
+
+
+
+           
     if (rewards.itemRarity) {
       const pool = DB.battleItems.filter(i =>
         i.rarity === rewards.itemRarity &&
