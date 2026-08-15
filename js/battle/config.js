@@ -286,26 +286,9 @@ MERCHANT: {
  
 };
  
-export const ABILITY_VALUES = {
-  manaCost:         [10, 15, 22, 32, 45],
-  damagePct:        [80, 110, 150, 200, 280],
-  cooldownTurns:    [0,  0,  2,  3,  4],
-  buffDuration:     [2,  2,  3,  3,  4],
-  passiveStatPct:   [5,  10, 15, 20, 25],
-  passiveCritPct:   [2,  4,  6,  9,  14],
-  passiveDmgRedux:  [3,  6,  9,  12, 15],
-  ultimateDmgPct:   [0,  0,  0,  0,  500],
-  ultimateMana:     [0,  0,  0,  0,  80],
-  ultimateCooldown: [0,  0,  0,  0,  3],
-  ultimateMinLevel: [0,  0,  0,  0,  30],
-  healPct:          [15, 22, 32, 45, 60],
-  allyBuffPct:      [10, 15, 22, 30, 40],
-  enemyDebuffPct:   [-10,-15,-20,-28,-38],
-  shadowCritBonus:  [5,  10, 16, 24, 35],
-  shadowEvasion:    [15, 22, 30, 40, 55],
-  shadowPoisonDmg:  [5,  9,  15, 22, 32],
-  stealthDuration:  [1,  2,  2,  3,  3],
-};
+// ABILITY_VALUES rimosso — con il sistema livelli infiniti i valori
+// si calcolano dinamicamente in engine.js in base al livello corrente
+// dell'abilità. Formula: valore = base * (1 + level * 0.15)
  
 export const GUILDS = {
   minLevelToCreate:   10,
