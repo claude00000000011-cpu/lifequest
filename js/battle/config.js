@@ -210,14 +210,8 @@ export const BOSS_MECHANICS = {
   maxBossBuffs:      2,     // era 3
 };
  
-export const EQUIPMENT_RARITIES = {
-  common:    { attackMin: 2,  attackMax: 5,  defenseMin: 1,  defenseMax: 3,  hpMin: 10,  hpMax: 20,  secondarySlots: 0, secMin: 0,  secMax: 0  },
-  uncommon:  { attackMin: 6,  attackMax: 12, defenseMin: 4,  defenseMax: 8,  hpMin: 25,  hpMax: 50,  secondarySlots: 1, secMin: 2,  secMax: 4  },
-  rare:      { attackMin: 14, attackMax: 24, defenseMin: 10, defenseMax: 18, hpMin: 60,  hpMax: 110, secondarySlots: 2, secMin: 3,  secMax: 7  },
-  epic:      { attackMin: 28, attackMax: 45, defenseMin: 20, defenseMax: 35, hpMin: 120, hpMax: 200, secondarySlots: 3, secMin: 5,  secMax: 12 },
-  legendary: { attackMin: 50, attackMax: 80, defenseMin: 38, defenseMax: 60, hpMin: 220, hpMax: 360, secondarySlots: 4, secMin: 8,  secMax: 18 },
-  mythic:    { attackMin: 80, attackMax: 130,defenseMin: 60, defenseMax: 100,hpMin: 380, hpMax: 600, secondarySlots: 5, secMin: 12, secMax: 25 },
-};
+// EQUIPMENT_RARITIES rimosso — ora in Supabase (tabella equipment_rarities)
+// Letto tramite loadItems() → DB.equipmentRarities
  
 export const SET_PIECES_REQUIRED = [0, 0, 2, 3, 4];
  
