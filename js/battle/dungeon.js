@@ -121,6 +121,50 @@ export async function startDungeon(userId, tier) {
 }
 
 /**
+ * Ricostruisce _activeDungeon da Supabase se la sessione esiste ancora.
+ * Chiamare al resume dopo refresh/cambio tab.
+ * @param {string} userId
+ * @returns {{ ok: boolean, dungeon?, error? }}
+ */
+export async function resumeDungeon(userId) {
+  const bc = getBattleChar(userId);
+  if (!bc) return { ok: false, error: 'Personaggio non trovato' };
+  // Cerca sessione attiva non completata
+  const { data: session, error } = await supabase
+    .from('dungeon_progress')
+    .select('*')
+    .eq('character_id', bc.id)
+    .is('completed_at', null)
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .single();
+  if (error || !session) return { ok: false, error: 'Nessuna sessione attiva trovata' };
+  const tier   = session.dungeon_tier;
+  const config = DUNGEONS[tier - 1];
+  const level  = calcLevel(DB.users[userId]?.xp || 0);
+  const rooms  = generateRooms(tier, config, level);
+  const roomsCleared = session.rooms_cleared || 0;
+  for (let i = 0; i < roomsCleared; i++) {
+    if (rooms[i]) {
+      rooms[i].cleared = true;
+      rooms[i].enemies.forEach(e => e._defeated = true);
+    }
+  }
+  _activeDungeon = {
+    tier,
+    config,
+    rooms,
+    currentRoom:  roomsCleared,
+    totalRooms:   rooms.length,
+    goldEarned:   session.gold_earned || 0,
+    itemsDropped: [],
+    sessionId:    session.id,
+    userId,
+  };
+  return { ok: true, dungeon: _activeDungeonSummary() };
+}
+
+/**
  * Genera la lista di stanze per un dungeon.
  * Struttura: [stanza1, stanza2, stanza3, boss]
  */
