@@ -1,3 +1,411 @@
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  FILE 1/3 — js/battle/config.js                             ║
+// ║  Sostituisce COMPLETAMENTE il file originale                 ║
+// ╚══════════════════════════════════════════════════════════════╝
+ 
+// CLASS_BASE_STATS, CLASS_PRIMARY_STAT e CLASS_STAT_MULT
+// rimossi — ora gestiti da Supabase (tabella battle_classes)
+// Letti tramite loadBattleClasses() → DB.battleClasses
+ 
+export const CLASS_EVOLUTION = {
+  levelFirst:  20,
+  levelSecond: 40,
+  paCost:      15,
+  goldCost:    500,
+  attackBonus: { warrior: 15, mage: 20, bard: 10, shadow: 18, oracle: 8  },
+  hpBonus:     { warrior: 20, mage: 10, bard: 15, shadow: 12, oracle: 25 },
+};
+ 
+// EVOLUTION_PATHS rimosso — ora in Supabase (battle_classes.evolution_paths)
+ 
+export const SKILL_POINTS = {
+  perLevel:       1,
+  startingPa:     0,
+  maxAccumulated: 99,
+  resetCost:      300,
+  maxPerBranch:   15,
+};
+ 
+export const ABILITY_LEVEL_COSTS = [
+  { pa: 1, gold: 0,   minCharLevel: 1  },
+  { pa: 2, gold: 50,  minCharLevel: 5  },
+  { pa: 3, gold: 100, minCharLevel: 10 },
+  { pa: 4, gold: 200, minCharLevel: 20 },
+  { pa: 5, gold: 500, minCharLevel: 30 },
+];
+ 
+// ── COMBATTIMENTO ────────────────────────────────────────────
+export const COMBAT = {
+  // ── Formula danni con soft-cap ──────────────────────────────
+  // Vecchia: atk - floor(def/2)  → difesa alta = immunità quasi totale
+  // Nuova:   atk * (1 - def/(def+K))  con K=60
+  //   def=0  → riduzione 0%    (pieno danno)
+  //   def=30 → riduzione 33%
+  //   def=60 → riduzione 50%
+  //   def=120→ riduzione 67%   (mai oltre ~75% con valori normali)
+  // Questo elimina i "0 danni" e i "one-shot" contemporaneamente.
+  damageFormula: (atk, def) => Math.max(1, Math.floor(atk * (1 - def / (def + 60)))),
+ 
+  damageVariance:    0.10,   // era 0.15 — meno caos punitivo
+  critMultiplier:    1.5,
+  critBonusPve:      5,      // NUOVO: +5% crit base in PvE per il giocatore
+  magicDefReduction: 0.5,    // magia penetra 50% della difesa fisica
+ 
+  // ── Struttura turni ─────────────────────────────────────────
+  // maxTurns RIMOSSO: la battaglia dura finché qualcuno muore.
+  // Questo elimina il bug "boss imbattibile in 10 turni".
+  actionsPerTurn:    1,
+  manaRegenPerTurn:  10,     // era 5 — abilità usabili ~ogni 2 turni
+  guardDefBonus:     0.40,   // era 0.30 — difesa più premiante
+  maxItemsPerFight:  5,      // era 3
+ 
+  // ── Effetti di stato ─────────────────────────────────────────
+  maxStatusStacks:       3,
+  defaultStatusDuration: 3,
+  poisonDamagePerStack:  5,  // era 8 — veleno meno "gameover immediato"
+  regenHealPerStack:     8,  // era 6
+  stunTurns:             1,
+  attackBuffPerStack:    0.10,
+  statusResistBase:      0.30, // era 0.20 — più resistenze, meno frustrazione
+ 
+  // ── PvP ──────────────────────────────────────────────────────
+  pvpMatchmakingRange: 5,
+  pvpSeasonDays:       30,
+  pvpWinGold:          80,
+  pvpLossGold:         20,
+  pvpWinPoints:        25,
+  pvpLossPoints:       -10,
+  pvpMinPoints:        0,
+ 
+  // ── Limiti giornalieri ────────────────────────────────────────
+  dailyPveLimit:      9999,
+  dailyPvpLimit:      9999,
+  dailyDungeonLimit:  9999,
+  resetHourUTC:       0,
+};
+ 
+// ── DUNGEON ──────────────────────────────────────────────────
+// HP nemici aumentati per compensare il soft-cap difesa (giocatore fa
+// meno danni in percentuale).  ATK nemici leggermente alzati per
+// mantenere tensione ora che non c'è più il limite di turni.
+export const DUNGEONS = [
+  {
+    tier:             1,
+    minLevel:         1,
+    normalRooms:      3,
+    enemiesMin:       1,
+    enemiesMax:       2,
+    goldPerEnemy:     10,
+    goldBoss:         50,
+    xpBonus:          60,
+    goldBonus:        40,
+   enemyHpBase:      10,
+    bossHpMult:       3.0,
+    enemyAttackBase:  136,
+    bossAttackMult:   1.6,   // era 1.8
+    enemyDefenseBase: 8,     // era 5
+    scalingPerLevel:  0.04,  // era 0.03
+    dropRateNormal:   0.15,
+    dropRateBoss:     0.60,
+  },
+  {
+    tier:             2,
+    minLevel:         10,
+    normalRooms:      3,
+    enemiesMin:       1,
+    enemiesMax:       2,
+    goldPerEnemy:     18,
+    goldBoss:         90,
+    xpBonus:          110,
+    goldBonus:        70,
+     enemyHpBase:      19,
+    bossHpMult:       3.0,
+    enemyAttackBase:  325,
+    bossAttackMult:   1.8,   // era 2.0
+    enemyDefenseBase: 15,    // era 10
+    scalingPerLevel:  0.04,
+    dropRateNormal:   0.18,
+    dropRateBoss:     0.65,
+  },
+  {
+    tier:             3,
+    minLevel:         20,
+    normalRooms:      3,
+    enemiesMin:       2,
+    enemiesMax:       3,
+    goldPerEnemy:     28,
+    goldBoss:         160,
+    xpBonus:          210,
+    goldBonus:        130,
+    enemyHpBase:      29,
+    bossHpMult:       3.0,
+    enemyAttackBase:  569,
+    bossAttackMult:   2.0,   // era 2.2
+    enemyDefenseBase: 24,    // era 18
+    scalingPerLevel:  0.04,
+    dropRateNormal:   0.22,
+    dropRateBoss:     0.70,
+  },
+  {
+    tier:             4,
+    minLevel:         35,
+    normalRooms:      4,
+    enemiesMin:       2,
+    enemiesMax:       3,
+    goldPerEnemy:     45,
+    goldBoss:         280,
+    xpBonus:          420,
+    goldBonus:        220,
+  enemyHpBase:      41,
+    bossHpMult:       3.0,
+    enemyAttackBase:  884,
+    bossAttackMult:   2.2,   // era 2.5
+    enemyDefenseBase: 36,    // era 28
+    scalingPerLevel:  0.04,
+    dropRateNormal:   0.28,
+    dropRateBoss:     0.75,
+  },
+ {
+    tier:               5,
+    minLevel:           50,
+    normalRooms:        4,
+    enemiesMin:         2,
+    enemiesMax:         4,
+    goldPerEnemy:       70,
+    goldBoss:           450,
+    xpBonus:            750,
+    goldBonus:          380,
+   enemyHpBase:      55,
+    bossHpMult:       3.0,
+    enemyAttackBase:  1283,
+    bossAttackMult:     2.5,
+    enemyDefenseBase:   35,   // Ridotto da 55 a 35 per evitare l'effetto "spugna blindata"
+    scalingPerLevel:    0.035,// Scalato leggermente al ribasso (0.035 anziché 0.04)
+    dropRateNormal:     0.35,
+    dropRateBoss:       0.85,
+  },
+];
+ 
+export const DROP_RARITY_RATES = [
+  [0, 0.40, 0.25, 0.08, 0.02, 0.00],
+  [0, 0.35, 0.30, 0.12, 0.04, 0.00],
+  [0, 0.25, 0.35, 0.18, 0.07, 0.01],
+  [0, 0.20, 0.35, 0.25, 0.12, 0.02],
+  [0, 0.15, 0.35, 0.30, 0.18, 0.05],
+];
+export const DROP_LUCK_BONUS_PER_POINT = 0.001;
+ 
+// ── BOSS MECHANICS ───────────────────────────────────────────
+export const BOSS_MECHANICS = {
+  phase2HpThreshold: 0.40,  // era 0.50 — fase 2 si attiva a 40% HP
+  phase2AttackBonus: 0.25,
+ 
+  immunityTurns:     1,
+  immunityCooldown:  7,     // era 4 — molto più raro
+  immunityHpGate:    0.60,  // NUOVO: immunità solo quando boss < 60% HP
+  immunityChance:    0.10,  // era 0.15
+ 
+  buffChancePct:     0.15,  // era 0.20
+  maxBossBuffs:      2,     // era 3
+};
+ 
+// EQUIPMENT_RARITIES rimosso — ora in Supabase (tabella equipment_rarities)
+// Letto tramite loadItems() → DB.equipmentRarities
+ 
+export const SET_PIECES_REQUIRED = [0, 0, 2, 3, 4];
+ 
+export const EQUIPMENT_DEGRADATION = {
+  combatsPerTick: 10,
+  minDurability:  0,
+  repairCost: {
+    common:    20,
+    uncommon:  50,
+    rare:      120,
+    epic:      280,
+    legendary: 600,
+    mythic:    1200,
+  },
+};
+ 
+export const SMITH = {
+  upgradeMaxLevel:         5,
+  upgradeBonusPct:         0.10,
+  // Aggiunti i tier mancanti per evitare errori di runtime
+  upgradeCost: { 
+    common:    80, 
+    uncommon:  120, 
+    rare:      200, 
+    epic:      500, 
+    legendary: 900, 
+    mythic:    1500 
+  },
+  fusionSuccessRate:       0.60,
+  fusionMaterialsRequired: 2,
+};
+export const ECONOMY = {
+  goldNormalMin:       5,
+  goldNormalMax:       15,
+  goldBossMin:         40,
+  goldBossMax:         120,
+  goldPvpWin:          80,
+  goldPvpLoss:         20,
+  goldDungeonBonus:    60,
+  goldGuildQuestMin:   30,
+  goldGuildQuestMax:   100,
+  goldSellPct:         0.20,
+  targetDailyGold:     300,
+
+  LOOT_BOXES: {
+    wood:   { cost: 50,   pity: 10, rarityTarget: 'uncommon'  },
+    iron:   { cost: 150,  pity: 10, rarityTarget: 'rare'      },
+    gold:   { cost: 400,  pity: 10, rarityTarget: 'epic'      },
+    // Aumentato a 2500 per bilanciare l'economia endgame
+    mythic: { cost: 2500, pity: 10, rarityTarget: 'legendary' }, 
+  },
+
+  BOX_RATES: {
+    wood:   { common: 0.60, uncommon: 0.40, rare: 0,    epic: 0,    legendary: 0,    mythic: 0 },
+    iron:   { common: 0,    uncommon: 0.60, rare: 0.30, epic: 0.10, legendary: 0,    mythic: 0 },
+    gold:   { common: 0,    uncommon: 0,    rare: 0.65, epic: 0.30, legendary: 0.05, mythic: 0 },
+    mythic: { common: 0,    uncommon: 0,    rare: 0,    epic: 0.78, legendary: 0.20, mythic: 0.02 },
+  },
+ 
+MERCHANT: {
+    rotationHours:    24,
+    slotsAvailable:   6,
+    priceHealSmall:   15,
+    priceHealMedium:  35,
+    priceHealLarge:   70,
+    priceManaSmall:   15,
+    priceManaLarge:   60, // Corretto da priceManLarge
+    priceBombAoe:     40,
+    rareItemMarkup:   1.50,
+    dailyFreeItem:    1,
+  }
+ 
+};
+ 
+// ABILITY_VALUES rimosso — con il sistema livelli infiniti i valori
+// si calcolano dinamicamente in engine.js in base al livello corrente
+// dell'abilità. Formula: valore = base * (1 + level * 0.15)
+ 
+export const GUILDS = {
+  minLevelToCreate:   10,
+  creationCost:       500,
+  maxMembers:         20,
+  maxOfficers:        3,
+  maxGuildLevel:      20,
+  expansionCost:      200,
+  pointsPerPve:       2,
+  pointsPerPvpWin:    5,
+  pointsPerDungeon:   20,
+  pointsPerRaid:      100,
+  xpThresholdBase:    500,
+  xpThresholdMult:    1.8,
+  goldBonusPerLevel:  0.02,
+  xpBonusPerLevel:    0.01,
+  raidFrequencyDays:  7,
+  raidMaxParticipants:5,
+  raidBossHpBase:     10000,
+  raidHpPerGuildLevel:800,
+  raidDistributeByContrib: true,
+  raidGoldPerMember:  200,
+  raidGuaranteedItem: true,
+  warFrequencyDays:   30,
+  warDurationDays:    7,
+  warMatches:         10,
+  warWinnerGold:      500,
+  warMatchmakingRange:3,
+};
+ 
+export const COOP = {
+  maxRequestsPerDay:       1,
+  requestVisibilityHours:  24,
+  maxSupportersPerRequest: 3,
+  supporterResponseHours:  12,
+  goldForSupport:          20,
+  goldBonusIfWin:          15,
+  reputationPerSupport:    20,
+  maxReputation:           9999,
+  REP_THRESHOLDS: { 
+    acquaintance: 100, 
+    ally:         300, 
+    protector:    800, 
+    hero:         2000, 
+    legend:       5000 
+  },
+  legendDailyGold:         10,
+  protectorGuildBonus:     0.03,
+  buffDurationFights:      1,
+  supportAttackBonus:      0.15,
+};
+export const PROGRESSION = {
+  tutorialFights: 5,
+  startingGold:   50,
+  starterItem:    1,
+ 
+ UNLOCKS: {
+    classChoice:     1,
+    pvpArena:        5,
+    guilds:          15,
+    goldBoxes:       20,
+    dungeon3:        20,
+    dungeon4:        35,
+    dungeon5:        50,
+    evolution:       25,
+    guildWar:        30,
+    mythicBoxes:     50,
+    ultimateAbility: 40,
+  },
+ 
+  dungeonLevelCap: 2,
+  pvpLevelCap:     10,
+ 
+  PVP_SEASON_REWARDS: {
+    top1pct:  { gold: 500, legendaryItem: true  },
+    top10pct: { gold: 200, legendaryItem: false },
+    top50pct: { gold: 80,  legendaryItem: false },
+  },
+ 
+  pvpSeasonReset: 0.50,
+};
+
+// ============================================================
+// WORLD_DUNGEONS — 17 dungeon × 10 stanze
+// Aggiungere in fondo a js/battle/config.js
+// ============================================================
+
+/**
+ * Genera le 10 stanze di un dungeon.
+ * baseHp      = HP nemico stanza 1
+ * hpScale     = moltiplicatore per stanza successiva (es. 1.5 = +50% ogni stanza)
+ * baseGold    = gold stanza 1
+ * xpPerRoom   = XP base per stanza (cresce +25% lineare)
+ * bossId      = identificatore meccanica boss (stanza 10)
+ */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // ============================================================
 // WORLD_DUNGEONS — config.js (sostituzione completa del blocco)
 // ============================================================
