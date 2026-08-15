@@ -41,11 +41,9 @@ function buildEnemyForRoom(room, dungeon, playerLevel = 1) {
  const scaling  = 1 + Math.max(0, playerLevel - config.minLevel) * config.scalingPerLevel;
   const tierBonus = 1 + dungeonIndex * 0.08; // ogni tier aggiunge 8% al punto di partenza
   const roomMult = tierBonus + roomIndex * 0.18;
-  const isBoss   = room.isBoss;
-  const bossMultH = isBoss ? config.bossHpMult    : 1;
-  const bossMultA = isBoss ? config.bossAtkMult   : 1;
-
-  const isBoss = room.isBoss;
+  const isBoss    = room.isBoss;
+  const bossMultH = isBoss ? config.bossHpMult  : 1;
+  const bossMultA = isBoss ? config.bossAtkMult : 1;
 
   // Icone temporanee per tipo nemico — verranno sostituite con gif reali
   const ENEMY_ICONS = [
