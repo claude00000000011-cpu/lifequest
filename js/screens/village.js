@@ -2122,11 +2122,10 @@ window._openResetDialog = async function() {
   await import('../battle/character.js').then(({ updateGold: ug }) => ug(CUR.id, -300, 'repair', 'skill_reset'));
 
   // Cancella abilità apprese
+ // Restituisce solo i PA effettivamente spesi sulle abilità apprese
+  const learned = DB.characterAbilities[CUR.id] || [];
   await sb.from('character_abilities').delete().eq('character_id', bc.id);
   DB.characterAbilities[CUR.id] = [];
-
-// Restituisce solo i PA effettivamente spesi sulle abilità apprese
-  const learned = DB.characterAbilities[CUR.id] || [];
   const paRefund = learned.reduce((sum, ca) => {
     const ab = (DB.battleAbilities || []).find(a => a.id === ca.ability_id);
     if (!ab) return sum;
