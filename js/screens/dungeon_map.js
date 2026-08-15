@@ -202,7 +202,15 @@ export async function renderDungeonDetail(containerEl, dungeon, playerLevel, onS
 
   const grid = containerEl.querySelector('#dm-room-grid');
 
-  const rooms = dungeon.rooms ?? loadDungeonRooms(dungeon.id) ?? [];
+  let rooms = dungeon.rooms;
+if (!rooms) {
+  const { data: cfgData } = await supabase
+    .from('dungeon_config')
+    .select('*')
+    .eq('id', dungeon.id)
+    .single();
+  rooms = cfgData ? loadDungeonRooms(dungeon.id, { [dungeon.id]: cfgData }) : [];
+}
   rooms.forEach((room) => {
     const done      = state.maxRoom >= room.room;
     const available = room.room === 1 || state.maxRoom >= room.room - 1;
