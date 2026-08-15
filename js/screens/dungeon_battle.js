@@ -1,7 +1,7 @@
 // ============================================================
 // dungeon_battle.js — Modalità Storia: usa nemici reali dal DB
 // ============================================================
-import { BOSS_DATA } from '../battle/config.js';
+import { DB } from '../db.js';
 import { renderBattleResult } from './dungeon_map.js';
 
 export function startDungeonBattle(containerEl, dungeon, room, player, onContinue, onMap) {
@@ -63,19 +63,33 @@ function buildEnemyForRoom(room, dungeon) {
   const baseDef = Math.round(2   * scale);
   const baseSpd = Math.round(5   + roomIndex * 0.3);
 
+ // Legge meccaniche boss da Supabase (DB.bossMechanics) invece che da config.js
+  const bossMech = (isBoss && room.bossId && DB.bossMechanics)
+    ? DB.bossMechanics[room.bossId] || null
+    : null;
+
   return {
-    // Campi richiesti da renderBattleScreen / initBattle
-    name:       isBoss ? `👑 ${icon.name}` : icon.name,
-    hp_base:    baseHp,
-    attack:     baseAtk,
-    defense:    baseDef,
-    speed:      baseSpd,
-    xp_reward:  room.xp,
+    name:        isBoss ? `👑 ${icon.name}` : icon.name,
+    hp_base:     baseHp,
+    attack:      baseAtk,
+    defense:     baseDef,
+    speed:       baseSpd,
+    xp_reward:   room.xp,
     gold_reward: room.gold,
-    is_boss:    isBoss,
-    loop_gif:   icon.loop_gif,
-    attack_gif: icon.attack_gif,
-    icon_path:  null,
-    tier:       Math.ceil(dungeonIndex / 4) + 1,
+    is_boss:     isBoss,
+    loop_gif:    icon.loop_gif,
+    attack_gif:  icon.attack_gif,
+    icon_path:   null,
+    tier:        Math.ceil(dungeonIndex / 4) + 1,
+    // Meccaniche boss da Supabase — null per nemici normali
+    extraAbility:       bossMech?.extraAbility       || null,
+    extraAbilityParams: bossMech ? { ...bossMech }   : {},
+    description:        bossMech?.description        || null,
   };
+
+
+
+
+
+  
 }
