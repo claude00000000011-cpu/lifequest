@@ -71,6 +71,15 @@ _lockNav(true);
     return;
   }
 
+  if (!DB.combatConfig) {
+    const { data: ccData } = await supabase
+      .from('combat_config')
+      .select('*');
+    if (ccData) {
+      DB.combatConfig = Object.fromEntries(ccData.map(r => [r.key, Number(r.value)]));
+      persist();
+    }
+  }
   const stats = calcBattleStats(CUR.id);
   if (!stats) {
     container.innerHTML = `<p class="battle-error">Statistiche non disponibili. Ricarica la pagina.</p>`;
