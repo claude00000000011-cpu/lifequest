@@ -38,8 +38,9 @@ function buildEnemyForRoom(room, dungeon, playerLevel = 1) {
     { minLevel:50, hpBase:850, atkBase:90, defBase:35, bossHpMult:3.5, bossAtkMult:2.5, scalingPerLevel:0.035 },
   ];
   const config   = CONFIGS[Math.min(dungeonIndex, CONFIGS.length - 1)];
-  const scaling  = 1 + Math.max(0, playerLevel - config.minLevel) * config.scalingPerLevel;
-  const roomMult = 1 + roomIndex * 0.18;
+ const scaling  = 1 + Math.max(0, playerLevel - config.minLevel) * config.scalingPerLevel;
+  const tierBonus = 1 + dungeonIndex * 0.08; // ogni tier aggiunge 8% al punto di partenza
+  const roomMult = tierBonus + roomIndex * 0.18;
   const isBoss   = room.isBoss;
   const bossMultH = isBoss ? config.bossHpMult    : 1;
   const bossMultA = isBoss ? config.bossAtkMult   : 1;
