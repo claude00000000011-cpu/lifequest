@@ -169,13 +169,13 @@ export async function resumeDungeon(userId) {
     }
   }
 
-  _activeDungeon = {
+_activeDungeon = {
     tier,
     config,
     rooms,
     currentRoom:  roomsCleared,
     totalRooms:   rooms.length,
-    goldEarned:   0,
+    goldEarned:   progress.total_gold || 0,
     itemsDropped: [],
     sessionId:    null,
     userId,
@@ -334,18 +334,25 @@ export async function defeatEnemy(userId, enemyData) {
     // Aggiorna max_room in user_dungeon_progress
     const dungeonId = `tier_${_activeDungeon.tier}`;
     const userId_str = String(_activeDungeon.userId);
-    await supabase
+
+           
+  await supabase
       .from('user_dungeon_progress')
       .upsert({
-        user_id:    userId_str,
-        dungeon_id: dungeonId,
-        max_room:   roomsCleared,
-        attempts:   1,
-        updated_at: new Date().toISOString(),
+        user_id:     userId_str,
+        dungeon_id:  dungeonId,
+        max_room:    roomsCleared,
+        total_gold:  _activeDungeon.goldEarned,
+        attempts:    1,
+        updated_at:  new Date().toISOString(),
       }, {
         onConflict: 'user_id,dungeon_id',
         ignoreDuplicates: false,
       });
+
+
+
+           
   }
 
   return {
