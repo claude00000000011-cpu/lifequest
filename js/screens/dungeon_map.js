@@ -3,43 +3,11 @@
 // js/screens/dungeon_map.js
 // ============================================================
 
-import { _buildRooms } from '../battle/config.js';
-
-let _dungeonCache = null;
-async function getWorldDungeons() {
-  if (_dungeonCache) return _dungeonCache;
-  const { data, error } = await supabase
-    .from('dungeon_config')
-    .select('*')
-    .order('sort_order');
-  if (error || !data) return [];
-  _dungeonCache = data.map(d => ({
-    id:            d.id,
-    name:          d.name,
-    description:   d.description,
-    mapX:          d.map_x,
-    mapY:          d.map_y,
-    requiredLevel: d.required_level,
-    theme:         d.theme,
-    rooms: _buildRooms({
-      baseHp:     d.base_hp,
-      baseAtk:    d.base_atk,
-      baseDef:    d.base_def,
-      hpScale:    d.hp_scale,
-      baseGold:   d.base_gold,
-      xpPerRoom:  d.xp_per_room,
-      bossId:     d.boss_id,
-    }),
-  }));
-  return _dungeonCache;
-}
+import { _buildRooms, WORLD_DUNGEONS } from '../battle/config.js';
+import { supabase }                    from '../../supabase.js';
+import { CUR }                         from '../db.js';
 
 // ─── STORAGE ─────────────────────────────────────────────────────────────────
-// Se hai un backend, sostituisci queste due funzioni con chiamate API. 
-// La struttura del JSON salvato è identica alla risposta del backend.
-
-import { supabase } from '../../supabase.js';
-import { CUR }      from '../db.js';
 
 // Cache locale per evitare troppe query
 let _progressCache = null;
@@ -83,11 +51,6 @@ async function saveProgress(dungeonId, state) {
     }, { onConflict: 'user_id,dungeon_id' });
 }
 
-
-
-
-
-
 // ─── LOGICA UNLOCK ───────────────────────────────────────────────────────────
 
 /**
@@ -105,12 +68,11 @@ export async function getDungeonState(dungeonId) {
  * E il giocatore deve avere il livello richiesto.
  */
 export async function isUnlocked(dungeonIndex, playerLevel) {
-  const WORLD_DUNGEONS = await getWorldDungeons();
   const dungeon = WORLD_DUNGEONS[dungeonIndex];
   if (!dungeon) return false;
   if (playerLevel < dungeon.requiredLevel) return false;
   if (dungeonIndex === 0) return true;
-  const prevId = (await getWorldDungeons())[dungeonIndex - 1].id;
+  const prevId = WORLD_DUNGEONS[dungeonIndex - 1].id;
   const prev   = await getDungeonState(prevId);
   return prev.completed === true;
 }
@@ -147,7 +109,6 @@ export async function markRoomComplete(dungeonId, roomNumber, goldEarned, xpEarn
 export async function renderDungeonMap(containerEl, playerLevel, onEnter) {
   const progress = await loadProgress();
 
-  
   containerEl.innerHTML = `
     <div class="dm-map-wrap">
       <h2 class="dm-map-title">🗺️ Mappa del Mondo</h2>
@@ -165,8 +126,7 @@ export async function renderDungeonMap(containerEl, playerLevel, onEnter) {
 
   const markersEl = containerEl.querySelector('#dm-markers');
 
-  const WORLD_DUNGEONS = await getWorldDungeons();
-for (let i = 0; i < WORLD_DUNGEONS.length; i++) {
+  for (let i = 0; i < WORLD_DUNGEONS.length; i++) {
     const dungeon  = WORLD_DUNGEONS[i];
     const unlocked = await isUnlocked(i, playerLevel);
     const state    = progress[dungeon.id] || { maxRoom: 0, completed: false };
@@ -174,8 +134,8 @@ for (let i = 0; i < WORLD_DUNGEONS.length; i++) {
     const btn = document.createElement('button');
     btn.className = [
       'dm-marker',
-      unlocked       ? 'unlocked'  : 'locked',
-      state.completed? 'completed' : '',
+      unlocked        ? 'unlocked'  : 'locked',
+      state.completed ? 'completed' : '',
     ].join(' ').trim();
 
     btn.style.left = `${dungeon.mapX * 100}%`;
@@ -202,7 +162,7 @@ for (let i = 0; i < WORLD_DUNGEONS.length; i++) {
       btn.disabled = true;
     }
 
-     markersEl.appendChild(btn);
+    markersEl.appendChild(btn);
   }
 }
 
@@ -250,9 +210,9 @@ export async function renderDungeonDetail(containerEl, dungeon, playerLevel, onS
     const card = document.createElement('div');
     card.className = [
       'dm-room-card',
-      done      ? 'done'  : '',
-      locked    ? 'locked': '',
-      room.isBoss ? 'boss' : '',
+      done        ? 'done'  : '',
+      locked      ? 'locked': '',
+      room.isBoss ? 'boss'  : '',
     ].join(' ').trim();
 
     card.innerHTML = `
@@ -261,7 +221,7 @@ export async function renderDungeonDetail(containerEl, dungeon, playerLevel, onS
           ? '<span class="dm-room-label boss-label">👑 Boss</span>'
           : `<span class="dm-room-label">Stanza ${room.room}</span>`
         }
-        ${done ? '<span class="dm-room-done">✓</span>' : ''}
+        ${done   ? '<span class="dm-room-done">✓</span>'  : ''}
         ${locked ? '<span class="dm-room-lock">🔒</span>' : ''}
       </div>
       <div class="dm-room-enemy">${room.enemyName}</div>
@@ -289,8 +249,6 @@ export async function renderDungeonDetail(containerEl, dungeon, playerLevel, onS
 
 /**
  * Schermata di risultato dopo una stanza.
- * Chiamare dopo che il sistema battle ha restituito l'esito.
- *
  * @param {HTMLElement} containerEl
  * @param {Object}  dungeon
  * @param {Object}  room          — stanza appena combattuta
@@ -302,19 +260,18 @@ export async function renderDungeonDetail(containerEl, dungeon, playerLevel, onS
 export async function renderBattleResult(containerEl, dungeon, room, outcome, playerHpEnd, onContinue, onMap) {
   let goldEarned = 0;
   let xpEarned   = 0;
-  let newState   = null;
 
-if (outcome === 'win') {
+  if (outcome === 'win') {
     goldEarned = room.gold;
     xpEarned   = room.xp;
-    newState   = await markRoomComplete(dungeon.id, room.room, goldEarned, xpEarned);
+    await markRoomComplete(dungeon.id, room.room, goldEarned, xpEarned);
   }
 
-  const isLastRoom   = room.room === 10;
-  const nextRoomNum  = room.room + 1;
-  const nextRoom     = dungeon.rooms[nextRoomNum - 1];
+  const isLastRoom  = room.room === 10;
+  const nextRoomNum = room.room + 1;
+  const nextRoom    = dungeon.rooms[nextRoomNum - 1];
 
-  const winMsg  = isLastRoom
+  const winMsg = isLastRoom
     ? `🏆 Dungeon completato! Il prossimo dungeon è ora sbloccato.`
     : `Prossima stanza: ${nextRoom?.enemyName} — ❤️ ${nextRoom?.enemyHp.toLocaleString()} HP`;
 
@@ -327,7 +284,7 @@ if (outcome === 'win') {
         ${{ win: 'Vittoria!', loss: 'Sconfitta', flee: 'Fuggito' }[outcome]}
       </h2>
       <div class="dm-result-room">
-        ${dungeon.name} — ${ room.isBoss ? '👑 Boss' : `Stanza ${room.room}` }
+        ${dungeon.name} — ${room.isBoss ? '👑 Boss' : `Stanza ${room.room}`}
       </div>
 
       ${outcome === 'win' ? `
