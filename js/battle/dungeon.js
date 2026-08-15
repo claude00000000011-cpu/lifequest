@@ -313,6 +313,7 @@ export async function defeatEnemy(userId, enemyData) {
 
   // Streak e moltiplicatore gold
   const streak     = await incrementFightStreak(userId);
+  console.log('[Dungeon] fight streak:', streak, 'userId:', userId);
   const streakMult = calcStreakMultiplier(streak);
 
   // Ricompense
@@ -337,12 +338,12 @@ export async function defeatEnemy(userId, enemyData) {
         .eq('id', _activeDungeon.sessionId);
     }
 
-    // Aggiorna max_room in user_dungeon_progress
+// Aggiorna max_room in user_dungeon_progress
     const dungeonId = `tier_${_activeDungeon.tier}`;
     const userId_str = String(_activeDungeon.userId);
+    console.log('[Dungeon] upsert user_dungeon_progress', { userId_str, dungeonId, roomsCleared });
 
-           
-  await supabase
+    const { error: udpErr } = await supabase
       .from('user_dungeon_progress')
       .upsert({
         user_id:     userId_str,
@@ -355,6 +356,7 @@ export async function defeatEnemy(userId, enemyData) {
         onConflict: 'user_id,dungeon_id',
         ignoreDuplicates: false,
       });
+    if (udpErr) console.error('[Dungeon] user_dungeon_progress error:', udpErr.message);
 
 
 
