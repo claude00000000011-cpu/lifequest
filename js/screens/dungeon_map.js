@@ -3,7 +3,7 @@
 // js/screens/dungeon_map.js
 // ============================================================
 
-import { _buildRooms, WORLD_DUNGEONS } from '../battle/config.js';
+import { _buildRooms, WORLD_DUNGEONS, loadDungeonRooms } from '../battle/config.js';
 import { supabase }                    from '../../supabase.js';
 import { CUR }                         from '../db.js';
 
