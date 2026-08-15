@@ -3,7 +3,36 @@
 // js/screens/dungeon_map.js
 // ============================================================
 
-import { WORLD_DUNGEONS } from '../battle/config.js';
+import { _buildRooms } from '../battle/config.js';
+
+let _dungeonCache = null;
+async function getWorldDungeons() {
+  if (_dungeonCache) return _dungeonCache;
+  const { data, error } = await supabase
+    .from('dungeon_config')
+    .select('*')
+    .order('sort_order');
+  if (error || !data) return [];
+  _dungeonCache = data.map(d => ({
+    id:            d.id,
+    name:          d.name,
+    description:   d.description,
+    mapX:          d.map_x,
+    mapY:          d.map_y,
+    requiredLevel: d.required_level,
+    theme:         d.theme,
+    rooms: _buildRooms({
+      baseHp:     d.base_hp,
+      baseAtk:    d.base_atk,
+      baseDef:    d.base_def,
+      hpScale:    d.hp_scale,
+      baseGold:   d.base_gold,
+      xpPerRoom:  d.xp_per_room,
+      bossId:     d.boss_id,
+    }),
+  }));
+  return _dungeonCache;
+}
 
 // ─── STORAGE ─────────────────────────────────────────────────────────────────
 // Se hai un backend, sostituisci queste due funzioni con chiamate API. 
@@ -76,11 +105,12 @@ export async function getDungeonState(dungeonId) {
  * E il giocatore deve avere il livello richiesto.
  */
 export async function isUnlocked(dungeonIndex, playerLevel) {
+  const WORLD_DUNGEONS = await getWorldDungeons();
   const dungeon = WORLD_DUNGEONS[dungeonIndex];
   if (!dungeon) return false;
   if (playerLevel < dungeon.requiredLevel) return false;
   if (dungeonIndex === 0) return true;
-  const prevId = WORLD_DUNGEONS[dungeonIndex - 1].id;
+  const prevId = (await getWorldDungeons())[dungeonIndex - 1].id;
   const prev   = await getDungeonState(prevId);
   return prev.completed === true;
 }
@@ -135,7 +165,8 @@ export async function renderDungeonMap(containerEl, playerLevel, onEnter) {
 
   const markersEl = containerEl.querySelector('#dm-markers');
 
-  for (let i = 0; i < WORLD_DUNGEONS.length; i++) {
+  const WORLD_DUNGEONS = await getWorldDungeons();
+for (let i = 0; i < WORLD_DUNGEONS.length; i++) {
     const dungeon  = WORLD_DUNGEONS[i];
     const unlocked = await isUnlocked(i, playerLevel);
     const state    = progress[dungeon.id] || { maxRoom: 0, completed: false };
