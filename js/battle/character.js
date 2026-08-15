@@ -9,9 +9,6 @@ import { supabase }                     from '../../supabase.js';
 import { DB, CUR, persist }             from '../db.js';
 import { calcLevel }                    from '../xp.js';
 import {
-  CLASS_BASE_STATS,
-  CLASS_PRIMARY_STAT,
-  CLASS_STAT_MULT,
   CLASS_EVOLUTION,
   SKILL_POINTS,
   PROGRESSION,
@@ -361,7 +358,8 @@ export async function chooseClass(userId, classId) {
 
   if (bc.class_id) return { ok: false, error: 'Hai già scelto una classe' };
 
-  const validClasses = ['warrior', 'mage', 'bard', 'shadow', 'oracle'];
+ // Legge le classi valide da Supabase invece che hardcodate
+  const validClasses = DB.battleClasses ? Object.keys(DB.battleClasses) : ['warrior', 'mage', 'bard', 'shadow', 'oracle'];
   if (!validClasses.includes(classId)) return { ok: false, error: 'Classe non valida' };
 
   const { error } = await supabase
