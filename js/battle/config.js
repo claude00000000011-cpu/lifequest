@@ -545,7 +545,7 @@ export const WORLD_DUNGEONS = [
 // BOSS_DATA rimosso — ora gestito da Supabase (tabella boss_mechanics_data)
 // Letto tramite loadEnemies() → DB.bossMechanics
 
----
+
 
 lifequest-battle\js\battle\dungeon.js
 
