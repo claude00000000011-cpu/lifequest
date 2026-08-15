@@ -26,11 +26,23 @@ window._storyBattleResolve = (outcome, playerHpEnd) => {
   window._gotoTab?.('battle');
 }
 
-function buildEnemyForRoom(room, dungeon) {
-  // Scala i nemici del DB in base alla stanza (1-10) e al dungeon (1-17)
+function buildEnemyForRoom(room, dungeon, playerLevel = 1) {
   const dungeonIndex = parseInt(dungeon.id.replace('dungeon_', ''), 10) - 1;
-  const roomIndex    = room.room - 1; // 0-9
-  const scale        = 1 + dungeonIndex * 0.4 + roomIndex * 0.15;
+  const roomIndex    = room.room - 1;
+  const tier         = Math.ceil((dungeonIndex + 1) / 4) + 1;
+  const CONFIGS = [
+    { minLevel:1,  hpBase:120, atkBase:14, defBase:8,  bossHpMult:3.0, bossAtkMult:1.6, scalingPerLevel:0.04 },
+    { minLevel:10, hpBase:200, atkBase:22, defBase:15, bossHpMult:3.0, bossAtkMult:1.8, scalingPerLevel:0.04 },
+    { minLevel:20, hpBase:350, atkBase:36, defBase:24, bossHpMult:3.2, bossAtkMult:2.0, scalingPerLevel:0.04 },
+    { minLevel:35, hpBase:580, atkBase:58, defBase:36, bossHpMult:3.5, bossAtkMult:2.2, scalingPerLevel:0.04 },
+    { minLevel:50, hpBase:850, atkBase:90, defBase:35, bossHpMult:3.5, bossAtkMult:2.5, scalingPerLevel:0.035 },
+  ];
+  const config   = CONFIGS[Math.min(dungeonIndex, CONFIGS.length - 1)];
+  const scaling  = 1 + Math.max(0, playerLevel - config.minLevel) * config.scalingPerLevel;
+  const roomMult = 1 + roomIndex * 0.18;
+  const isBoss   = room.isBoss;
+  const bossMultH = isBoss ? config.bossHpMult    : 1;
+  const bossMultA = isBoss ? config.bossAtkMult   : 1;
 
   const isBoss = room.isBoss;
 
@@ -58,10 +70,10 @@ function buildEnemyForRoom(room, dungeon) {
   const icon  = pool[(dungeonIndex + roomIndex) % pool.length];
 
   // Stats base scalate
-  const baseHp  = Math.round(30  * scale);
-  const baseAtk = Math.round(6   * scale);
-  const baseDef = Math.round(2   * scale);
-  const baseSpd = Math.round(5   + roomIndex * 0.3);
+const baseHp  = Math.floor(config.hpBase  * bossMultH * scaling * roomMult);
+  const baseAtk = Math.floor(config.atkBase * bossMultA * scaling * roomMult);
+  const baseDef = Math.floor(config.defBase * scaling   * roomMult);
+  const baseSpd = Math.round(5 + roomIndex * 0.3);
 
  // Legge meccaniche boss da Supabase (DB.bossMechanics) invece che da config.js
   const bossMech = (isBoss && room.bossId && DB.bossMechanics)
