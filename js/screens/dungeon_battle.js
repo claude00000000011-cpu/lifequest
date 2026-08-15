@@ -82,7 +82,10 @@ function buildEnemyForRoom(room, dungeon, playerLevel = 1) {
     loop_gif:    icon.loop_gif,
     attack_gif:  icon.attack_gif,
     icon_path:   null,
-    tier:        Math.ceil((dungeonIndex + 1) / 2),
+     tier:          Math.ceil((dungeonIndex + 1) / 2),
+    already_scaled: true,
+    attack_base:   baseAtk,
+    defense_base:  baseDef,
     // Meccaniche boss da Supabase — null per nemici normali
     extraAbility:       bossMech?.extraAbility       || null,
     extraAbilityParams: bossMech ? { ...bossMech }   : {},
