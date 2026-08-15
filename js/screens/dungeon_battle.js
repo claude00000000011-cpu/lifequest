@@ -29,22 +29,12 @@ window._storyBattleResolve = (outcome, playerHpEnd) => {
 function buildEnemyForRoom(room, dungeon, playerLevel = 1) {
   const dungeonIndex = parseInt(dungeon.id.replace('dungeon_', ''), 10) - 1;
   const roomIndex    = room.room - 1;
-  const tier         = Math.ceil((dungeonIndex + 1) / 4) + 1;
- const CONFIGS = [
-    { minLevel:1,  hpBase:28,  atkBase:7,  defBase:3,  bossHpMult:2.5, bossAtkMult:1.4, scalingPerLevel:0.02 },
-    { minLevel:10, hpBase:38,  atkBase:10, defBase:5,  bossHpMult:2.5, bossAtkMult:1.5, scalingPerLevel:0.02 },
-    { minLevel:20, hpBase:55,  atkBase:15, defBase:8,  bossHpMult:2.8, bossAtkMult:1.6, scalingPerLevel:0.02 },
-    { minLevel:35, hpBase:85,  atkBase:22, defBase:12, bossHpMult:3.0, bossAtkMult:1.8, scalingPerLevel:0.018 },
-    { minLevel:50, hpBase:130, atkBase:32, defBase:17, bossHpMult:3.0, bossAtkMult:2.0, scalingPerLevel:0.015 },
-  ];
-  const config   = CONFIGS[Math.min(dungeonIndex, CONFIGS.length - 1)];
- const scaling  = 1 + Math.max(0, playerLevel - config.minLevel) * config.scalingPerLevel;
-  const tierBonus = 1 + dungeonIndex * 0.08; // ogni tier aggiunge 8% al punto di partenza
-  const roomMult = tierBonus + roomIndex * 0.18;
-  const isBoss    = room.isBoss;
-  const bossMultH = isBoss ? config.bossHpMult  : 1;
-  const bossMultA = isBoss ? config.bossAtkMult : 1;
+  const isBoss       = room.isBoss;
 
+  // Usa direttamente i valori calibrati da WORLD_DUNGEONS/_buildRooms
+  // Piccolo bonus se il player è sovra-livellato rispetto al dungeon (+2% per livello in eccesso, cap ×1.3)
+  const levelExcess  = Math.max(0, playerLevel - dungeon.requiredLevel);
+  const levelMult    = Math.min(1 + levelExcess * 0.02, 1.3);
   // Icone temporanee per tipo nemico — verranno sostituite con gif reali
   const ENEMY_ICONS = [
     { name: 'Slime',            loop_gif: '/lifequest/assets/battle/enemies/slime_loop.gif',              attack_gif: '/lifequest/assets/battle/enemies/slime_attack.gif'              },
@@ -69,9 +59,10 @@ function buildEnemyForRoom(room, dungeon, playerLevel = 1) {
   const icon  = pool[(dungeonIndex + roomIndex) % pool.length];
 
   // Stats base scalate
-const baseHp  = Math.floor(config.hpBase  * bossMultH * scaling * roomMult);
-  const baseAtk = Math.floor(config.atkBase * bossMultA * scaling * roomMult);
-  const baseDef = Math.floor(config.defBase * scaling   * roomMult);
+// Stats da WORLD_DUNGEONS — già calibrate stanza per stanza
+  const baseHp  = Math.floor(room.enemyHp     * levelMult);
+  const baseAtk = Math.floor(room.enemyAttack * levelMult);
+  const baseDef = Math.floor(room.enemyDef    * levelMult);
   const baseSpd = Math.round(5 + roomIndex * 0.3);
 
  // Legge meccaniche boss da Supabase (DB.bossMechanics) invece che da config.js
@@ -91,7 +82,7 @@ const baseHp  = Math.floor(config.hpBase  * bossMultH * scaling * roomMult);
     loop_gif:    icon.loop_gif,
     attack_gif:  icon.attack_gif,
     icon_path:   null,
-    tier:        Math.ceil(dungeonIndex / 4) + 1,
+    tier:        Math.ceil((dungeonIndex + 1) / 2),
     // Meccaniche boss da Supabase — null per nemici normali
     extraAbility:       bossMech?.extraAbility       || null,
     extraAbilityParams: bossMech ? { ...bossMech }   : {},
