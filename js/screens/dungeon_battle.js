@@ -30,12 +30,12 @@ function buildEnemyForRoom(room, dungeon, playerLevel = 1) {
   const dungeonIndex = parseInt(dungeon.id.replace('dungeon_', ''), 10) - 1;
   const roomIndex    = room.room - 1;
   const tier         = Math.ceil((dungeonIndex + 1) / 4) + 1;
-  const CONFIGS = [
-    { minLevel:1,  hpBase:120, atkBase:14, defBase:8,  bossHpMult:3.0, bossAtkMult:1.6, scalingPerLevel:0.04 },
-    { minLevel:10, hpBase:200, atkBase:22, defBase:15, bossHpMult:3.0, bossAtkMult:1.8, scalingPerLevel:0.04 },
-    { minLevel:20, hpBase:350, atkBase:36, defBase:24, bossHpMult:3.2, bossAtkMult:2.0, scalingPerLevel:0.04 },
-    { minLevel:35, hpBase:580, atkBase:58, defBase:36, bossHpMult:3.5, bossAtkMult:2.2, scalingPerLevel:0.04 },
-    { minLevel:50, hpBase:850, atkBase:90, defBase:35, bossHpMult:3.5, bossAtkMult:2.5, scalingPerLevel:0.035 },
+ const CONFIGS = [
+    { minLevel:1,  hpBase:28,  atkBase:7,  defBase:3,  bossHpMult:2.5, bossAtkMult:1.4, scalingPerLevel:0.02 },
+    { minLevel:10, hpBase:38,  atkBase:10, defBase:5,  bossHpMult:2.5, bossAtkMult:1.5, scalingPerLevel:0.02 },
+    { minLevel:20, hpBase:55,  atkBase:15, defBase:8,  bossHpMult:2.8, bossAtkMult:1.6, scalingPerLevel:0.02 },
+    { minLevel:35, hpBase:85,  atkBase:22, defBase:12, bossHpMult:3.0, bossAtkMult:1.8, scalingPerLevel:0.018 },
+    { minLevel:50, hpBase:130, atkBase:32, defBase:17, bossHpMult:3.0, bossAtkMult:2.0, scalingPerLevel:0.015 },
   ];
   const config   = CONFIGS[Math.min(dungeonIndex, CONFIGS.length - 1)];
  const scaling  = 1 + Math.max(0, playerLevel - config.minLevel) * config.scalingPerLevel;
