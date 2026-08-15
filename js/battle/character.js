@@ -521,28 +521,23 @@ export async function getDailyLimits(userId) {
 export async function incrementDailyLimit(userId, field) {
   const bc = DB.battleCharacters[userId];
   if (!bc) return;
-
   const allowedFields = [
     'pve_count',
     'pvp_count',
     'dungeon_count',
     'help_sent',
   ];
-
   if (!allowedFields.includes(field)) {
     console.warn('[Battle] Campo daily limit non valido:', field);
     return;
   }
-
   const today = new Date().toISOString().slice(0, 10);
-
   try {
     const { error } = await supabase.rpc('increment_daily_limit', {
       p_character_id: bc.id,
       p_date: today,
       p_field: field,
     });
-
     if (error) {
       console.warn('[Battle] incrementDailyLimit RPC error:', error.message);
     }
@@ -551,8 +546,68 @@ export async function incrementDailyLimit(userId, field) {
   }
 }
 
+/**
+ * Ritorna il moltiplicatore gold basato sullo streak giornaliero.
+ * 0-9 battaglie  → ×1.0
+ * 10-19          → ×1.1
+ * 20-29          → ×1.2
+ * 30-39          → ×1.3
+ * 40-49          → ×1.4
+ * 50+            → ×1.5 (cap)
+ */
+export function calcStreakMultiplier(fightStreak) {
+  const mult = 1 + Math.floor(fightStreak / 10) * 0.1;
+  return Math.min(mult, 1.5);
+}
 
+/**
+ * Incrementa fight_streak in daily_battle_limits e ritorna il nuovo valore.
+ */
+export async function incrementFightStreak(userId) {
+  const today = new Date().toISOString().slice(0, 10);
+  const { data, error } = await supabase
+    .from('daily_battle_limits')
+    .upsert({
+      user_id:      userId,
+      date:         today,
+      fight_streak: 1,
+    }, {
+      onConflict:        'user_id,date',
+      ignoreDuplicates:  false,
+    })
+    .select('fight_streak')
+    .single();
+  if (error) {
+    const { data: current } = await supabase
+      .from('daily_battle_limits')
+      .select('fight_streak')
+      .eq('user_id', userId)
+      .eq('date', today)
+      .single();
+    const newStreak = (current?.fight_streak || 0) + 1;
+    await supabase
+      .from('daily_battle_limits')
+      .update({ fight_streak: newStreak })
+      .eq('user_id', userId)
+      .eq('date', today);
+    return newStreak;
+  }
+  return data?.fight_streak || 1;
+}
 
+/**
+ * Legge il fight_streak odierno.
+ */
+export async function getFightStreak(userId) {
+  const today = new Date().toISOString().slice(0, 10);
+  const { data } = await supabase
+    .from('daily_battle_limits')
+    .select('fight_streak')
+    .eq('user_id', userId)
+    .eq('date', today)
+    .maybeSingle();
+  return data?.fight_streak || 0;
+}
 
 
 
