@@ -9,9 +9,11 @@ import { playSound } from './audio.js';
 import { Users } from './api.js';
 
 export function xpForLevel(lvl) {
-  if (lvl <= 100)  return Math.floor(80  * Math.pow(lvl, 1.4));
-  if (lvl <= 500)  return Math.floor(60  * Math.pow(lvl, 1.5));
-  return               Math.floor(40  * Math.pow(lvl, 1.6));
+  if (lvl <= 20)  return Math.floor(50  * Math.pow(lvl, 1.2));
+  if (lvl <= 50)  return Math.floor(35  * Math.pow(lvl, 1.5));
+  if (lvl <= 100) return Math.floor(20  * Math.pow(lvl, 1.7));
+  if (lvl <= 200) return Math.floor(10  * Math.pow(lvl, 1.9));
+  return               Math.floor(5   * Math.pow(lvl, 2.1));
 }
 
 export function calcLevel(xp) {
