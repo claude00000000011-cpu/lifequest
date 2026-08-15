@@ -589,18 +589,10 @@ export function calcStreakMultiplier(fightStreak) {
  */
 export async function incrementFightStreak(userId) {
   const today = new Date().toISOString().slice(0, 10);
-  const { data, error } = await supabase
-    .from('daily_battle_limits')
-    .upsert({
-      user_id:      userId,
-      date:         today,
-      fight_streak: 1,
-    }, {
-      onConflict:        'user_id,date',
-      ignoreDuplicates:  false,
-    })
-    .select('fight_streak')
-    .single();
+ const { data, error } = await supabase.rpc('increment_fight_streak', {
+  p_user_id: userId,
+  p_date:    today,
+});
   if (error) {
     const { data: current } = await supabase
       .from('daily_battle_limits')
