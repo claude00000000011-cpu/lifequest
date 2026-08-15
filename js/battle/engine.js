@@ -380,22 +380,20 @@ function doItem(s, user, itemId) {
 
       case 'revive': {
         const revive = Math.floor(s.player.hpMax * (item.effect_value / 100));
-        s.player.hp  = Math.min(s.player.hpMax, s.player.hp + revive);
+       s.player.hp  = Math.min(s.player.hpMax, s.player.hp + revive);
         s.log.push(`💖 ${item.name}: recuperi ${revive} PF!`);
         break;
       }
-    
-  
 
-
-  }
+    } // chiude switch
+  }   // chiude if effect_type
 
   s.itemsUsedCount++;
   return s;
 }
- 
+
 // ── Guardia ───────────────────────────────────────────────────
- 
+
 function doGuard(s, user) {
   s[user]._guarding = true;
   s.log.push(`🛡️ Sei in posizione di guardia. Difesa +${Math.round(COMBAT.guardDefBonus * 100)}% questo turno.`);
