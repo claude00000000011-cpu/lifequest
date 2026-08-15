@@ -5,8 +5,7 @@
 
 import { supabase }                from '../../supabase.js';
 import { DB, CUR, persist }        from '../db.js';
-import { ECONOMY, PROGRESSION,
-         EQUIPMENT_RARITIES }      from './config.js';
+import { ECONOMY, PROGRESSION }   from './config.js';
 import { updateGold, getBattleChar,
          loadItems }               from './character.js';
 import { rollItemRarity }          from './engine.js';
