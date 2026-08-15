@@ -16,7 +16,9 @@ import { getBattleChar,
          loadBattleAbilities,
          loadEquipment,
          canEquipItem,
-         syncPowerLevel }           from '../battle/character.js';
+         syncPowerLevel,
+         getFightStreak,
+         calcStreakMultiplier }     from '../battle/character.js';
 import { getMerchantSlots,
          buyFromMerchant,
          claimOracleFreeItem,
@@ -55,12 +57,22 @@ export async function renderVillage() {
   if (!container) return;
 
   // Carica dati necessari
- await Promise.all([
+const [,,,,fightStreak] = await Promise.all([
     syncBattleCharacter(CUR.id),
     loadItems(),
     loadBattleClasses(),
     loadEquipment(CUR.id),
+    getFightStreak(CUR.id),
   ]);
+
+  // Aggiorna badge streak dopo render
+  setTimeout(() => {
+    const el = document.getElementById('village-streak');
+    if (el) {
+      const mult = calcStreakMultiplier(fightStreak);
+      el.textContent = `${fightStreak} battaglie (×${mult.toFixed(1)} gold)`;
+    }
+  }, 50);
 
   const bc    = getBattleChar(CUR.id);
   const user  = DB.users[CUR.id] || CUR;
@@ -175,10 +187,21 @@ function renderVillageHeader(bc, user, level) {
           <div class="village-combat-level__val" id="village-combat-level">${combatLevel}</div>
         </div>
 
+
+
+
+
         <div class="village-gold-badge">
           <span class="village-gold-icon">🪙</span>
           <span id="village-gold">${(bc.gold || 0).toLocaleString()}</span>
         </div>
+        <div class="village-streak-badge" id="village-streak-badge">
+          🔥 <span id="village-streak">…</span>
+        </div>
+
+
+
+
 
       </div>
 
