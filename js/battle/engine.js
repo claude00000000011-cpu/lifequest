@@ -4,7 +4,7 @@
 // ║  Sostituisce COMPLETAMENTE il file originale                 ║
 // ╚══════════════════════════════════════════════════════════════╝
  
-import { COMBAT, ABILITY_VALUES, BOSS_MECHANICS } from './config.js';
+import { COMBAT, BOSS_MECHANICS } from './config.js';
 import { DB } from '../db.js';
  
 // ── Costruzione stato iniziale ────────────────────────────────
@@ -211,7 +211,11 @@ function doAbility(s, attacker, defender, abilityData) {
   }
  
   const atk      = s[attacker];
-  const manaCost = abilityData.mana_cost || 0;
+
+  // Scala i valori in base al livello corrente dell'abilità
+  const abilityLevel = abilityData._currentLevel || 1;
+  const levelMult    = 1 + (abilityLevel - 1) * 0.15; // +15% per livello
+  const manaCost     = Math.round((abilityData.mana_cost || 0) * levelMult);
  
   if (atk.mana < manaCost) {
     s.log.push(`Mana insufficiente! (${atk.mana}/${manaCost})`);
@@ -222,8 +226,8 @@ function doAbility(s, attacker, defender, abilityData) {
   const type = abilityData.type;
  
   if (type === 'active') {
-    if (abilityData.damage_pct > 0) {
-      const rawDmg  = Math.floor(atk.attack * (abilityData.damage_pct / 100));
+  if (abilityData.damage_pct > 0) {
+      const rawDmg  = Math.floor(atk.attack * ((abilityData.damage_pct * levelMult) / 100));
       const isMagic = abilityData.class_id === 'mage' || abilityData.class_id === 'oracle';
       const defVal  = isMagic
         ? s[defender].defense * COMBAT.magicDefReduction
@@ -235,8 +239,8 @@ function doAbility(s, attacker, defender, abilityData) {
       if (s[defender].hp === 0) s = checkVictory(s, defender);
     }
  
-    if (abilityData.heal_pct > 0 && attacker === 'player') {
-      const healed = Math.floor(s.player.hpMax * (abilityData.heal_pct / 100));
+  if (abilityData.heal_pct > 0 && attacker === 'player') {
+      const healed = Math.floor(s.player.hpMax * ((abilityData.heal_pct * levelMult) / 100));
       s.player.hp  = Math.min(s.player.hpMax, s.player.hp + healed);
       s.log.push(`💚 ${abilityData.name}: recuperi ${healed} PF.`);
     }
