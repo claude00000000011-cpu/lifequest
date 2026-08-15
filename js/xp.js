@@ -152,9 +152,20 @@ export async function awardXP(baseXP, category = null, units = null) {
   const color = statKey ? STAT_COLORS[statKey] : '#7c3aed';
   spawnXPFloat(earned, color);
 
-  if (newLevel > prevLevel) {
+ if (newLevel > prevLevel) {
     playSound('levelup');
     toast(`🎉 Level Up! Sei ora al livello ${newLevel}!`, 'success');
+    const levelsGained = newLevel - prevLevel;
+    const bc = DB.battleCharacters?.[CUR.id];
+    if (bc) {
+      const newSP = (bc.skill_points || 0) + levelsGained;
+      DB.battleCharacters[CUR.id].skill_points = newSP;
+      import('./battle/character.js').then(() => {
+        supabase.from('battle_characters')
+          .update({ skill_points: newSP })
+          .eq('id', bc.id);
+      });
+    }
   } else {
     playSound('xp');
   }
