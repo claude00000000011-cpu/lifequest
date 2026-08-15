@@ -25,7 +25,8 @@ import { getMerchantSlots,
          repairItem,
          getDailyEconomySummary }   from '../battle/economy.js';
 import { checkDungeonAccess,
-         startDungeon, getActiveDungeon } from '../battle/dungeon.js';
+         startDungeon, getActiveDungeon,
+         resumeDungeon }                  from '../battle/dungeon.js';
 import { ECONOMY, PROGRESSION,
          DUNGEONS, GUILDS }         from '../battle/config.js';
 import { renderDungeonMap, renderDungeonDetail } from './dungeon_map.js';
@@ -1963,14 +1964,18 @@ window._enterDungeon = async function(tier) {
 
 // Continua dungeon in corso
 window._resumeDungeon = async function() {
-  const { getCurrentEnemy, getActiveDungeon } = await import('../battle/dungeon.js');
-  const enemy = getCurrentEnemy();
+  const { getCurrentEnemy, getActiveDungeon, resumeDungeon: resume } = await import('../battle/dungeon.js');
 
-  if (!enemy) {
-    return toast('Nessun nemico trovato nella stanza corrente.', 'error');
+  // Se _activeDungeon è null (dopo refresh), ricostruiscilo da Supabase
+  let activeDungeon = getActiveDungeon();
+  if (!activeDungeon) {
+    const result = await resume(CUR.id);
+    if (!result.ok) return toast(result.error || 'Sessione non trovata', 'error');
+    activeDungeon = result.dungeon;
   }
 
-  const activeDungeon = getActiveDungeon();
+  const enemy = getCurrentEnemy();
+  if (!enemy) return toast('Nessun nemico trovato nella stanza corrente.', 'error');
 
   import('./battle_screen.js').then(m => {
     m.renderBattleScreen?.(enemy, {
