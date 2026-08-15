@@ -220,7 +220,81 @@ export const PROGRESSION = {
 // Boss non segue più la curva esponenziale — ha stat separate.
 // Fonte dati: DB.dungeonConfig (Supabase) — questa funzione
 // viene chiamata dal loader dopo aver letto il DB.
+// _buildRooms è ora usata solo come fallback locale.
+// In produzione le rooms vengono costruite da loadDungeonRooms()
+// che legge DB.dungeonConfig (Supabase).
 export function _buildRooms({
+  baseHp, baseAtk, baseDef, hpScale, atkScale, defScale,
+  baseGold, xpPerRoom, bossId,
+  bossHp, bossAtk, bossDef,
+}) {
+  return Array.from({ length: 10 }, (_, i) => {
+    const isBoss = i === 9;
+    const hp  = isBoss ? bossHp  : Math.round(baseHp  * Math.pow(hpScale  ?? 1.18, i));
+    const atk = isBoss ? bossAtk : Math.round(baseAtk * Math.pow(atkScale ?? 1.18, i));
+    const def = isBoss ? bossDef : Math.round(baseDef * Math.pow(defScale ?? 1.18, i));
+    return {
+      room:        i + 1,
+      isBoss,
+      enemyHp:     hp,
+      enemyMaxHp:  hp,
+      enemyAttack: atk,
+      enemyDef:    def,
+      gold:        Math.round(baseGold  * (1 + i * 0.30)),
+      xp:          Math.round(xpPerRoom * (1 + i * 0.25)),
+      bossId:      isBoss ? bossId : null,
+      enemyName:   isBoss
+        ? `Boss: ${bossId.replace(/_/g, ' ')}`
+        : `Nemico Stanza ${i + 1}`,
+    };
+  });
+}
+
+// Costruisce le rooms di un dungeon leggendo da DB.dungeonConfig.
+// Chiamata da renderDungeonMap() e renderDungeonDetail() invece di WORLD_DUNGEONS[i].rooms
+export function loadDungeonRooms(dungeonId) {
+  const cfg = DB.dungeonConfig?.[dungeonId];
+  if (!cfg) {
+    console.warn('[loadDungeonRooms] dungeonConfig non caricato per:', dungeonId);
+    return null;
+  }
+  return _buildRooms({
+    baseHp:   cfg.base_hp,
+    baseAtk:  cfg.base_atk,
+    baseDef:  cfg.base_def,
+    hpScale:  cfg.hp_scale,
+    atkScale: cfg.atk_scale,
+    defScale: cfg.def_scale,
+    baseGold: cfg.base_gold,
+    xpPerRoom:cfg.xp_per_room,
+    bossId:   dungeonId,
+    bossHp:   cfg.boss_hp,
+    bossAtk:  cfg.boss_atk,
+    bossDef:  cfg.boss_def,
+  });
+}
+
+// WORLD_DUNGEONS — solo dati di presentazione.
+// rooms: null — vengono caricate da loadDungeonRooms() al runtime.
+export const WORLD_DUNGEONS = [
+  { id:'dungeon_01', name:'Faro della Costa',        mapX:0.38, mapY:0.56, requiredLevel:1,  theme:'coastal',        description:'Un vecchio faro infestato da creature marine.',                    rooms:null },
+  { id:'dungeon_02', name:'Porto Meridionale',        mapX:0.44, mapY:0.64, requiredLevel:3,  theme:'port',           description:'Contrabbandieri e mostri delle profondità controllano il porto.', rooms:null },
+  { id:'dungeon_03', name:'Isola Fortificata',        mapX:0.18, mapY:0.67, requiredLevel:6,  theme:'fortress',       description:'Una fortezza caduta in mano a mercenari corrotti.',                rooms:null },
+  { id:'dungeon_04', name:"Villaggio sull'Isola",     mapX:0.22, mapY:0.50, requiredLevel:9,  theme:'village',        description:'Un villaggio maledetto dove i morti non restano tali.',            rooms:null },
+  { id:'dungeon_05', name:"Montagne dell'Isola",      mapX:0.27, mapY:0.42, requiredLevel:12, theme:'mountain',       description:'Caverne profonde abitate da giganti di pietra.',                   rooms:null },
+  { id:'dungeon_06', name:'Foresta Intricata',        mapX:0.34, mapY:0.30, requiredLevel:15, theme:'forest',         description:'Una foresta antica dove gli alberi stessi sono nemici.',           rooms:null },
+  { id:'dungeon_07', name:'Torre del Sentiero',       mapX:0.46, mapY:0.42, requiredLevel:18, theme:'tower',          description:'Una torre di guardia occupata da stregoni ribelli.',              rooms:null },
+  { id:'dungeon_08', name:'Fortezza del Nord',        mapX:0.54, mapY:0.18, requiredLevel:22, theme:'fortress',       description:'Fortezza di confine caduta dopo un assedio demoniaco.',           rooms:null },
+  { id:'dungeon_09', name:'Torre Settentrionale',     mapX:0.65, mapY:0.20, requiredLevel:26, theme:'tower',          description:'Una torre ghiacciata con un guardiano immortale.',                 rooms:null },
+  { id:'dungeon_10', name:'Castello della Capitale',  mapX:0.52, mapY:0.46, requiredLevel:30, theme:'castle',         description:"Il castello reale, corrotto dall'interno da un re ombra.",        rooms:null },
+  { id:'dungeon_11', name:'Vulcano Attivo',            mapX:0.60, mapY:0.52, requiredLevel:34, theme:'volcano',        description:'Le profondità di un vulcano dove vive un demone del fuoco.',      rooms:null },
+  { id:'dungeon_12', name:'Oasi del Deserto',          mapX:0.78, mapY:0.55, requiredLevel:38, theme:'desert',         description:"Sotto l'oasi si nasconde un labirinto di sabbia e morte.",         rooms:null },
+  { id:'dungeon_13', name:'Lago Tropicale',            mapX:0.52, mapY:0.72, requiredLevel:42, theme:'tropical',       description:"Acque cristalline che nascondono un'idra millenaria.",            rooms:null },
+  { id:'dungeon_14', name:'Castello Meridionale',      mapX:0.50, mapY:0.62, requiredLevel:46, theme:'castle',         description:"Il secondo castello, sede di un duca caduto nell'oscurità.",       rooms:null },
+  { id:'dungeon_15', name:'Isole Fluttuanti Est',      mapX:0.80, mapY:0.28, requiredLevel:50, theme:'floating',       description:'Isole nel cielo pattugliate da colossi di pietra e nuvole.',      rooms:null },
+  { id:'dungeon_16', name:'Isole Fluttuanti Ovest',    mapX:0.18, mapY:0.22, requiredLevel:55, theme:'floating',       description:'Isole avvolte nel vuoto, dimora di un titano del nulla.',         rooms:null },
+  { id:'dungeon_17', name:'Castello Fluttuante',       mapX:0.88, mapY:0.18, requiredLevel:60, theme:'floating_castle',description:'Il trono finale. Chi lo governa non è di questo mondo.',          rooms:null },
+];
   baseHp, baseAtk, baseDef, hpScale, atkScale, defScale,
   baseGold, xpPerRoom, bossId,
   bossHp, bossAtk, bossDef,
