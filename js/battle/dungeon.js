@@ -88,6 +88,18 @@ export async function startDungeon(userId, tier) {
   // Genera le stanze
   const rooms = generateRooms(tier, config, level);
 
+
+
+
+
+
+
+
+
+
+
+
+         
   // Crea il record su Supabase
   const { data: session, error } = await supabase
     .from('dungeon_progress')
@@ -171,8 +183,7 @@ export async function resumeDungeon(userId) {
 function generateRooms(tier, config, playerLevel) {
   const rooms = [];
   const normalRooms = config.normalRooms;
-
-  // Stanze normali
+  // Stanze normali — roomIndex cresce per scalare i nemici
   for (let i = 0; i < normalRooms; i++) {
     const count = config.enemiesMin + Math.floor(
       Math.random() * (config.enemiesMax - config.enemiesMin + 1)
@@ -180,38 +191,43 @@ function generateRooms(tier, config, playerLevel) {
     rooms.push({
       type:    'normal',
       index:   i + 1,
-      enemies: selectEnemies(tier, false, count, playerLevel),
+      enemies: selectEnemies(tier, false, count, playerLevel, i),
       cleared: false,
     });
   }
-
   // Stanza boss
   rooms.push({
     type:    'boss',
     index:   normalRooms + 1,
-    enemies: selectEnemies(tier, true, 1, playerLevel),
+    enemies: selectEnemies(tier, true, 1, playerLevel, normalRooms),
     cleared: false,
   });
-
   return rooms;
 }
 
 /**
  * Seleziona i nemici per una stanza dal catalogo locale.
  */
-function selectEnemies(tier, isBoss, count, playerLevel) {
+function selectEnemies(tier, isBoss, count, playerLevel, roomIndex = 0) {
   const pool = (DB.battleEnemies || []).filter(
     e => e.tier === tier && e.is_boss === isBoss
   );
 
   if (!pool.length) {
-    // Fallback: crea un nemico procedurale se il seed non è ancora caricato
-    return Array(count).fill(null).map((_, i) => generateProceduralEnemy(tier, isBoss, playerLevel, i));
+    return Array(count).fill(null).map((_, i) =>
+      generateProceduralEnemy(tier, isBoss, playerLevel, i, roomIndex)
+    );
   }
 
+  // Scala i nemici dal DB in base alla stanza
+  const roomMult = 1 + roomIndex * 0.18; // +18% per stanza
   const selected = [];
   for (let i = 0; i < count; i++) {
-    selected.push({ ...pool[Math.floor(Math.random() * pool.length)] });
+    const base = { ...pool[Math.floor(Math.random() * pool.length)] };
+    base.hp_base      = Math.round((base.hp_base      || 100) * roomMult);
+    base.attack_base  = Math.round((base.attack_base  || 10)  * roomMult);
+    base.defense_base = Math.round((base.defense_base || 5)   * roomMult);
+    selected.push(base);
   }
   return selected;
 }
@@ -220,27 +236,28 @@ function selectEnemies(tier, isBoss, count, playerLevel) {
  * Genera un nemico procedurale quando il DB non è disponibile.
  * Usato solo come fallback.
  */
-function generateProceduralEnemy(tier, isBoss, playerLevel, index) {
+function generateProceduralEnemy(tier, isBoss, playerLevel, index, roomIndex = 0) {
   const config    = DUNGEONS[tier - 1];
   const scaling   = 1 + Math.max(0, playerLevel - config.minLevel) * config.scalingPerLevel;
-  const bossMultH = isBoss ? config.bossHpMult   : 1;
-  const bossMultA = isBoss ? config.bossAttackMult: 1;
+  const roomMult  = 1 + roomIndex * 0.18; // +18% per stanza — stanza 1=×1, stanza 4=×1.54
+  const bossMultH = isBoss ? config.bossHpMult    : 1;
+  const bossMultA = isBoss ? config.bossAttackMult : 1;
 
   return {
-    id:           `proc_t${tier}_${isBoss ? 'boss' : 'normal'}_${index}`,
-    name:         isBoss ? `Boss del Dungeon ${tier}` : `Nemico T${tier}`,
+    id:                  `proc_t${tier}_${isBoss ? 'boss' : 'normal'}_r${roomIndex}_${index}`,
+    name:                isBoss ? `Boss del Dungeon ${tier}` : `Nemico T${tier} (St.${roomIndex + 1})`,
     tier,
-    is_boss:      isBoss,
-    hp_base:      Math.floor(config.enemyHpBase     * bossMultH * scaling),
-    attack_base:  Math.floor(config.enemyAttackBase  * bossMultA * scaling),
-    defense_base: Math.floor(config.enemyDefenseBase * scaling),
-    speed_base:   5,
-    gold_min:     isBoss ? config.goldBoss       : config.goldPerEnemy,
-    gold_max:     isBoss ? config.goldBoss * 2   : config.goldPerEnemy * 2,
-    drop_rate_pct: isBoss ? config.dropRateBoss * 100 : config.dropRateNormal * 100,
-    icon_path:    null,
-    has_immunity: isBoss,
-    buff_chance_pct: isBoss ? 20 : 0,
+    is_boss:             isBoss,
+    hp_base:             Math.floor(config.enemyHpBase      * bossMultH * scaling * roomMult),
+    attack_base:         Math.floor(config.enemyAttackBase   * bossMultA * scaling * roomMult),
+    defense_base:        Math.floor(config.enemyDefenseBase  * scaling   * roomMult),
+    speed_base:          5,
+    gold_min:            Math.floor((isBoss ? config.goldBoss : config.goldPerEnemy) * roomMult),
+    gold_max:            Math.floor((isBoss ? config.goldBoss : config.goldPerEnemy) * 2 * roomMult),
+    drop_rate_pct:       isBoss ? config.dropRateBoss * 100 : config.dropRateNormal * 100,
+    icon_path:           null,
+    has_immunity:        isBoss,
+    buff_chance_pct:     isBoss ? 20 : 0,
     phase2_hp_threshold: 50,
     phase2_attack_bonus: 25,
   };
