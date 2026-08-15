@@ -336,6 +336,23 @@ const CONSUMABLE_POOL = [
 ];
 
 /**
+/**
+/**
+ * Restituisce gli slot del mercante, rigenerando se passate 24h.
+ * @returns {Array} slot mercante
+ */
+export async function getMerchantSlots() {
+  const lastRot = DB.merchantLastRot;
+  const now     = Date.now();
+  const rotMs   = ECONOMY.MERCHANT.rotationHours * 3_600_000;
+
+  if (!lastRot || (now - lastRot) >= rotMs || !DB.merchantSlots.length) {
+    await rotateMerchant();
+  }
+
+  return DB.merchantSlots;
+}
+
 
 /**
  * Rigenera il catalogo del mercante.
