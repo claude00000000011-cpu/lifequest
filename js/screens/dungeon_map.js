@@ -171,8 +171,8 @@ export async function renderDungeonMap(containerEl, playerLevel, onEnter) {
       btn.disabled = true;
     }
 
-    markersEl.appendChild(btn);
-  });
+     markersEl.appendChild(btn);
+  }
 }
 
 // ─── RENDER: DETTAGLIO DUNGEON (lista stanze) ─────────────────────────────────
@@ -268,7 +268,7 @@ export async function renderDungeonDetail(containerEl, dungeon, playerLevel, onS
  * @param {Function} onContinue   — vai alla prossima stanza
  * @param {Function} onMap        — torna alla mappa
  */
-export function renderBattleResult(containerEl, dungeon, room, outcome, playerHpEnd, onContinue, onMap) {
+export async function renderBattleResult(containerEl, dungeon, room, outcome, playerHpEnd, onContinue, onMap) {
   let goldEarned = 0;
   let xpEarned   = 0;
   let newState   = null;
