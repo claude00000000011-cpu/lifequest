@@ -1682,3 +1682,158 @@ select {
   padding: 0.3rem 0.6rem;
 }
 .veffect-slot { font-size: 1rem; }
+
+/* ── Tutorial Prima Volta ─────────────────────────────────── */
+.tutorial-screen {
+  position: relative;
+  max-width: 440px;
+  margin: 1rem auto;
+  padding: 2rem 1.5rem;
+  background: var(--bg-2);
+  border: 2px solid var(--gold-dark);
+  box-shadow: 4px 4px 0 rgba(0,0,0,0.8), 0 0 40px rgba(124,58,237,0.15);
+  overflow: hidden;
+}
+
+/* Angoli decorativi */
+.tutorial-screen::before,
+.tutorial-screen::after {
+  content: '★';
+  position: absolute;
+  top: 8px;
+  color: var(--gold-dark);
+  font-size: 0.7rem;
+}
+.tutorial-screen::before { left: 10px; }
+.tutorial-screen::after  { right: 10px; }
+
+/* Scanline overlay */
+.tutorial-scanline {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0,0,0,0.06) 3px,
+    rgba(0,0,0,0.06) 4px
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.tutorial-crown {
+  font-size: 2.8rem;
+  text-align: center;
+  margin-bottom: 0.75rem;
+  filter: drop-shadow(0 0 8px var(--gold));
+  position: relative;
+  z-index: 1;
+}
+
+.tutorial-title {
+  font-family: var(--font-pixel);
+  font-size: 0.75rem;
+  color: var(--gold);
+  text-align: center;
+  text-shadow: 3px 3px 0 #000, 0 0 20px rgba(255,215,0,0.4);
+  line-height: 2;
+  letter-spacing: 2px;
+  position: relative;
+  z-index: 1;
+}
+
+.tutorial-subtitle {
+  font-family: var(--font-pixel);
+  font-size: 0.3rem;
+  color: var(--text-3);
+  text-align: center;
+  letter-spacing: 1px;
+  margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
+  position: relative;
+  z-index: 1;
+}
+
+.tutorial-divider {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold-dark), transparent);
+  margin: 1.25rem 0;
+  position: relative;
+  z-index: 1;
+}
+
+.tutorial-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  position: relative;
+  z-index: 1;
+}
+
+.tutorial-entry {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--gold-dark);
+  padding: 0.7rem 0.85rem;
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+}
+
+.tutorial-entry__icon {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 4px rgba(255,215,0,0.3));
+  margin-top: 2px;
+}
+
+.tutorial-entry__label {
+  font-family: var(--font-pixel);
+  font-size: 0.32rem;
+  color: var(--gold);
+  letter-spacing: 1px;
+  margin-bottom: 0.3rem;
+  text-shadow: 1px 1px 0 #000;
+}
+
+.tutorial-entry__text {
+  font-family: var(--font-ui);
+  font-size: 0.82rem;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+
+.tutorial-btn {
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.85rem 1rem;
+  font-family: var(--font-pixel);
+  font-size: 0.5rem;
+  letter-spacing: 1px;
+  color: var(--bg);
+  background: var(--gold);
+  border: none;
+  border-bottom: 4px solid var(--gold-dark);
+  cursor: pointer;
+  text-shadow: none;
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.6);
+  transition: none;
+  position: relative;
+  z-index: 1;
+}
+.tutorial-btn:hover {
+  background: var(--gold-dark);
+  color: var(--bg);
+}
+.tutorial-btn:active {
+  transform: translateY(2px);
+  border-bottom-width: 2px;
+}
+
+
+
+
+
+
