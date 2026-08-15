@@ -72,7 +72,8 @@ _lockNav(true);
   }
 
   if (!DB.combatConfig) {
-    const { data: ccData } = await supabase
+     const { supabase: sb } = await import('../../supabase.js');
+    const { data: ccData } = await sb
       .from('combat_config')
       .select('*');
     if (ccData) {
