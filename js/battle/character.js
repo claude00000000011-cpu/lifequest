@@ -64,7 +64,11 @@ const bc      = DB.battleCharacters[userId];
     : (DB.battleClasses?.warrior || null);
 
   // Fallback ai valori hardcodati solo se Supabase non è ancora caricato
-  const base = classData ? {
+ if (!classData) {
+    console.warn('[calcBattleStats] battleClasses non ancora caricato per:', classId);
+    return null;
+  }
+  const base = {
     hp:          classData.hp_base,
     attack:      classData.attack_base,
     defense:     classData.defense_base,
@@ -73,10 +77,9 @@ const bc      = DB.battleCharacters[userId];
     luck:        classData.luck_base,
     hpPerLevel:  classData.hp_per_level,
     manaPerLevel:classData.mana_per_level,
-  } : CLASS_BASE_STATS[classId || 'warrior'];
-
-  const mult    = classData?.stat_multipliers || CLASS_STAT_MULT[classId || 'warrior'];
-  const primary = classData?.primary_stat     || CLASS_PRIMARY_STAT[classId || 'warrior'];
+  };
+  const mult    = classData.stat_multipliers;
+  const primary = classData.primary_stat;
  
   const stats    = user.stats || { mente: 0, corpo: 0, cultura: 0, sfide: 0, sociale: 0 };
   const level    = calcLevel(user.xp || 0);
