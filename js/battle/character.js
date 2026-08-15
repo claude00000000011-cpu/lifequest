@@ -324,8 +324,9 @@ const patch = {
   defense:          computed.defense,
   speed:            computed.speed,
   mana_max:         computed.mana,
+  mana_current:     computed.mana,
   luck_pct:         computed.luck,
-  power_level:      calcPowerLevel(userId),   // ← AGGIUNTO
+  power_level:      calcPowerLevel(userId),
   last_stats_sync:  new Date().toISOString(),
 };
 
