@@ -527,7 +527,7 @@ function checkVictory(s, defeated) {
 
 export function calcPveRewards(enemyData, playerLuck, dungeonTier, streakMultiplier = 1.0) {
   const gold = Math.floor(Number(enemyData.gold_reward || 0) * streakMultiplier);
-  const xp   = Number(enemyData.xp_reward || 0);
+ const xp = 0;           //exp ZERO nei combattimenti
 
   // Probabilità base di drop determinata dal tier del dungeon
   const dropRates = [0.15, 0.18, 0.22, 0.28, 0.35];
@@ -543,10 +543,10 @@ export function calcPveRewards(enemyData, playerLuck, dungeonTier, streakMultipl
     itemRarity = rollItemRarity(dungeonTier - 1, playerLuck);
   }
 
-  return {
+ return {
     gold,
     itemRarity,
-    xpBonus: xp,
+    xpBonus: 0,
   };
 }
 
