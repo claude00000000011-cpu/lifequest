@@ -478,7 +478,11 @@ function _rebindActions(container, abilities) {
       if (_animLock || _battleState.isOver) return;
       const action = btn.dataset.action;
       const abId   = btn.dataset.abId;
-      const abData = abId ? DB.battleAbilities.find(a => a.id === abId) : null;
+      const abData = abId ? {
+  ...DB.battleAbilities.find(a => a.id === abId),
+  _currentLevel: (DB.characterAbilities[CUR.id] || [])
+    .find(la => la.ability_id === abId)?.level ?? 1
+} : null;
       await _handleAction(container, action, {}, abData);
     });
   });
