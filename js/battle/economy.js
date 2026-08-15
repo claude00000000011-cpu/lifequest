@@ -155,7 +155,9 @@ function selectRandomItemByRarity(rarity) {
  * Genera un oggetto procedurale quando il catalogo non ha quella rarità.
  */
 function generateProceduralItem(rarity) {
-  const rarCfg   = EQUIPMENT_RARITIES[rarity];
+   const rarCfg = (DB.equipmentRarities && DB.equipmentRarities[rarity])
+    ? DB.equipmentRarities[rarity]
+    : EQUIPMENT_RARITIES[rarity]; // fallback se non ancora caricato
   const slots    = ['weapon', 'armor', 'helmet', 'accessory1', 'accessory2'];
   const slot     = slots[Math.floor(Math.random() * slots.length)];
   const rarNames = { common:'Comune', uncommon:'Non Comune', rare:'Raro',
