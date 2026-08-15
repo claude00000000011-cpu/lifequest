@@ -88,37 +88,46 @@ const bc      = DB.battleCharacters[userId];
   // Ogni stat reale ha un soft-cap implicito nel moltiplicatore ridotto.
   // I valori minimi sono clamped a 1 per evitare stat negative da bug.
  
- const primStatPts  = Math.floor((primStat || 0) / 1000);
-const hpBase  = base.hp  + level * base.hpPerLevel;
-const atkBase = base.attack + level * 2;
-const defBase = base.defense + level * 1.5;
-const manaBase = base.mana + level * base.manaPerLevel;
-const spdBase = base.speed + level * 0.1;
+const cc = DB.combatConfig;
+  if (!cc) {
+    console.warn('[calcBattleStats] combatConfig non ancora caricato');
+    return null;
+  }
 
-const hp = Math.max(10, Math.floor(
-  hpBase * (1 + primStatPts * mult.hp)
-));
+  const atkPerLevel      = classData.atk_per_level  ?? 3.0;
+  const defPerLevel      = classData.def_per_level  ?? 2.0;
+  const spdPerLevel      = classData.spd_per_level  ?? 0.05;
+  const statBonusHp      = cc.stat_bonus_hp          ?? 15;
+  const statBonusAttack  = cc.stat_bonus_attack       ?? 2;
+  const statBonusDefense = cc.stat_bonus_defense      ?? 1;
+  const statBonusLuck    = cc.stat_bonus_luck         ?? 0.5;
+  const luckCap          = classData.luck_cap         ?? cc.luck_cap ?? 25;
 
-const attack = Math.max(1, Math.floor(
-  atkBase * (1 + primStatPts * mult.attack)
-));
+  const primPts  = Math.floor((primStat || 0) / 1000);
+  const hpBase   = classData.hp_base      + level * classData.hp_per_level;
+  const atkBase  = classData.attack_base  + level * atkPerLevel;
+  const defBase  = classData.defense_base + level * defPerLevel;
+  const spdBase  = classData.speed_base   + level * spdPerLevel;
+  const manaBase = classData.mana_base    + level * (classData.mana_per_level ?? 2);
 
-const defense = Math.max(1, Math.floor(
-  defBase * (1 + primStatPts * mult.defense)
-));
+  const hp      = Math.max(10, Math.floor(hpBase)  + primPts * statBonusHp);
+  const attack  = Math.max(1,  Math.floor(atkBase) + primPts * statBonusAttack);
+  const defense = Math.max(1,  Math.floor(defBase) + primPts * statBonusDefense);
+  const speed   = Math.max(1,  Math.floor(spdBase));
+  const mana    = Math.max(0,  Math.floor(manaBase));
 
-const speed = Math.max(1, Math.floor(
-  spdBase * (1 + primStatPts * mult.speed)
-));
+  const luck = Math.min(
+    luckCap,
+    parseFloat((classData.luck_base + primPts * statBonusLuck).toFixed(2))
+  );
 
-const mana = Math.max(0, Math.floor(
-  manaBase * (1 + primStatPts * mult.mana)
-));
- 
-  // Soft-cap fortuna: oltre 50 i ritorni marginali sono quasi nulli.
-  // Questo corregge il bug oracle luck=226 causato da sociale alto.
-  const luckRaw = base.luck + (stats.cultura || 0) * 0.08 + primStat * mult.luck;
-  const luck = Math.max(0, parseFloat(Math.min(luckRaw, 50).toFixed(2)));
+
+
+
+
+
+
+  
  
   // Bonus equipaggiamento
   const equipment = DB.characterEquipment[userId] || [];
