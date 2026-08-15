@@ -1641,3 +1641,44 @@ select {
   transition: color 0.15s, border-color 0.15s;
 }
 .dm-btn-back:hover { color: #fff; border-color: #fff; }
+
+
+
+
+
+
+
+
+
+
+.inv-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.75rem 0;
+}
+.inv-filter-select {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  color: var(--text-1);
+  border-radius: 6px;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.8rem;
+}
+.village-effects-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.5rem 0;
+}
+.veffect-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-2);
+  background: var(--bg-2);
+  border-radius: 6px;
+  padding: 0.3rem 0.6rem;
+}
+.veffect-slot { font-size: 1rem; }
