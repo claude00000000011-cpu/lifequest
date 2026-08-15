@@ -154,26 +154,39 @@ const mana = Math.max(0, Math.floor(
  * @returns {Object} bonus totali
  */
 function calcEquipmentBonus(equipment) {
-  const bonus = { hp: 0, attack: 0, defense: 0, speed: 0, mana: 0, luck: 0 };
+  const bonus = {
+    hp: 0, attack: 0, defense: 0, speed: 0, mana: 0, luck: 0,
+    crit_rate: 0, crit_damage: 0,
+    burn_chance: 0, poison_chance: 0, dot_damage: 0
+  };
   if (!equipment?.length) return bonus;
-
   equipment.forEach(slot => {
     if (!slot.item_id) return;
-    const item = slot.item; // <-- dal join, non da DB.battleItems
+    const item = slot.item;
     if (!item) return;
-
     const dur = (slot.durability ?? 100) / 100;
+    // Bonus base
     bonus.hp      += Math.floor((item.bonus_hp      || 0) * dur);
     bonus.attack  += Math.floor((item.bonus_attack  || 0) * dur);
     bonus.defense += Math.floor((item.bonus_defense || 0) * dur);
     bonus.speed   += Math.floor((item.bonus_speed   || 0) * dur);
     bonus.mana    += Math.floor((item.bonus_mana    || 0) * dur);
     bonus.luck    += parseFloat(((item.bonus_luck_pct || 0) * dur).toFixed(2));
+    // Bonus fabbro
+    const enh = slot.enhancement;
+    if (enh) {
+      bonus.attack       += Math.floor((enh.bonus_attack   || 0) * dur);
+      bonus.defense      += Math.floor((enh.bonus_defense  || 0) * dur);
+      bonus.hp           += Math.floor((enh.bonus_hp       || 0) * dur);
+      bonus.crit_rate    += parseFloat(((enh.crit_rate     || 0) * dur).toFixed(2));
+      bonus.crit_damage  += parseFloat(((enh.crit_damage   || 0) * dur).toFixed(2));
+      bonus.burn_chance  += parseFloat(((enh.burn_chance   || 0) * dur).toFixed(2));
+      bonus.poison_chance+= parseFloat(((enh.poison_chance || 0) * dur).toFixed(2));
+      bonus.dot_damage   += Math.floor((enh.dot_damage     || 0) * dur);
+    }
   });
-
   return bonus;
 }
-
 
 
 
@@ -648,13 +661,19 @@ export async function loadEquipment(userId) {
 
   const { data, error } = await supabase
     .from('character_equipment')
-    .select(`
+   .select(`
       *,
       item:battle_items (
         id, name, slot, rarity, icon_path,
         bonus_hp, bonus_attack, bonus_defense, bonus_speed,
         bonus_mana, bonus_luck_pct, class_restriction,
         buy_price, sell_price, level_req
+      ),
+      enhancement:item_enhancements (
+        enhancement_lvl,
+        bonus_attack, bonus_defense, bonus_hp,
+        crit_rate, crit_damage,
+        burn_chance, poison_chance, dot_damage
       )
     `)
     .eq('character_id', bc.id);
