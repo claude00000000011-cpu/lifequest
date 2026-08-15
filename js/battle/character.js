@@ -58,11 +58,28 @@ export function calcBattleStats(userId) {
   const user = DB.users[userId];
   if (!user) return null;
  
-  const bc      = DB.battleCharacters[userId];
+const bc      = DB.battleCharacters[userId];
   const classId = bc?.class_id;
-  const base    = classId ? CLASS_BASE_STATS[classId] : CLASS_BASE_STATS.warrior;
-  const mult    = classId ? CLASS_STAT_MULT[classId]  : CLASS_STAT_MULT.warrior;
-  const primary = classId ? CLASS_PRIMARY_STAT[classId] : 'corpo';
+
+  // Legge le stat base da Supabase (DB.battleClasses) invece che da config.js
+  const classData = (DB.battleClasses && classId)
+    ? DB.battleClasses[classId]
+    : (DB.battleClasses?.warrior || null);
+
+  // Fallback ai valori hardcodati solo se Supabase non è ancora caricato
+  const base = classData ? {
+    hp:          classData.hp_base,
+    attack:      classData.attack_base,
+    defense:     classData.defense_base,
+    speed:       classData.speed_base,
+    mana:        classData.mana_base,
+    luck:        classData.luck_base,
+    hpPerLevel:  classData.hp_per_level,
+    manaPerLevel:classData.mana_per_level,
+  } : CLASS_BASE_STATS[classId || 'warrior'];
+
+  const mult    = classData?.stat_multipliers || CLASS_STAT_MULT[classId || 'warrior'];
+  const primary = classData?.primary_stat     || CLASS_PRIMARY_STAT[classId || 'warrior'];
  
   const stats    = user.stats || { mente: 0, corpo: 0, cultura: 0, sfide: 0, sociale: 0 };
   const level    = calcLevel(user.xp || 0);
@@ -676,14 +693,13 @@ export async function loadAbilities(userId) {
 }
 
 export async function loadBattleClasses() {
-  if (DB.battleClasses?.length) return; // già in cache
-
+  if (DB.battleClasses && Object.keys(DB.battleClasses).length) return;
   const { data, error } = await supabase
     .from('battle_classes')
     .select('*');
-
   if (!error && data) {
-    DB.battleClasses = data;
+    // Indicizza per id: { warrior: {...}, mage: {...}, ... }
+    DB.battleClasses = Object.fromEntries(data.map(c => [c.id, c]));
     persist();
   }
 }
