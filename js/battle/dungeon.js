@@ -141,38 +141,46 @@ export async function startDungeon(userId, tier) {
 export async function resumeDungeon(userId) {
   const bc = getBattleChar(userId);
   if (!bc) return { ok: false, error: 'Personaggio non trovato' };
-  // Cerca sessione attiva non completata
-  const { data: session, error } = await supabase
-    .from('dungeon_progress')
+
+  // Cerca il massimo avanzamento per ogni tier
+  const { data: progresses, error } = await supabase
+    .from('user_dungeon_progress')
     .select('*')
-    .eq('character_id', bc.id)
-    .is('completed_at', null)
-    .order('started_at', { ascending: false })
-    .limit(1)
-    .single();
-  if (error || !session) return { ok: false, error: 'Nessuna sessione attiva trovata' };
-  const tier   = session.dungeon_tier;
-  const config = DUNGEONS[tier - 1];
-  const level  = calcLevel(DB.users[userId]?.xp || 0);
-  const rooms  = generateRooms(tier, config, level);
-  const roomsCleared = session.rooms_cleared || 0;
+    .eq('user_id', String(userId))
+    .eq('completed', false)
+    .order('updated_at', { ascending: false })
+    .limit(1);
+
+  if (error || !progresses?.length) return { ok: false, error: 'Nessuna sessione attiva trovata' };
+
+  const progress = progresses[0];
+  const tier     = parseInt(progress.dungeon_id.replace('tier_', ''));
+  const config   = DUNGEONS[tier - 1];
+  if (!config) return { ok: false, error: 'Dungeon non trovato' };
+
+  const level        = calcLevel(DB.users[userId]?.xp || 0);
+  const rooms        = generateRooms(tier, config, level);
+  const roomsCleared = progress.max_room || 0;
+
   for (let i = 0; i < roomsCleared; i++) {
     if (rooms[i]) {
       rooms[i].cleared = true;
       rooms[i].enemies.forEach(e => e._defeated = true);
     }
   }
+
   _activeDungeon = {
     tier,
     config,
     rooms,
     currentRoom:  roomsCleared,
     totalRooms:   rooms.length,
-    goldEarned:   session.gold_earned || 0,
+    goldEarned:   0,
     itemsDropped: [],
-    sessionId:    session.id,
+    sessionId:    null,
     userId,
   };
+
   return { ok: true, dungeon: _activeDungeonSummary() };
 }
 
@@ -313,14 +321,31 @@ export async function defeatEnemy(userId, enemyData) {
   const roomCleared = room.enemies.every(e => e._defeated);
   if (roomCleared) {
     room.cleared = true;
+    const roomsCleared = _activeDungeon.currentRoom + 1;
 
-    // Aggiorna progress su Supabase
+    // Aggiorna dungeon_progress (storico)
     if (_activeDungeon.sessionId) {
       await supabase
         .from('dungeon_progress')
-        .update({ rooms_cleared: _activeDungeon.currentRoom + 1 })
+        .update({ rooms_cleared: roomsCleared })
         .eq('id', _activeDungeon.sessionId);
     }
+
+    // Aggiorna max_room in user_dungeon_progress
+    const dungeonId = `tier_${_activeDungeon.tier}`;
+    const userId_str = String(_activeDungeon.userId);
+    await supabase
+      .from('user_dungeon_progress')
+      .upsert({
+        user_id:    userId_str,
+        dungeon_id: dungeonId,
+        max_room:   roomsCleared,
+        attempts:   1,
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'user_id,dungeon_id',
+        ignoreDuplicates: false,
+      });
   }
 
   return {
