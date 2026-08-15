@@ -417,7 +417,7 @@ export const PROGRESSION = {
 //   3. Bug fix: dungeon_09 aveva una } mancante
 // ============================================================
 
-function _buildRooms({ baseHp, hpScale, baseAtk, baseDef, baseGold, xpPerRoom, bossId }) {
+export function _buildRooms({ baseHp, hpScale, baseAtk, baseDef, baseGold, xpPerRoom, bossId }) {
   return Array.from({ length: 10 }, (_, i) => {
     const isBoss = i === 9;
     const hp  = Math.round(baseHp  * Math.pow(hpScale, i));
