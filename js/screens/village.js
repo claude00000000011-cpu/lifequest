@@ -301,21 +301,64 @@ async function renderVillageTabContent(bc, user, level) {
   if (DB._showClassTutorial) {
     DB._showClassTutorial = false;
     return `
-      <div class="tutorial-screen" style="padding:1.5rem;max-width:480px;margin:0 auto">
-        <div style="font-size:2.5rem;text-align:center;margin-bottom:1rem">⚔️</div>
-        <h2 style="text-align:center;margin-bottom:1rem">Benvenuto, Eroe!</h2>
-        <div class="tutorial-card" style="background:var(--card-bg);border-radius:12px;padding:1.2rem;margin-bottom:1rem;border:1px solid var(--border)">
-          <p style="margin-bottom:0.8rem">🌍 <strong>Il tuo mondo è qui.</strong> Il Villaggio è la tua base: esplora la mappa, entra nei dungeon, potenzia il tuo personaggio.</p>
-          <p style="margin-bottom:0.8rem">📈 <strong>I punti esperienza (XP) si guadagnano solo nella vita reale</strong> — completando quest, studiando, leggendo, allenandoti e svolgendo attività quotidiane.</p>
-          <p style="margin-bottom:0.8rem">⚔️ <strong>Salendo di livello</strong> le tue statistiche di combattimento crescono automaticamente in base alla tua classe.</p>
-          <p style="margin-bottom:0.8rem">🎒 <strong>Equipaggiamento:</strong> trova oggetti nei dungeon, compra al mercante, potenziamoli al fabbro — ogni pezzo migliora le tue stat in battaglia.</p>
-          <p style="margin-bottom:0">🗺️ <strong>Modalità Storia:</strong> 17 dungeon da affrontare in ordine. Ogni dungeon ha 10 stanze e un boss finale. Completa un dungeon per sbloccare il successivo.</p>
+      <div class="tutorial-screen">
+        <div class="tutorial-scanline"></div>
+
+        <div class="tutorial-crown">👑</div>
+        <div class="tutorial-title">BENVENUTO,<br>EROE!</div>
+        <div class="tutorial-subtitle">— La tua avventura inizia ora —</div>
+
+        <div class="tutorial-divider"></div>
+
+        <div class="tutorial-entries">
+          <div class="tutorial-entry">
+            <span class="tutorial-entry__icon">🌍</span>
+            <div>
+              <div class="tutorial-entry__label">IL VILLAGGIO</div>
+              <div class="tutorial-entry__text">La tua base. Esplora la mappa, entra nei dungeon, potenzia il personaggio.</div>
+            </div>
+          </div>
+          <div class="tutorial-entry">
+            <span class="tutorial-entry__icon">📈</span>
+            <div>
+              <div class="tutorial-entry__label">PUNTI ESPERIENZA</div>
+              <div class="tutorial-entry__text">Gli XP si guadagnano solo nella vita reale — quest, studio, lettura, allenamento.</div>
+            </div>
+          </div>
+          <div class="tutorial-entry">
+            <span class="tutorial-entry__icon">⚔️</span>
+            <div>
+              <div class="tutorial-entry__label">LIVELLO & CLASSE</div>
+              <div class="tutorial-entry__text">Salendo di livello le tue stat crescono. La classe determina i tuoi punti di forza.</div>
+            </div>
+          </div>
+          <div class="tutorial-entry">
+            <span class="tutorial-entry__icon">🎒</span>
+            <div>
+              <div class="tutorial-entry__label">EQUIPAGGIAMENTO</div>
+              <div class="tutorial-entry__text">Trova oggetti nei dungeon, compra al mercante, potenzia al fabbro.</div>
+            </div>
+          </div>
+          <div class="tutorial-entry">
+            <span class="tutorial-entry__icon">🗺️</span>
+            <div>
+              <div class="tutorial-entry__label">MODALITÀ STORIA</div>
+              <div class="tutorial-entry__text">17 dungeon in ordine. 10 stanze + boss finale. Completa un dungeon per sbloccare il successivo.</div>
+            </div>
+          </div>
         </div>
-        <button class="btn-primary" style="width:100%;padding:0.9rem;font-size:1rem"
+
+        <div class="tutorial-divider"></div>
+
+        <button class="tutorial-btn"
                 onclick="this.closest('.tutorial-screen').remove(); window._switchVillageTab?.('map')">
-          Inizia l'avventura! 🚀
+          ▶ INIZIA L'AVVENTURA
         </button>
       </div>
+
+
+
+      
     `;
   }
 
