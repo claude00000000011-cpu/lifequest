@@ -9,17 +9,55 @@ import { WORLD_DUNGEONS } from '../battle/config.js';
 // Se hai un backend, sostituisci queste due funzioni con chiamate API. 
 // La struttura del JSON salvato è identica alla risposta del backend.
 
-function loadProgress() {
-  try {
-    return JSON.parse(localStorage.getItem('lq_dungeon_progress') || '{}');
-  } catch {
-    return {};
-  }
+import { supabase } from '../../supabase.js';
+import { CUR }      from '../db.js';
+
+// Cache locale per evitare troppe query
+let _progressCache = null;
+
+async function loadProgress() {
+  if (_progressCache) return _progressCache;
+  if (!CUR?.id) return {};
+  const { data, error } = await supabase
+    .from('user_dungeon_progress')
+    .select('*')
+    .eq('user_id', CUR.id);
+  if (error || !data) return {};
+  const progress = {};
+  data.forEach(row => {
+    progress[row.dungeon_id] = {
+      maxRoom:     row.max_room   || 0,
+      completed:   row.completed  || false,
+      totalGold:   row.total_gold || 0,
+      totalXp:     row.total_xp   || 0,
+      completedAt: row.completed_at || null,
+    };
+  });
+  _progressCache = progress;
+  return progress;
 }
 
-function saveProgress(progress) {
-  localStorage.setItem('lq_dungeon_progress', JSON.stringify(progress));
+async function saveProgress(dungeonId, state) {
+  if (!CUR?.id) return;
+  _progressCache = null; // invalida cache
+  await supabase
+    .from('user_dungeon_progress')
+    .upsert({
+      user_id:      CUR.id,
+      dungeon_id:   dungeonId,
+      max_room:     state.maxRoom,
+      completed:    state.completed,
+      total_gold:   state.totalGold,
+      total_xp:     state.totalXp,
+      completed_at: state.completedAt ? new Date(state.completedAt).toISOString() : null,
+      updated_at:   new Date().toISOString(),
+    }, { onConflict: 'user_id,dungeon_id' });
 }
+
+
+
+
+
 
 // ─── LOGICA UNLOCK ───────────────────────────────────────────────────────────
 
@@ -27,8 +65,8 @@ function saveProgress(progress) {
  * Ritorna lo stato di un singolo dungeon per l'utente corrente.
  * { maxRoom: number, completed: boolean, totalGold: number, totalXp: number }
  */
-export function getDungeonState(dungeonId) {
-  const progress = loadProgress();
+export async function getDungeonState(dungeonId) {
+  const progress = await loadProgress();
   return progress[dungeonId] || { maxRoom: 0, completed: false, totalGold: 0, totalXp: 0 };
 }
 
@@ -37,13 +75,13 @@ export function getDungeonState(dungeonId) {
  * Condizioni: primo dungeon sempre aperto, altrimenti il precedente deve essere completato
  * E il giocatore deve avere il livello richiesto.
  */
-export function isUnlocked(dungeonIndex, playerLevel) {
+export async function isUnlocked(dungeonIndex, playerLevel) {
   const dungeon = WORLD_DUNGEONS[dungeonIndex];
   if (!dungeon) return false;
   if (playerLevel < dungeon.requiredLevel) return false;
   if (dungeonIndex === 0) return true;
   const prevId = WORLD_DUNGEONS[dungeonIndex - 1].id;
-  const prev   = getDungeonState(prevId);
+  const prev   = await getDungeonState(prevId);
   return prev.completed === true;
 }
 
@@ -51,21 +89,20 @@ export function isUnlocked(dungeonIndex, playerLevel) {
  * Segna una stanza come completata e aggiorna il progresso.
  * Chiamare questa funzione DOPO ogni vittoria in battaglia.
  */
-export function markRoomComplete(dungeonId, roomNumber, goldEarned, xpEarned) {
-  const progress = loadProgress();
+export async function markRoomComplete(dungeonId, roomNumber, goldEarned, xpEarned) {
+  const progress = await loadProgress();
   const current  = progress[dungeonId] || { maxRoom: 0, completed: false, totalGold: 0, totalXp: 0 };
 
-  current.maxRoom    = Math.max(current.maxRoom, roomNumber);
-  current.totalGold  = (current.totalGold || 0) + goldEarned;
-  current.totalXp    = (current.totalXp  || 0) + xpEarned;
+  current.maxRoom   = Math.max(current.maxRoom, roomNumber);
+  current.totalGold = (current.totalGold || 0) + goldEarned;
+  current.totalXp   = (current.totalXp  || 0) + xpEarned;
 
   if (roomNumber === 10 && !current.completed) {
     current.completed   = true;
     current.completedAt = Date.now();
   }
 
-  progress[dungeonId] = current;
-  saveProgress(progress);
+  await saveProgress(dungeonId, current);
   return current;
 }
 
@@ -77,9 +114,10 @@ export function markRoomComplete(dungeonId, roomNumber, goldEarned, xpEarned) {
  * @param {number}      playerLevel  — livello attuale del giocatore
  * @param {Function}    onEnter      — callback(dungeon, state) quando il giocatore clicca un dungeon
  */
-export function renderDungeonMap(containerEl, playerLevel, onEnter) {
-  const progress = loadProgress();
+export async function renderDungeonMap(containerEl, playerLevel, onEnter) {
+  const progress = await loadProgress();
 
+  
   containerEl.innerHTML = `
     <div class="dm-map-wrap">
       <h2 class="dm-map-title">🗺️ Mappa del Mondo</h2>
@@ -98,7 +136,7 @@ export function renderDungeonMap(containerEl, playerLevel, onEnter) {
   const markersEl = containerEl.querySelector('#dm-markers');
 
   WORLD_DUNGEONS.forEach((dungeon, i) => {
-    const unlocked = isUnlocked(i, playerLevel);
+    const unlocked = await isUnlocked(i, playerLevel);
     const state    = progress[dungeon.id] || { maxRoom: 0, completed: false };
 
     const btn = document.createElement('button');
@@ -146,8 +184,8 @@ export function renderDungeonMap(containerEl, playerLevel, onEnter) {
  * @param {Function}    onStartRoom   — callback(dungeon, room) per avviare la battaglia
  * @param {Function}    onBack        — callback per tornare alla mappa
  */
-export function renderDungeonDetail(containerEl, dungeon, playerLevel, onStartRoom, onBack) {
-  const state = getDungeonState(dungeon.id);
+export async function renderDungeonDetail(containerEl, dungeon, playerLevel, onStartRoom, onBack) {
+  const state = await getDungeonState(dungeon.id);
 
   containerEl.innerHTML = `
     <div class="dm-detail">
@@ -234,10 +272,10 @@ export function renderBattleResult(containerEl, dungeon, room, outcome, playerHp
   let xpEarned   = 0;
   let newState   = null;
 
-  if (outcome === 'win') {
+if (outcome === 'win') {
     goldEarned = room.gold;
     xpEarned   = room.xp;
-    newState   = markRoomComplete(dungeon.id, room.room, goldEarned, xpEarned);
+    newState   = await markRoomComplete(dungeon.id, room.room, goldEarned, xpEarned);
   }
 
   const isLastRoom   = room.room === 10;
