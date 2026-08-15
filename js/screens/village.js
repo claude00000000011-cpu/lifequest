@@ -2121,9 +2121,27 @@ window._buyFromMarket = async function(listingId, price) {
 window._cancelListing = async function(listingId) {
   if (!confirm('Ritirare questo annuncio?')) return;
   const { supabase } = await import('../../supabase.js');
-  await supabase.from('market_listings').update({ status: 'cancelled' }).eq('id', listingId);
-  toast('Annuncio ritirato', 'info');
-  switchVillageTab('market');
+
+  // Leggi il listing per sapere inventory_id
+  const { data: listing, error: le } = await supabase
+    .from('market_listings')
+    .select('inventory_id, item_id, seller_id')
+    .eq('id', listingId)
+    .single();
+
+  if (le || !listing) return toast('Listing non trovato', 'error');
+
+  // Aggiorna status
+  const { error } = await supabase
+    .from('market_listings')
+    .update({ status: 'cancelled' })
+    .eq('id', listingId);
+
+  if (error) return toast('Errore nel ritiro: ' + error.message, 'error');
+
+  toast('Annuncio ritirato — oggetto di nuovo nel tuo zaino', 'info');
+  await loadInventory(CUR.id);
+  switchVillageTab('inventory');
 };
 
 // ── AMICI — azioni ────────────────────────────────────────────
