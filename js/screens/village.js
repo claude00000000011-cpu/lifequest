@@ -2037,7 +2037,7 @@ window._confirmSellListing = async function() {
   const entry = inv.find(i => i.id === inventoryId);
   if (!entry) return toast('Oggetto non trovato', 'error');
 
-  const { error } = await supabase.from('market_listings').insert({
+ const { error } = await supabase.from('market_listings').insert({
     seller_id:    bc.id,
     item_id:      entry.item_id,
     inventory_id: inventoryId,
@@ -2045,11 +2045,23 @@ window._confirmSellListing = async function() {
     price,
     status:       'active',
   });
-
   if (error) return toast('Errore nella pubblicazione: ' + error.message, 'error');
+
+  // Rimuovi l'item dall'inventario mentre è in vendita
+  const { error: delErr } = await supabase
+    .from('inventory')
+    .delete()
+    .eq('id', inventoryId);
+
+  if (delErr) {
+    // Rollback: cancella il listing appena creato
+    await supabase.from('market_listings').update({ status: 'cancelled' }).eq('inventory_id', inventoryId);
+    return toast('Errore nella rimozione dall\'inventario', 'error');
+  }
 
   playSound('gold');
   toast('Oggetto messo in vendita! 🏪', 'success');
+  await loadInventory(CUR.id);
   window._closeSellModal?.();
   switchVillageTab('market');
 };
@@ -2138,6 +2150,15 @@ window._cancelListing = async function(listingId) {
     .eq('id', listingId);
 
   if (error) return toast('Errore nel ritiro: ' + error.message, 'error');
+
+// Rimetti l'item in inventory
+  const bc = getBattleChar(CUR.id);
+  await supabase.from('inventory').insert({
+    character_id: bc.id,
+    item_id:      listing.item_id,
+    quantity:     1,
+    durability:   100,
+  });
 
   toast('Annuncio ritirato — oggetto di nuovo nel tuo zaino', 'info');
   await loadInventory(CUR.id);
