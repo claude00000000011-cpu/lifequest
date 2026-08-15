@@ -10,7 +10,9 @@ import { DUNGEONS, COMBAT, PROGRESSION }from './config.js';
 import { calcPveRewards, rollItemRarity }from './engine.js';
 import { updateGold, getBattleChar,
          incrementDailyLimit,
-         getDailyLimits }              from './character.js';
+         getDailyLimits,
+         incrementFightStreak,
+         calcStreakMultiplier }        from './character.js';
 import { calcLevel }                   from '../xp.js';
 import { awardXP }                     from '../xp.js';
 
@@ -309,8 +311,12 @@ export async function defeatEnemy(userId, enemyData) {
   const target = room.enemies.find(e => e.id === enemyData.id && !e._defeated);
   if (target) target._defeated = true;
 
+  // Streak e moltiplicatore gold
+  const streak     = await incrementFightStreak(userId);
+  const streakMult = calcStreakMultiplier(streak);
+
   // Ricompense
-  const rewards = calcPveRewards(enemyData, luck, tier);
+  const rewards = calcPveRewards(enemyData, luck, tier, streakMult);
   _activeDungeon.goldEarned += rewards.gold;
 
   if (rewards.itemRarity) {
