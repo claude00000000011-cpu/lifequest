@@ -2470,10 +2470,28 @@ window._equipItem = async function(inventoryId, itemId, slot) {
     );
   }
 
+ const { data: eq } = await sb
+    .from('character_equipment')
+    .select('id')
+    .eq('character_id', bc.id)
+    .eq('slot', slot)
+    .single();
+
+  if (eq) {
+    await sb
+      .from('item_enhancements')
+      .update({ equipment_id: eq.id })
+      .eq('inventory_id', inventoryId);
+
+    await sb
+      .from('inventory')
+      .delete()
+      .eq('id', inventoryId);
+  }
+
   await loadEquipment(CUR.id);
   await syncBattleCharacter(CUR.id);
   await syncPowerLevel(CUR.id);
-
   playSound('equip');
   toast('Oggetto equipaggiato! ⚔️', 'success');
   renderVillage();
