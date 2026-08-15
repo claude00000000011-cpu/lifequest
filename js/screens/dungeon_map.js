@@ -135,7 +135,8 @@ export async function renderDungeonMap(containerEl, playerLevel, onEnter) {
 
   const markersEl = containerEl.querySelector('#dm-markers');
 
-  WORLD_DUNGEONS.forEach((dungeon, i) => {
+  for (let i = 0; i < WORLD_DUNGEONS.length; i++) {
+    const dungeon  = WORLD_DUNGEONS[i];
     const unlocked = await isUnlocked(i, playerLevel);
     const state    = progress[dungeon.id] || { maxRoom: 0, completed: false };
 
