@@ -252,8 +252,8 @@ export function _buildRooms({
 
 // Costruisce le rooms di un dungeon leggendo da DB.dungeonConfig.
 // Chiamata da renderDungeonMap() e renderDungeonDetail() invece di WORLD_DUNGEONS[i].rooms
-export function loadDungeonRooms(dungeonId) {
-  const cfg = DB.dungeonConfig?.[dungeonId];
+export function loadDungeonRooms(dungeonId, dungeonConfig) {
+  const cfg = dungeonConfig?.[dungeonId];
   if (!cfg) {
     console.warn('[loadDungeonRooms] dungeonConfig non caricato per:', dungeonId);
     return null;
