@@ -1,12 +1,5 @@
-// ╔══════════════════════════════════════════════════════════════╗
-// ║  FILE 1/3 — js/battle/config.js                             ║
-// ║  Sostituisce COMPLETAMENTE il file originale                 ║
-// ╚══════════════════════════════════════════════════════════════╝
- 
-// CLASS_BASE_STATS, CLASS_PRIMARY_STAT e CLASS_STAT_MULT
-// rimossi — ora gestiti da Supabase (tabella battle_classes)
-// Letti tramite loadBattleClasses() → DB.battleClasses
- 
+// js/battle/config.js
+
 export const CLASS_EVOLUTION = {
   levelFirst:  20,
   levelSecond: 40,
@@ -15,9 +8,7 @@ export const CLASS_EVOLUTION = {
   attackBonus: { warrior: 15, mage: 20, bard: 10, shadow: 18, oracle: 8  },
   hpBonus:     { warrior: 20, mage: 10, bard: 15, shadow: 12, oracle: 25 },
 };
- 
-// EVOLUTION_PATHS rimosso — ora in Supabase (battle_classes.evolution_paths)
- 
+
 export const SKILL_POINTS = {
   perLevel:       1,
   startingPa:     0,
@@ -25,7 +16,7 @@ export const SKILL_POINTS = {
   resetCost:      300,
   maxPerBranch:   15,
 };
- 
+
 export const ABILITY_LEVEL_COSTS = [
   { pa: 1, gold: 0,   minCharLevel: 1  },
   { pa: 2, gold: 50,  minCharLevel: 5  },
@@ -33,42 +24,24 @@ export const ABILITY_LEVEL_COSTS = [
   { pa: 4, gold: 200, minCharLevel: 20 },
   { pa: 5, gold: 500, minCharLevel: 30 },
 ];
- 
-// ── COMBATTIMENTO ────────────────────────────────────────────
+
 export const COMBAT = {
-  // ── Formula danni con soft-cap ──────────────────────────────
-  // Vecchia: atk - floor(def/2)  → difesa alta = immunità quasi totale
-  // Nuova:   atk * (1 - def/(def+K))  con K=60
-  //   def=0  → riduzione 0%    (pieno danno)
-  //   def=30 → riduzione 33%
-  //   def=60 → riduzione 50%
-  //   def=120→ riduzione 67%   (mai oltre ~75% con valori normali)
-  // Questo elimina i "0 danni" e i "one-shot" contemporaneamente.
   damageFormula: (atk, def) => Math.max(1, Math.floor(atk * (1 - def / (def + 60)))),
- 
-  damageVariance:    0.10,   // era 0.15 — meno caos punitivo
+  damageVariance:    0.10,
   critMultiplier:    1.5,
-  critBonusPve:      5,      // NUOVO: +5% crit base in PvE per il giocatore
-  magicDefReduction: 0.5,    // magia penetra 50% della difesa fisica
- 
-  // ── Struttura turni ─────────────────────────────────────────
-  // maxTurns RIMOSSO: la battaglia dura finché qualcuno muore.
-  // Questo elimina il bug "boss imbattibile in 10 turni".
+  critBonusPve:      5,
+  magicDefReduction: 0.5,
   actionsPerTurn:    1,
-  manaRegenPerTurn:  10,     // era 5 — abilità usabili ~ogni 2 turni
-  guardDefBonus:     0.40,   // era 0.30 — difesa più premiante
-  maxItemsPerFight:  5,      // era 3
- 
-  // ── Effetti di stato ─────────────────────────────────────────
+  manaRegenPerTurn:  10,
+  guardDefBonus:     0.40,
+  maxItemsPerFight:  5,
   maxStatusStacks:       3,
   defaultStatusDuration: 3,
-  poisonDamagePerStack:  5,  // era 8 — veleno meno "gameover immediato"
-  regenHealPerStack:     8,  // era 6
+  poisonDamagePerStack:  5,
+  regenHealPerStack:     8,
   stunTurns:             1,
   attackBuffPerStack:    0.10,
-  statusResistBase:      0.30, // era 0.20 — più resistenze, meno frustrazione
- 
-  // ── PvP ──────────────────────────────────────────────────────
+  statusResistBase:      0.30,
   pvpMatchmakingRange: 5,
   pvpSeasonDays:       30,
   pvpWinGold:          80,
@@ -76,18 +49,12 @@ export const COMBAT = {
   pvpWinPoints:        25,
   pvpLossPoints:       -10,
   pvpMinPoints:        0,
- 
-  // ── Limiti giornalieri ────────────────────────────────────────
   dailyPveLimit:      9999,
   dailyPvpLimit:      9999,
   dailyDungeonLimit:  9999,
   resetHourUTC:       0,
 };
- 
-// ── DUNGEON ──────────────────────────────────────────────────
-// HP nemici aumentati per compensare il soft-cap difesa (giocatore fa
-// meno danni in percentuale).  ATK nemici leggermente alzati per
-// mantenere tensione ora che non c'è più il limite di turni.
+
 export const DUNGEONS = [
   {
     tier:             1,
@@ -99,12 +66,12 @@ export const DUNGEONS = [
     goldBoss:         50,
     xpBonus:          60,
     goldBonus:        40,
-   enemyHpBase:      10,
+    enemyHpBase:      10,
     bossHpMult:       3.0,
     enemyAttackBase:  136,
-    bossAttackMult:   1.6,   // era 1.8
-    enemyDefenseBase: 8,     // era 5
-    scalingPerLevel:  0.04,  // era 0.03
+    bossAttackMult:   1.6,
+    enemyDefenseBase: 8,
+    scalingPerLevel:  0.04,
     dropRateNormal:   0.15,
     dropRateBoss:     0.60,
   },
@@ -118,11 +85,11 @@ export const DUNGEONS = [
     goldBoss:         90,
     xpBonus:          110,
     goldBonus:        70,
-     enemyHpBase:      19,
+    enemyHpBase:      19,
     bossHpMult:       3.0,
     enemyAttackBase:  325,
-    bossAttackMult:   1.8,   // era 2.0
-    enemyDefenseBase: 15,    // era 10
+    bossAttackMult:   1.8,
+    enemyDefenseBase: 15,
     scalingPerLevel:  0.04,
     dropRateNormal:   0.18,
     dropRateBoss:     0.65,
@@ -140,8 +107,8 @@ export const DUNGEONS = [
     enemyHpBase:      29,
     bossHpMult:       3.0,
     enemyAttackBase:  569,
-    bossAttackMult:   2.0,   // era 2.2
-    enemyDefenseBase: 24,    // era 18
+    bossAttackMult:   2.0,
+    enemyDefenseBase: 24,
     scalingPerLevel:  0.04,
     dropRateNormal:   0.22,
     dropRateBoss:     0.70,
@@ -156,36 +123,36 @@ export const DUNGEONS = [
     goldBoss:         280,
     xpBonus:          420,
     goldBonus:        220,
-  enemyHpBase:      41,
+    enemyHpBase:      41,
     bossHpMult:       3.0,
     enemyAttackBase:  884,
-    bossAttackMult:   2.2,   // era 2.5
-    enemyDefenseBase: 36,    // era 28
+    bossAttackMult:   2.2,
+    enemyDefenseBase: 36,
     scalingPerLevel:  0.04,
     dropRateNormal:   0.28,
     dropRateBoss:     0.75,
   },
- {
-    tier:               5,
-    minLevel:           50,
-    normalRooms:        4,
-    enemiesMin:         2,
-    enemiesMax:         4,
-    goldPerEnemy:       70,
-    goldBoss:           450,
-    xpBonus:            750,
-    goldBonus:          380,
-   enemyHpBase:      55,
+  {
+    tier:             5,
+    minLevel:         50,
+    normalRooms:      4,
+    enemiesMin:       2,
+    enemiesMax:       4,
+    goldPerEnemy:     70,
+    goldBoss:         450,
+    xpBonus:          750,
+    goldBonus:        380,
+    enemyHpBase:      55,
     bossHpMult:       3.0,
     enemyAttackBase:  1283,
-    bossAttackMult:     2.5,
-    enemyDefenseBase:   35,   // Ridotto da 55 a 35 per evitare l'effetto "spugna blindata"
-    scalingPerLevel:    0.035,// Scalato leggermente al ribasso (0.035 anziché 0.04)
-    dropRateNormal:     0.35,
-    dropRateBoss:       0.85,
+    bossAttackMult:   2.5,
+    enemyDefenseBase: 35,
+    scalingPerLevel:  0.035,
+    dropRateNormal:   0.35,
+    dropRateBoss:     0.85,
   },
 ];
- 
+
 export const DROP_RARITY_RATES = [
   [0, 0.40, 0.25, 0.08, 0.02, 0.00],
   [0, 0.35, 0.30, 0.12, 0.04, 0.00],
@@ -193,27 +160,22 @@ export const DROP_RARITY_RATES = [
   [0, 0.20, 0.35, 0.25, 0.12, 0.02],
   [0, 0.15, 0.35, 0.30, 0.18, 0.05],
 ];
+
 export const DROP_LUCK_BONUS_PER_POINT = 0.001;
- 
-// ── BOSS MECHANICS ───────────────────────────────────────────
+
 export const BOSS_MECHANICS = {
-  phase2HpThreshold: 0.40,  // era 0.50 — fase 2 si attiva a 40% HP
+  phase2HpThreshold: 0.40,
   phase2AttackBonus: 0.25,
- 
   immunityTurns:     1,
-  immunityCooldown:  7,     // era 4 — molto più raro
-  immunityHpGate:    0.60,  // NUOVO: immunità solo quando boss < 60% HP
-  immunityChance:    0.10,  // era 0.15
- 
-  buffChancePct:     0.15,  // era 0.20
-  maxBossBuffs:      2,     // era 3
+  immunityCooldown:  7,
+  immunityHpGate:    0.60,
+  immunityChance:    0.10,
+  buffChancePct:     0.15,
+  maxBossBuffs:      2,
 };
- 
-// EQUIPMENT_RARITIES rimosso — ora in Supabase (tabella equipment_rarities)
-// Letto tramite loadItems() → DB.equipmentRarities
- 
+
 export const SET_PIECES_REQUIRED = [0, 0, 2, 3, 4];
- 
+
 export const EQUIPMENT_DEGRADATION = {
   combatsPerTick: 10,
   minDurability:  0,
@@ -226,98 +188,89 @@ export const EQUIPMENT_DEGRADATION = {
     mythic:    1200,
   },
 };
- 
+
 export const SMITH = {
   upgradeMaxLevel:         5,
   upgradeBonusPct:         0.10,
-  // Aggiunti i tier mancanti per evitare errori di runtime
-  upgradeCost: { 
-    common:    80, 
-    uncommon:  120, 
-    rare:      200, 
-    epic:      500, 
-    legendary: 900, 
-    mythic:    1500 
+  upgradeCost: {
+    common:    80,
+    uncommon:  120,
+    rare:      200,
+    epic:      500,
+    legendary: 900,
+    mythic:    1500,
   },
   fusionSuccessRate:       0.60,
   fusionMaterialsRequired: 2,
 };
-export const ECONOMY = {
-  goldNormalMin:       5,
-  goldNormalMax:       15,
-  goldBossMin:         40,
-  goldBossMax:         120,
-  goldPvpWin:          80,
-  goldPvpLoss:         20,
-  goldDungeonBonus:    60,
-  goldGuildQuestMin:   30,
-  goldGuildQuestMax:   100,
-  goldSellPct:         0.20,
-  targetDailyGold:     300,
 
+export const ECONOMY = {
+  goldNormalMin:    5,
+  goldNormalMax:    15,
+  goldBossMin:      40,
+  goldBossMax:      120,
+  goldPvpWin:       80,
+  goldPvpLoss:      20,
+  goldDungeonBonus: 60,
+  goldGuildQuestMin:30,
+  goldGuildQuestMax:100,
+  goldSellPct:      0.20,
+  targetDailyGold:  300,
   LOOT_BOXES: {
     wood:   { cost: 50,   pity: 10, rarityTarget: 'uncommon'  },
     iron:   { cost: 150,  pity: 10, rarityTarget: 'rare'      },
     gold:   { cost: 400,  pity: 10, rarityTarget: 'epic'      },
-    // Aumentato a 2500 per bilanciare l'economia endgame
-    mythic: { cost: 2500, pity: 10, rarityTarget: 'legendary' }, 
+    mythic: { cost: 2500, pity: 10, rarityTarget: 'legendary' },
   },
-
   BOX_RATES: {
-    wood:   { common: 0.60, uncommon: 0.40, rare: 0,    epic: 0,    legendary: 0,    mythic: 0 },
-    iron:   { common: 0,    uncommon: 0.60, rare: 0.30, epic: 0.10, legendary: 0,    mythic: 0 },
-    gold:   { common: 0,    uncommon: 0,    rare: 0.65, epic: 0.30, legendary: 0.05, mythic: 0 },
+    wood:   { common: 0.60, uncommon: 0.40, rare: 0,    epic: 0,    legendary: 0,    mythic: 0    },
+    iron:   { common: 0,    uncommon: 0.60, rare: 0.30, epic: 0.10, legendary: 0,    mythic: 0    },
+    gold:   { common: 0,    uncommon: 0,    rare: 0.65, epic: 0.30, legendary: 0.05, mythic: 0    },
     mythic: { common: 0,    uncommon: 0,    rare: 0,    epic: 0.78, legendary: 0.20, mythic: 0.02 },
   },
- 
-MERCHANT: {
-    rotationHours:    24,
-    slotsAvailable:   6,
-    priceHealSmall:   15,
-    priceHealMedium:  35,
-    priceHealLarge:   70,
-    priceManaSmall:   15,
-    priceManaLarge:   60, // Corretto da priceManLarge
-    priceBombAoe:     40,
-    rareItemMarkup:   1.50,
-    dailyFreeItem:    1,
-  }
- 
+  MERCHANT: {
+    rotationHours:  24,
+    slotsAvailable: 6,
+    priceHealSmall: 15,
+    priceHealMedium:35,
+    priceHealLarge: 70,
+    priceManaSmall: 15,
+    priceManaLarge: 60,
+    priceBombAoe:   40,
+    rareItemMarkup: 1.50,
+    dailyFreeItem:  1,
+  },
 };
- 
-// ABILITY_VALUES rimosso — con il sistema livelli infiniti i valori
-// si calcolano dinamicamente in engine.js in base al livello corrente
-// dell'abilità. Formula: valore = base * (1 + level * 0.15)
- 
+
 export const GUILDS = {
-  minLevelToCreate:   10,
-  creationCost:       500,
-  maxMembers:         20,
-  maxOfficers:        3,
-  maxGuildLevel:      20,
-  expansionCost:      200,
-  pointsPerPve:       2,
-  pointsPerPvpWin:    5,
-  pointsPerDungeon:   20,
-  pointsPerRaid:      100,
-  xpThresholdBase:    500,
-  xpThresholdMult:    1.8,
-  goldBonusPerLevel:  0.02,
-  xpBonusPerLevel:    0.01,
-  raidFrequencyDays:  7,
-  raidMaxParticipants:5,
-  raidBossHpBase:     10000,
-  raidHpPerGuildLevel:800,
+  minLevelToCreate:        10,
+  creationCost:            500,
+  maxMembers:              20,
+  maxOfficers:             3,
+  maxGuildLevel:           20,
+  expansionCost:           200,
+  pointsPerPve:            2,
+  pointsPerPvpWin:         5,
+  pointsPerDungeon:        20,
+  pointsPerRaid:           100,
+  xpThresholdBase:         500,
+  xpThresholdMult:         1.8,
+  goldBonusPerLevel:       0.02,
+  xpBonusPerLevel:         0.01,
+  raidFrequencyDays:       7,
+  raidMaxParticipants:     5,
+  raidBossHpBase:          10000,
+  raidHpPerGuildLevel:     800,
   raidDistributeByContrib: true,
-  raidGoldPerMember:  200,
-  raidGuaranteedItem: true,
-  warFrequencyDays:   30,
-  warDurationDays:    7,
-  warMatches:         10,
-  warWinnerGold:      500,
-  warMatchmakingRange:3,
+  raidGoldPerMember:       200,
+  raidGuaranteedItem:      true,
+  warFrequencyDays:        30,
+  warDurationDays:         7,
+  warMatches:              10,
+  warWinnerGold:           500,
+  warMatchmakingRange:     3,
 };
- 
+
 export const COOP = {
   maxRequestsPerDay:       1,
   requestVisibilityHours:  24,
@@ -327,24 +280,24 @@ export const COOP = {
   goldBonusIfWin:          15,
   reputationPerSupport:    20,
   maxReputation:           9999,
-  REP_THRESHOLDS: { 
-    acquaintance: 100, 
-    ally:         300, 
-    protector:    800, 
-    hero:         2000, 
-    legend:       5000 
+  REP_THRESHOLDS: {
+    acquaintance: 100,
+    ally:         300,
+    protector:    800,
+    hero:         2000,
+    legend:       5000,
   },
-  legendDailyGold:         10,
-  protectorGuildBonus:     0.03,
-  buffDurationFights:      1,
-  supportAttackBonus:      0.15,
+  legendDailyGold:     10,
+  protectorGuildBonus: 0.03,
+  buffDurationFights:  1,
+  supportAttackBonus:  0.15,
 };
+
 export const PROGRESSION = {
   tutorialFights: 5,
   startingGold:   50,
   starterItem:    1,
- 
- UNLOCKS: {
+  UNLOCKS: {
     classChoice:     1,
     pvpArena:        5,
     guilds:          15,
@@ -357,71 +310,22 @@ export const PROGRESSION = {
     mythicBoxes:     50,
     ultimateAbility: 40,
   },
- 
   dungeonLevelCap: 2,
   pvpLevelCap:     10,
- 
   PVP_SEASON_REWARDS: {
     top1pct:  { gold: 500, legendaryItem: true  },
     top10pct: { gold: 200, legendaryItem: false },
     top50pct: { gold: 80,  legendaryItem: false },
   },
- 
   pvpSeasonReset: 0.50,
 };
-
-// ============================================================
-// WORLD_DUNGEONS — 17 dungeon × 10 stanze
-// Aggiungere in fondo a js/battle/config.js
-// ============================================================
-
-/**
- * Genera le 10 stanze di un dungeon.
- * baseHp      = HP nemico stanza 1
- * hpScale     = moltiplicatore per stanza successiva (es. 1.5 = +50% ogni stanza)
- * baseGold    = gold stanza 1
- * xpPerRoom   = XP base per stanza (cresce +25% lineare)
- * bossId      = identificatore meccanica boss (stanza 10)
- */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// ============================================================
-// WORLD_DUNGEONS — config.js (sostituzione completa del blocco)
-// ============================================================
-// MODIFICHE RISPETTO ALLA VERSIONE PRECEDENTE:
-//   1. _buildRooms ora accetta baseAtk e baseDef come parametri
-//      espliciti — ATK e DEF nemici NON dipendono più dagli HP
-//   2. Tutti i 17 dungeon hanno parametri ricalibrati sulla
-//      simulazione integrata player+equip (generazioni G1-G9)
-//   3. Bug fix: dungeon_09 aveva una } mancante
-// ============================================================
 
 export function _buildRooms({ baseHp, hpScale, baseAtk, baseDef, baseGold, xpPerRoom, bossId }) {
   return Array.from({ length: 10 }, (_, i) => {
     const isBoss = i === 9;
     const hp  = Math.round(baseHp  * Math.pow(hpScale, i));
-    const atk = Math.round(baseAtk * Math.pow(hpScale, i));   // scala uguale agli HP
-    const def = Math.round(baseDef * (1 + i * 0.12));         // scala lineare +12%/stanza
+    const atk = Math.round(baseAtk * Math.pow(hpScale, i));
+    const def = Math.round(baseDef * (1 + i * 0.12));
     return {
       room:        i + 1,
       isBoss,
@@ -442,624 +346,102 @@ export const WORLD_DUNGEONS = [
     id: 'dungeon_01', name: 'Faro della Costa',
     mapX: 0.38, mapY: 0.56, requiredLevel: 1, theme: 'coastal',
     description: 'Un vecchio faro infestato da creature marine.',
-    rooms: _buildRooms({ baseHp: 31,  baseAtk: 7,  baseDef: 1,  hpScale: 1.35, baseGold: 5,    xpPerRoom: 8,    bossId: 'sea_guardian'       }),
+    rooms: _buildRooms({ baseHp: 31,  baseAtk: 7,  baseDef: 1,  hpScale: 1.35, baseGold: 5,    xpPerRoom: 8,    bossId: 'sea_guardian'      }),
   },
   {
     id: 'dungeon_02', name: 'Porto Meridionale',
     mapX: 0.44, mapY: 0.64, requiredLevel: 3, theme: 'port',
-    description: 'Contrabbandieri e mostri delle profondità controllano il porto.',
-    rooms: _buildRooms({ baseHp: 35,  baseAtk: 7,  baseDef: 2,  hpScale: 1.40, baseGold: 12,   xpPerRoom: 18,   bossId: 'harbor_master'      }),
+    description: 'Contrabbandieri e mostri delle profondita controllano il porto.',
+    rooms: _buildRooms({ baseHp: 35,  baseAtk: 7,  baseDef: 2,  hpScale: 1.40, baseGold: 12,   xpPerRoom: 18,   bossId: 'harbor_master'     }),
   },
   {
     id: 'dungeon_03', name: 'Isola Fortificata',
     mapX: 0.18, mapY: 0.67, requiredLevel: 6, theme: 'fortress',
     description: 'Una fortezza caduta in mano a mercenari corrotti.',
-    rooms: _buildRooms({ baseHp: 26,  baseAtk: 12, baseDef: 2,  hpScale: 1.42, baseGold: 22,   xpPerRoom: 35,   bossId: 'iron_warden'        }),
+    rooms: _buildRooms({ baseHp: 26,  baseAtk: 12, baseDef: 2,  hpScale: 1.42, baseGold: 22,   xpPerRoom: 35,   bossId: 'iron_warden'       }),
   },
   {
     id: 'dungeon_04', name: "Villaggio sull'Isola",
     mapX: 0.22, mapY: 0.50, requiredLevel: 9, theme: 'village',
     description: 'Un villaggio maledetto dove i morti non restano tali.',
-    rooms: _buildRooms({ baseHp: 33,  baseAtk: 15, baseDef: 4,  hpScale: 1.45, baseGold: 35,   xpPerRoom: 55,   bossId: 'village_elder'      }),
+    rooms: _buildRooms({ baseHp: 33,  baseAtk: 15, baseDef: 4,  hpScale: 1.45, baseGold: 35,   xpPerRoom: 55,   bossId: 'village_elder'     }),
   },
   {
     id: 'dungeon_05', name: "Montagne dell'Isola",
     mapX: 0.27, mapY: 0.42, requiredLevel: 12, theme: 'mountain',
     description: 'Caverne profonde abitate da giganti di pietra.',
-    rooms: _buildRooms({ baseHp: 27,  baseAtk: 15, baseDef: 4,  hpScale: 1.47, baseGold: 50,   xpPerRoom: 80,   bossId: 'stone_titan'        }),
+    rooms: _buildRooms({ baseHp: 27,  baseAtk: 15, baseDef: 4,  hpScale: 1.47, baseGold: 50,   xpPerRoom: 80,   bossId: 'stone_titan'       }),
   },
   {
     id: 'dungeon_06', name: 'Foresta Intricata',
     mapX: 0.34, mapY: 0.30, requiredLevel: 15, theme: 'forest',
     description: 'Una foresta antica dove gli alberi stessi sono nemici.',
-    rooms: _buildRooms({ baseHp: 34,  baseAtk: 19, baseDef: 6,  hpScale: 1.50, baseGold: 70,   xpPerRoom: 115,  bossId: 'ancient_treant'     }),
+    rooms: _buildRooms({ baseHp: 34,  baseAtk: 19, baseDef: 6,  hpScale: 1.50, baseGold: 70,   xpPerRoom: 115,  bossId: 'ancient_treant'    }),
   },
   {
     id: 'dungeon_07', name: 'Torre del Sentiero',
     mapX: 0.46, mapY: 0.42, requiredLevel: 18, theme: 'tower',
     description: 'Una torre di guardia occupata da stregoni ribelli.',
-    rooms: _buildRooms({ baseHp: 32,  baseAtk: 18, baseDef: 6,  hpScale: 1.50, baseGold: 95,   xpPerRoom: 160,  bossId: 'tower_sentinel'     }),
+    rooms: _buildRooms({ baseHp: 32,  baseAtk: 18, baseDef: 6,  hpScale: 1.50, baseGold: 95,   xpPerRoom: 160,  bossId: 'tower_sentinel'    }),
   },
   {
     id: 'dungeon_08', name: 'Fortezza del Nord',
     mapX: 0.54, mapY: 0.18, requiredLevel: 22, theme: 'fortress',
     description: 'Fortezza di confine caduta dopo un assedio demoniaco.',
-    rooms: _buildRooms({ baseHp: 44,  baseAtk: 25, baseDef: 10, hpScale: 1.52, baseGold: 130,  xpPerRoom: 220,  bossId: 'fortress_lord'      }),
+    rooms: _buildRooms({ baseHp: 44,  baseAtk: 25, baseDef: 10, hpScale: 1.52, baseGold: 130,  xpPerRoom: 220,  bossId: 'fortress_lord'     }),
   },
   {
     id: 'dungeon_09', name: 'Torre Settentrionale',
     mapX: 0.65, mapY: 0.20, requiredLevel: 26, theme: 'tower',
     description: 'Una torre ghiacciata con un guardiano immortale.',
-    rooms: _buildRooms({ baseHp: 40,  baseAtk: 22, baseDef: 10, hpScale: 1.52, baseGold: 175,  xpPerRoom: 300,  bossId: 'frost_watcher'      }),
+    rooms: _buildRooms({ baseHp: 40,  baseAtk: 22, baseDef: 10, hpScale: 1.52, baseGold: 175,  xpPerRoom: 300,  bossId: 'frost_watcher'     }),
   },
   {
     id: 'dungeon_10', name: 'Castello della Capitale',
     mapX: 0.52, mapY: 0.46, requiredLevel: 30, theme: 'castle',
-    description: 'Il castello reale, corrotto dall\'interno da un re ombra.',
-    rooms: _buildRooms({ baseHp: 52,  baseAtk: 28, baseDef: 14, hpScale: 1.55, baseGold: 230,  xpPerRoom: 400,  bossId: 'capital_king'       }),
+    description: "Il castello reale, corrotto dall'interno da un re ombra.",
+    rooms: _buildRooms({ baseHp: 52,  baseAtk: 28, baseDef: 14, hpScale: 1.55, baseGold: 230,  xpPerRoom: 400,  bossId: 'capital_king'      }),
   },
   {
     id: 'dungeon_11', name: 'Vulcano Attivo',
     mapX: 0.60, mapY: 0.52, requiredLevel: 34, theme: 'volcano',
-    description: 'Le profondità di un vulcano dove vive un demone del fuoco.',
-    rooms: _buildRooms({ baseHp: 47,  baseAtk: 24, baseDef: 13, hpScale: 1.55, baseGold: 300,  xpPerRoom: 530,  bossId: 'magma_lord'         }),
+    description: 'Le profondita di un vulcano dove vive un demone del fuoco.',
+    rooms: _buildRooms({ baseHp: 47,  baseAtk: 24, baseDef: 13, hpScale: 1.55, baseGold: 300,  xpPerRoom: 530,  bossId: 'magma_lord'        }),
   },
   {
-    id: 'dungeon_12', name: "Oasi del Deserto",
+    id: 'dungeon_12', name: 'Oasi del Deserto',
     mapX: 0.78, mapY: 0.55, requiredLevel: 38, theme: 'desert',
-    description: 'Sotto l\'oasi si nasconde un labirinto di sabbia e morte.',
-    rooms: _buildRooms({ baseHp: 65,  baseAtk: 33, baseDef: 20, hpScale: 1.57, baseGold: 380,  xpPerRoom: 680,  bossId: 'sand_pharaoh'       }),
+    description: "Sotto l'oasi si nasconde un labirinto di sabbia e morte.",
+    rooms: _buildRooms({ baseHp: 65,  baseAtk: 33, baseDef: 20, hpScale: 1.57, baseGold: 380,  xpPerRoom: 680,  bossId: 'sand_pharaoh'      }),
   },
   {
     id: 'dungeon_13', name: 'Lago Tropicale',
     mapX: 0.52, mapY: 0.72, requiredLevel: 42, theme: 'tropical',
-    description: 'Acque cristalline che nascondono un\'idra millenaria.',
-    rooms: _buildRooms({ baseHp: 60,  baseAtk: 28, baseDef: 17, hpScale: 1.57, baseGold: 470,  xpPerRoom: 860,  bossId: 'lagoon_hydra'       }),
+    description: "Acque cristalline che nascondono un'idra millenaria.",
+    rooms: _buildRooms({ baseHp: 60,  baseAtk: 28, baseDef: 17, hpScale: 1.57, baseGold: 470,  xpPerRoom: 860,  bossId: 'lagoon_hydra'      }),
   },
   {
     id: 'dungeon_14', name: 'Castello Meridionale',
     mapX: 0.50, mapY: 0.62, requiredLevel: 46, theme: 'castle',
-    description: 'Il secondo castello, sede di un duca caduto nell\'oscurità.',
-    rooms: _buildRooms({ baseHp: 77,  baseAtk: 36, baseDef: 27, hpScale: 1.60, baseGold: 570,  xpPerRoom: 1050, bossId: 'shadow_duke'        }),
+    description: "Il secondo castello, sede di un duca caduto nell'oscurita.",
+    rooms: _buildRooms({ baseHp: 77,  baseAtk: 36, baseDef: 27, hpScale: 1.60, baseGold: 570,  xpPerRoom: 1050, bossId: 'shadow_duke'       }),
   },
   {
     id: 'dungeon_15', name: 'Isole Fluttuanti Est',
     mapX: 0.80, mapY: 0.28, requiredLevel: 50, theme: 'floating',
     description: 'Isole nel cielo pattugliate da colossi di pietra e nuvole.',
-    rooms: _buildRooms({ baseHp: 73,  baseAtk: 31, baseDef: 23, hpScale: 1.60, baseGold: 680,  xpPerRoom: 1280, bossId: 'sky_colossus'       }),
+    rooms: _buildRooms({ baseHp: 73,  baseAtk: 31, baseDef: 23, hpScale: 1.60, baseGold: 680,  xpPerRoom: 1280, bossId: 'sky_colossus'      }),
   },
   {
     id: 'dungeon_16', name: 'Isole Fluttuanti Ovest',
     mapX: 0.18, mapY: 0.22, requiredLevel: 55, theme: 'floating',
     description: 'Isole avvolte nel vuoto, dimora di un titano del nulla.',
-    rooms: _buildRooms({ baseHp: 100, baseAtk: 43, baseDef: 35, hpScale: 1.62, baseGold: 820,  xpPerRoom: 1550, bossId: 'void_titan'         }),
+    rooms: _buildRooms({ baseHp: 100, baseAtk: 43, baseDef: 35, hpScale: 1.62, baseGold: 820,  xpPerRoom: 1550, bossId: 'void_titan'        }),
   },
   {
     id: 'dungeon_17', name: 'Castello Fluttuante',
     mapX: 0.88, mapY: 0.18, requiredLevel: 60, theme: 'floating_castle',
-    description: 'Il trono finale. Chi lo governa non è di questo mondo.',
-    rooms: _buildRooms({ baseHp: 121, baseAtk: 48, baseDef: 43, hpScale: 1.65, baseGold: 1000, xpPerRoom: 1900, bossId: 'celestial_overlord'  }),
+    description: 'Il trono finale. Chi lo governa non e di questo mondo.',
+    rooms: _buildRooms({ baseHp: 121, baseAtk: 48, baseDef: 43, hpScale: 1.65, baseGold: 1000, xpPerRoom: 1900, bossId: 'celestial_overlord' }),
   },
 ];
-
-// BOSS_DATA rimosso — ora gestito da Supabase (tabella boss_mechanics_data)
-// Letto tramite loadEnemies() → DB.bossMechanics
-
-
-
-lifequest-battle\js\battle\dungeon.js
-
-// ============================================================
-// js/battle/dungeon.js — Gestione Dungeon LifeQuest
-// Genera stanze, seleziona nemici, gestisce il flusso del dungeon.
-// Salva lo stato di avanzamento su Supabase.
-// ============================================================
-
-import { supabase }                    from '../../supabase.js';
-import { DB, CUR, persist }            from '../db.js';
-import { DUNGEONS, COMBAT, PROGRESSION }from './config.js';
-import { calcPveRewards, rollItemRarity }from './engine.js';
-import { updateGold, getBattleChar,
-         incrementDailyLimit,
-         getDailyLimits,
-         incrementFightStreak,
-         calcStreakMultiplier }        from './character.js';
-import { calcLevel }                   from '../xp.js';
-import { awardXP }                     from '../xp.js';
-
-// ── Cache sessione dungeon corrente ───────────────────────────
-// (persiste in memoria durante la sessione, non su localStorage)
-let _activeDungeon = null;
-
-/**
- * Struttura di una sessione dungeon attiva:
- * {
- *   tier, config, rooms, currentRoom, totalRooms,
- *   bossRoom, goldEarned, itemsDropped, sessionId
- * }
- */
-
-// ── Accesso al Dungeon ────────────────────────────────────────
-
-/**
- * Controlla se l'utente può accedere al dungeon tier N.
- * @param {string} userId
- * @param {number} tier
- * @returns {{ canEnter: boolean, reason?: string }}
- */
-export async function checkDungeonAccess(userId, tier) {
-  const user  = DB.users[userId];
-  if (!user) return { canEnter: false, reason: 'Utente non trovato' };
-
-  const level = calcLevel(user.xp || 0);
-
-  // Tier 1 e 2 disponibili in Fase B
-  if (tier > 2) {
-    return { canEnter: false, reason: `Il dungeon Tier ${tier} non è ancora disponibile.` };
-  }
-
-  const config = DUNGEONS[tier - 1];
-  if (level < config.minLevel) {
-    return { canEnter: false, reason: `Servono ${config.minLevel} livelli (sei ${level}).` };
-  }
-
-  // Cap dungeon: non più di PROGRESSION.dungeonLevelCap tier sopra il proprio livello
-  const allowedMaxTier = Math.floor(level / 10) + 1 + PROGRESSION.dungeonLevelCap;
-  if (tier > allowedMaxTier) {
-    return { canEnter: false, reason: 'Questo dungeon è troppo avanzato per il tuo livello.' };
-  }
-
-  // Limite giornaliero
-  const limits = await getDailyLimits(userId);
-  if (limits && limits.dungeon_count >= COMBAT.dailyDungeonLimit) {
-    return {
-      canEnter: false,
-      reason:   `Hai già completato ${COMBAT.dailyDungeonLimit} dungeon oggi. Torna domani!`,
-    };
-  }
-
-  return { canEnter: true };
-}
-
-// ── Generazione Dungeon ───────────────────────────────────────
-
-/**
- * Avvia una nuova sessione dungeon.
- * @param {string} userId
- * @param {number} tier  — 1 o 2 (Fase B)
- * @returns {{ ok: boolean, dungeon?, error? }}
- */
-export async function startDungeon(userId, tier) {
-  const access = await checkDungeonAccess(userId, tier);
-  if (!access.canEnter) return { ok: false, error: access.reason };
-
-  const config  = DUNGEONS[tier - 1];
-  const level   = calcLevel(DB.users[userId]?.xp || 0);
-  const bc      = getBattleChar(userId);
-  if (!bc) return { ok: false, error: 'Personaggio battle non trovato. Ricarica la pagina.' };
-
-  // Genera le stanze
-  const rooms = generateRooms(tier, config, level);
-
-
-
-
-
-
-
-
-
-
-
-
-         
-  // Crea il record su Supabase
-  const { data: session, error } = await supabase
-    .from('dungeon_progress')
-    .insert({
-      character_id:  bc.id,
-      dungeon_tier:  tier,
-      session_date:  new Date().toISOString().slice(0, 10),
-      rooms_cleared: 0,
-      boss_defeated: false,
-    })
-    .select()
-    .single();
-
-  if (error) {
-    console.warn('[Dungeon] startDungeon error:', error.message);
-  }
-
-  _activeDungeon = {
-    tier,
-    config,
-    rooms,
-    currentRoom:  0,
-    totalRooms:   rooms.length,
-    goldEarned:   0,
-    itemsDropped: [],
-    sessionId:    session?.id || null,
-    userId,
-  };
-
-  return { ok: true, dungeon: _activeDungeonSummary() };
-}
-
-/**
- * Ricostruisce _activeDungeon da Supabase se la sessione esiste ancora.
- * Chiamare al resume dopo refresh/cambio tab.
- * @param {string} userId
- * @returns {{ ok: boolean, dungeon?, error? }}
- */
-export async function resumeDungeon(userId) {
-  const bc = getBattleChar(userId);
-  if (!bc) return { ok: false, error: 'Personaggio non trovato' };
-
-  // Cerca il massimo avanzamento per ogni tier
-  const { data: progresses, error } = await supabase
-    .from('user_dungeon_progress')
-    .select('*')
-    .eq('user_id', String(userId))
-    .eq('completed', false)
-    .order('updated_at', { ascending: false })
-    .limit(1);
-
-  if (error || !progresses?.length) return { ok: false, error: 'Nessuna sessione attiva trovata' };
-
-  const progress = progresses[0];
-  const tier     = parseInt(progress.dungeon_id.replace('tier_', ''));
-  const config   = DUNGEONS[tier - 1];
-  if (!config) return { ok: false, error: 'Dungeon non trovato' };
-
-  const level        = calcLevel(DB.users[userId]?.xp || 0);
-  const rooms        = generateRooms(tier, config, level);
-  const roomsCleared = progress.max_room || 0;
-
-  for (let i = 0; i < roomsCleared; i++) {
-    if (rooms[i]) {
-      rooms[i].cleared = true;
-      rooms[i].enemies.forEach(e => e._defeated = true);
-    }
-  }
-
-_activeDungeon = {
-    tier,
-    config,
-    rooms,
-    currentRoom:  roomsCleared,
-    totalRooms:   rooms.length,
-    goldEarned:   progress.total_gold || 0,
-    itemsDropped: [],
-    sessionId:    null,
-    userId,
-  };
-
-  return { ok: true, dungeon: _activeDungeonSummary() };
-}
-
-/**
- * Genera la lista di stanze per un dungeon.
- * Struttura: [stanza1, stanza2, stanza3, boss]
- */
-function generateRooms(tier, config, playerLevel) {
-  const rooms = [];
-  const normalRooms = config.normalRooms;
-  // Stanze normali — roomIndex cresce per scalare i nemici
-  for (let i = 0; i < normalRooms; i++) {
-    const count = config.enemiesMin + Math.floor(
-      Math.random() * (config.enemiesMax - config.enemiesMin + 1)
-    );
-    rooms.push({
-      type:    'normal',
-      index:   i + 1,
-      enemies: selectEnemies(tier, false, count, playerLevel, i),
-      cleared: false,
-    });
-  }
-  // Stanza boss
-  rooms.push({
-    type:    'boss',
-    index:   normalRooms + 1,
-    enemies: selectEnemies(tier, true, 1, playerLevel, normalRooms),
-    cleared: false,
-  });
-  return rooms;
-}
-
-/**
- * Seleziona i nemici per una stanza dal catalogo locale.
- */
-function selectEnemies(tier, isBoss, count, playerLevel, roomIndex = 0) {
-  const pool = (DB.battleEnemies || []).filter(
-    e => e.tier === tier && e.is_boss === isBoss
-  );
-
-  if (!pool.length) {
-    return Array(count).fill(null).map((_, i) =>
-      generateProceduralEnemy(tier, isBoss, playerLevel, i, roomIndex)
-    );
-  }
-
-  // Scala i nemici dal DB in base alla stanza
-  const roomMult = 1 + roomIndex * 0.18; // +18% per stanza
-  const selected = [];
-  for (let i = 0; i < count; i++) {
-    const base = { ...pool[Math.floor(Math.random() * pool.length)] };
-    base.hp_base      = Math.round((base.hp_base      || 100) * roomMult);
-    base.attack_base  = Math.round((base.attack_base  || 10)  * roomMult);
-    base.defense_base = Math.round((base.defense_base || 5)   * roomMult);
-    selected.push(base);
-  }
-  return selected;
-}
-
-/**
- * Genera un nemico procedurale quando il DB non è disponibile.
- * Usato solo come fallback.
- */
-function generateProceduralEnemy(tier, isBoss, playerLevel, index, roomIndex = 0) {
-  const config    = DUNGEONS[tier - 1];
-  const scaling   = 1 + Math.max(0, playerLevel - config.minLevel) * config.scalingPerLevel;
-  const tierBonus = 1 + (tier - 1) * 0.08;
-  const roomMult  = tierBonus + roomIndex * 0.18; // +18% per stanza — stanza 1=×1, stanza 4=×1.54
-  const bossMultH = isBoss ? config.bossHpMult    : 1;
-  const bossMultA = isBoss ? config.bossAttackMult : 1;
-
- return {
-    id:                  `proc_t${tier}_${isBoss ? 'boss' : 'normal'}_r${roomIndex}_${index}`,
-    name:                isBoss ? `Boss del Dungeon ${tier}` : `Nemico T${tier} (St.${roomIndex + 1})`,
-    tier,
-    is_boss:             isBoss,
-    hp_base:             Math.floor(config.enemyHpBase      * bossMultH * scaling * roomMult),
-    attack_base:         Math.floor(config.enemyAttackBase   * bossMultA * scaling * roomMult),
-    defense_base:        Math.floor(config.enemyDefenseBase  * scaling   * roomMult),
-    speed_base:          5,
-    already_scaled:      true,
-    gold_min:            Math.floor((isBoss ? config.goldBoss : config.goldPerEnemy) * roomMult),
-    gold_max:            Math.floor((isBoss ? config.goldBoss : config.goldPerEnemy) * 2 * roomMult),
-    drop_rate_pct:       isBoss ? config.dropRateBoss * 100 : config.dropRateNormal * 100,
-    icon_path:           null,
-    has_immunity:        isBoss,
-    buff_chance_pct:     isBoss ? 20 : 0,
-    phase2_hp_threshold: 50,
-    phase2_attack_bonus: 25,
-  };
-}
-
-// ── Navigazione Stanze ────────────────────────────────────────
-
-/**
- * Ritorna la stanza corrente del dungeon attivo.
- */
-export function getCurrentRoom() {
-  if (!_activeDungeon) return null;
-  return _activeDungeon.rooms[_activeDungeon.currentRoom] || null;
-}
-
-/**
- * Ritorna il primo nemico vivo della stanza corrente.
- */
-export function getCurrentEnemy() {
-  const room = getCurrentRoom();
-  if (!room) return null;
-  return room.enemies.find(e => !e._defeated) || null;
-}
-
-/**
- * Segna un nemico come sconfitto e raccoglie le ricompense.
- * @param {string} userId
- * @param {Object} enemyData — dati nemico appena sconfitto
- * @returns {{ gold, itemRarity, isRoomCleared, isBoss }}
- */
-export async function defeatEnemy(userId, enemyData) {
-  if (!_activeDungeon) return null;
-
-  const bc       = getBattleChar(userId);
-  const stats    = DB.battleCharacters[userId];
-  const luck     = stats?.luck_pct || 3;
-  const tier     = _activeDungeon.tier;
-
-  // Segna il nemico
-  const room   = _activeDungeon.rooms[_activeDungeon.currentRoom];
-  const target = room.enemies.find(e => e.id === enemyData.id && !e._defeated);
-  if (target) target._defeated = true;
-
-  // Streak e moltiplicatore gold
-  const streak     = await incrementFightStreak(userId);
-  console.log('[Dungeon] fight streak:', streak, 'userId:', userId);
-  const streakMult = calcStreakMultiplier(streak);
-
-  // Ricompense
-  const rewards = calcPveRewards(enemyData, luck, tier, streakMult);
-  _activeDungeon.goldEarned += rewards.gold;
-
-  if (rewards.itemRarity) {
-    _activeDungeon.itemsDropped.push({ rarity: rewards.itemRarity, enemyId: enemyData.id });
-  }
-
-  // Tutti i nemici della stanza sconfitti?
-  const roomCleared = room.enemies.every(e => e._defeated);
-  if (roomCleared) {
-    room.cleared = true;
-    const roomsCleared = _activeDungeon.currentRoom + 1;
-
-    // Aggiorna dungeon_progress (storico)
-    if (_activeDungeon.sessionId) {
-      await supabase
-        .from('dungeon_progress')
-        .update({ rooms_cleared: roomsCleared })
-        .eq('id', _activeDungeon.sessionId);
-    }
-
-// Aggiorna max_room in user_dungeon_progress
-    const dungeonId = `tier_${_activeDungeon.tier}`;
-    const userId_str = String(_activeDungeon.userId);
-    console.log('[Dungeon] upsert user_dungeon_progress', { userId_str, dungeonId, roomsCleared });
-
-    const { error: udpErr } = await supabase
-      .from('user_dungeon_progress')
-      .upsert({
-        user_id:     userId_str,
-        dungeon_id:  dungeonId,
-        max_room:    roomsCleared,
-        total_gold:  _activeDungeon.goldEarned,
-        attempts:    1,
-        updated_at:  new Date().toISOString(),
-      }, {
-        onConflict: 'user_id,dungeon_id',
-        ignoreDuplicates: false,
-      });
-    if (udpErr) console.error('[Dungeon] user_dungeon_progress error:', udpErr.message);
-
-
-
-           
-  }
-
-  return {
-    gold:          rewards.gold,
-    itemRarity:    rewards.itemRarity,
-    isRoomCleared: roomCleared,
-    isBoss:        enemyData.is_boss,
-  };
-}
-
-/**
- * Avanza alla stanza successiva.
- * @returns {{ ok: boolean, nextRoom?, isDungeonComplete? }}
- */
-export function advanceRoom() {
-  if (!_activeDungeon) return { ok: false };
-
-  const nextIndex = _activeDungeon.currentRoom + 1;
-
-  if (nextIndex >= _activeDungeon.totalRooms) {
-    // Dungeon completato!
-    return { ok: true, isDungeonComplete: true };
-  }
-
-  _activeDungeon.currentRoom = nextIndex;
-  return { ok: true, nextRoom: _activeDungeon.rooms[nextIndex], isDungeonComplete: false };
-}
-
-/**
- * Completa il dungeon e assegna le ricompense finali.
- * @param {string} userId
- * @returns {{ goldTotal, xpBonus, itemsDropped, ok }}
- */
-export async function completeDungeon(userId) {
-  if (!_activeDungeon) return { ok: false, error: 'Nessun dungeon attivo.' };
-
-  const tier   = _activeDungeon.tier;
-  const config = DUNGEONS[tier - 1];
-  const bc     = getBattleChar(userId);
-
-  // Bonus completamento
-  const goldTotal = _activeDungeon.goldEarned + config.goldBonus;
-  const xpBonus   = config.xpBonus;
-
-  // Aggiorna Gold
-  await updateGold(userId, goldTotal, 'dungeon', _activeDungeon.sessionId);
-
-  // Assegna XP bonus
-  await awardXP(xpBonus, 'sfide');
-
-  // Salva completion su Supabase
-  if (_activeDungeon.sessionId) {
-    await supabase
-      .from('dungeon_progress')
-      .update({
-        boss_defeated: true,
-        rooms_cleared: _activeDungeon.totalRooms,
-        gold_earned:   goldTotal,
-        completed_at:  new Date().toISOString(),
-      })
-      .eq('id', _activeDungeon.sessionId);
-  }
-
-// Segna dungeon completato in user_dungeon_progress
-  const dungeonId = `tier_${tier}`;
-  await supabase
-    .from('user_dungeon_progress')
-    .upsert({
-      user_id:      String(userId),
-      dungeon_id:   dungeonId,
-      max_room:     _activeDungeon.totalRooms,
-      completed:    true,
-      total_gold:   goldTotal,
-      total_xp:     xpBonus,
-      completed_at: new Date().toISOString(),
-      updated_at:   new Date().toISOString(),
-    }, { onConflict: 'user_id,dungeon_id' });
-
-  // Incrementa contatore giornaliero
-  await incrementDailyLimit(userId, 'dungeon_count');
-  await incrementDailyLimit(userId, 'pve_count');
-
-  const result = {
-    ok:           true,
-    goldTotal,
-    xpBonus,
-    itemsDropped: _activeDungeon.itemsDropped,
-    tier,
-  };
-
-  _activeDungeon = null;
-  return result;
-}
-
-/**
- * Abbandona il dungeon senza ricompense completamento.
- * Il Gold già racconto è perso (non salvato).
- */
-export function abandonDungeon() {
-  _activeDungeon = null;
-}
-
-// ── Storico ───────────────────────────────────────────────────
-
-/**
- * Carica lo storico dei dungeon completati da Supabase.
- * @param {string} userId
- * @param {number} [limit]
- */
-export async function loadDungeonHistory(userId, limit = 20) {
-  const bc = getBattleChar(userId);
-  if (!bc) return [];
-
-  const { data, error } = await supabase
-    .from('dungeon_progress')
-    .select('*')
-    .eq('character_id', bc.id)
-    .eq('boss_defeated', true)
-    .order('completed_at', { ascending: false })
-    .limit(limit);
-
-  if (error) {
-    console.warn('[Dungeon] loadDungeonHistory:', error.message);
-    return [];
-  }
-
-  return data || [];
-}
-
-// ── Helper ────────────────────────────────────────────────────
-
-function _activeDungeonSummary() {
-  if (!_activeDungeon) return null;
-  return {
-    tier:        _activeDungeon.tier,
-    totalRooms:  _activeDungeon.totalRooms,
-    currentRoom: _activeDungeon.currentRoom,
-    rooms:       _activeDungeon.rooms.map(r => ({
-      type:    r.type,
-      index:   r.index,
-      cleared: r.cleared,
-      enemies: r.enemies.map(e => ({ id: e.id, name: e.name, is_boss: e.is_boss })),
-    })),
-  };
-}
-
-export function getActiveDungeon() {
-  return _activeDungeon ? _activeDungeonSummary() : null;
-}
