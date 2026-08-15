@@ -727,9 +727,8 @@ export async function loadItems() {
 }
 
 export async function loadEnemies(tier = null) {
-  let query = supabase.from('battle_enemies').select('*');  // era 'enemies'
+  let query = supabase.from('battle_enemies').select('*');
   if (tier) query = query.eq('tier', tier);
-
   const { data, error } = await query;
   if (!error && data) {
     if (!DB.battleEnemies) DB.battleEnemies = [];
@@ -737,6 +736,21 @@ export async function loadEnemies(tier = null) {
       if (!DB.battleEnemies.find(x => x.id === e.id)) DB.battleEnemies.push(e);
     });
     persist();
+  }
+
+  // Carica anche le meccaniche boss dalla nuova tabella
+  if (!DB.bossMechanics || Object.keys(DB.bossMechanics).length === 0) {
+    const { data: bossData, error: bossError } = await supabase
+      .from('boss_mechanics_data')
+      .select('*');
+    if (!bossError && bossData) {
+      DB.bossMechanics = Object.fromEntries(bossData.map(b => [b.id, {
+        extraAbility:       b.extra_ability,
+        ...b.extra_ability_params,
+        description:        b.description,
+      }]));
+      persist();
+    }
   }
 }
 
