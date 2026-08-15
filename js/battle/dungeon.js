@@ -254,7 +254,7 @@ function generateProceduralEnemy(tier, isBoss, playerLevel, index, roomIndex = 0
   const bossMultH = isBoss ? config.bossHpMult    : 1;
   const bossMultA = isBoss ? config.bossAttackMult : 1;
 
-  return {
+ return {
     id:                  `proc_t${tier}_${isBoss ? 'boss' : 'normal'}_r${roomIndex}_${index}`,
     name:                isBoss ? `Boss del Dungeon ${tier}` : `Nemico T${tier} (St.${roomIndex + 1})`,
     tier,
@@ -263,6 +263,7 @@ function generateProceduralEnemy(tier, isBoss, playerLevel, index, roomIndex = 0
     attack_base:         Math.floor(config.enemyAttackBase   * bossMultA * scaling * roomMult),
     defense_base:        Math.floor(config.enemyDefenseBase  * scaling   * roomMult),
     speed_base:          5,
+    already_scaled:      true,
     gold_min:            Math.floor((isBoss ? config.goldBoss : config.goldPerEnemy) * roomMult),
     gold_max:            Math.floor((isBoss ? config.goldBoss : config.goldPerEnemy) * 2 * roomMult),
     drop_rate_pct:       isBoss ? config.dropRateBoss * 100 : config.dropRateNormal * 100,
