@@ -4,38 +4,9 @@
 // ║  Sostituisce COMPLETAMENTE il file originale                 ║
 // ╚══════════════════════════════════════════════════════════════╝
  
-export const CLASS_BASE_STATS = {
-  warrior: { hp: 120, attack: 14, defense: 10, speed: 6,  mana: 30,  luck: 3,  hpPerLevel: 12, manaPerLevel: 3  },
-  mage:    { hp: 90,  attack: 16, defense: 5,  speed: 7,  mana: 80,  luck: 4,  hpPerLevel: 8,  manaPerLevel: 10 },
-  bard:    { hp: 85,  attack: 11, defense: 7,  speed: 9,  mana: 60,  luck: 6,  hpPerLevel: 10, manaPerLevel: 7  },
-  shadow:  { hp: 90,  attack: 16, defense: 6,  speed: 11, mana: 45,  luck: 8,  hpPerLevel: 9,  manaPerLevel: 5  },
-  oracle:  { hp: 110, attack: 9,  defense: 9,  speed: 5,  mana: 70,  luck: 5,  hpPerLevel: 13, manaPerLevel: 8  },
-};
- 
-export const CLASS_PRIMARY_STAT = {
-  warrior: 'corpo',
-  mage:    'mente',
-  bard:    'cultura',
-  shadow:  'sfide',
-  oracle:  'sociale',
-};
- 
-// ── Moltiplicatori ridotti per evitare scaling esponenziale ──
-// Le stat reali ora danno bonus significativi ma non rompono il gioco.
-// Regola: primStat=50 → +ATK circa 40-50 (non 75+).
-export const CLASS_STAT_MULT = {
-//         attack   hp    mana  defense speed  luck
-// Warrior: corpo → ATK leggermente alzato (era 0.8 → 0.9)
-  warrior: { attack: 0.9,  hp: 1.2,  mana: 0.3, defense: 0.5, speed: 0.2, luck: 0.04 },
-// Mage: mente → magia pura, ATK invariato, mana dominante
-  mage:    { attack: 0.9,  hp: 0.5,  mana: 1.2, defense: 0.2, speed: 0.3, luck: 0.05 },
-// Bard: cultura → fortuna la stat più iconica, attack ridotto
-  bard:    { attack: 0.55, hp: 0.7,  mana: 0.9, defense: 0.3, speed: 0.3, luck: 0.08 },
-// Shadow: sfide → velocità e crit, attack alto (luck leggermente ridotto a 0.08)
-  shadow:  { attack: 0.85, hp: 0.6,  mana: 0.7, defense: 0.2, speed: 0.6, luck: 0.08 },
-// Oracle: sociale → supporto, luck soft-cappato via calcBattleStats
-  oracle:  { attack: 0.45, hp: 0.95, mana: 1.1, defense: 0.45, speed: 0.2, luck: 0.04 },
-};
+// CLASS_BASE_STATS, CLASS_PRIMARY_STAT e CLASS_STAT_MULT
+// rimossi — ora gestiti da Supabase (tabella battle_classes)
+// Letti tramite loadBattleClasses() → DB.battleClasses
  
 export const CLASS_EVOLUTION = {
   levelFirst:  20,
