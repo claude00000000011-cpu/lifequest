@@ -400,41 +400,47 @@ export async function unlockAbility(userId, abilityId) {
   const bc = DB.battleCharacters[userId];
   if (!bc) return { ok: false, error: 'Personaggio non trovato' };
 
-  // Controlla se già sbloccata
-  const already = (DB.characterAbilities[userId] || []).find(a => a.ability_id === abilityId);
-  if (already) return { ok: false, error: 'Abilità già sbloccata' };
-
-  // Recupera dati abilità
   const ability = (DB.battleAbilities || []).find(a => a.id === abilityId);
   if (!ability) return { ok: false, error: 'Abilità non trovata' };
 
-  // Controlla livello personaggio
   const userLevel = calcLevel(DB.users[userId]?.xp || 0);
-  if (userLevel < ability.min_char_level) {
-    return { ok: false, error: `Raggiungi il livello ${ability.min_char_level}` };
+  const existing  = (DB.characterAbilities[userId] || []).find(a => a.ability_id === abilityId);
+  const currentLv = existing?.level || 0;
+  const nextLv    = currentLv + 1;
+
+  // Costo: livello 1 usa pa_cost/gold_cost dal DB, livelli successivi scalano
+  const paCost   = nextLv === 1 ? (ability.pa_cost || 1) : nextLv;
+  const goldCost = nextLv === 1 ? (ability.gold_cost || 0) : nextLv * 100;
+  const minLevel = ability.min_char_level || 1;
+
+  if (userLevel < minLevel) {
+    return { ok: false, error: `Richiede livello ${minLevel}` };
+  }
+  if (bc.skill_points < paCost) {
+    return { ok: false, error: `Servono ${paCost} PA (ne hai ${bc.skill_points})` };
+  }
+  if (goldCost > 0 && bc.gold < goldCost) {
+    return { ok: false, error: `Servono ${goldCost} Gold (ne hai ${bc.gold})` };
   }
 
-  // Controlla PA
-  if (bc.skill_points < ability.pa_cost) {
-    return { ok: false, error: `Servono ${ability.pa_cost} Punti Abilità (ne hai ${bc.skill_points})` };
+  // Inserisci o aggiorna livello
+  if (!existing) {
+    const { error: abErr } = await supabase
+      .from('character_abilities')
+      .insert({ character_id: bc.id, ability_id: abilityId, level: 1 });
+    if (abErr) return { ok: false, error: abErr.message };
+  } else {
+    const { error: abErr } = await supabase
+      .from('character_abilities')
+      .update({ level: nextLv })
+      .eq('character_id', bc.id)
+      .eq('ability_id', abilityId);
+    if (abErr) return { ok: false, error: abErr.message };
   }
-
-  // Controlla Gold
-  if (ability.gold_cost > 0 && bc.gold < ability.gold_cost) {
-    return { ok: false, error: `Servono ${ability.gold_cost} Gold (ne hai ${bc.gold})` };
-  }
-
-  // Sblocca
-  const { error: abErr } = await supabase
-    .from('character_abilities')
-    .insert({ character_id: bc.id, ability_id: abilityId });
-
-  if (abErr) return { ok: false, error: abErr.message };
 
   // Scala PA e Gold
-  const newSp   = bc.skill_points - ability.pa_cost;
-  const newGold = bc.gold - (ability.gold_cost || 0);
-
+  const newSp   = bc.skill_points - paCost;
+  const newGold = bc.gold - goldCost;
   await supabase
     .from('battle_characters')
     .update({ skill_points: newSp, gold: newGold })
@@ -444,10 +450,13 @@ export async function unlockAbility(userId, abilityId) {
   DB.battleCharacters[userId].gold         = newGold;
 
   if (!DB.characterAbilities[userId]) DB.characterAbilities[userId] = [];
-  DB.characterAbilities[userId].push({ ability_id: abilityId, unlocked_at: new Date().toISOString() });
+  if (!existing) {
+    DB.characterAbilities[userId].push({ ability_id: abilityId, level: 1, unlocked_at: new Date().toISOString() });
+  } else {
+    existing.level = nextLv;
+  }
   persist();
-
-  return { ok: true };
+  return { ok: true, newLevel: nextLv, paCost, goldCost };
 }
 
 // ── Gold ──────────────────────────────────────────────────────
