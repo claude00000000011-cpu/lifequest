@@ -409,6 +409,21 @@ export async function completeDungeon(userId) {
       .eq('id', _activeDungeon.sessionId);
   }
 
+// Segna dungeon completato in user_dungeon_progress
+  const dungeonId = `tier_${tier}`;
+  await supabase
+    .from('user_dungeon_progress')
+    .upsert({
+      user_id:      String(userId),
+      dungeon_id:   dungeonId,
+      max_room:     _activeDungeon.totalRooms,
+      completed:    true,
+      total_gold:   goldTotal,
+      total_xp:     xpBonus,
+      completed_at: new Date().toISOString(),
+      updated_at:   new Date().toISOString(),
+    }, { onConflict: 'user_id,dungeon_id' });
+
   // Incrementa contatore giornaliero
   await incrementDailyLimit(userId, 'dungeon_count');
   await incrementDailyLimit(userId, 'pve_count');
