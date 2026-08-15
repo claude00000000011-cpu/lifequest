@@ -260,10 +260,13 @@ function _buildButtons(abilities) {
        ${ab.mana_cost ? `<span class="ability-cost">${ab.mana_cost}MP</span>` : ''}
      </button>`
   ).join('');
+ const dismissBtn = (_summonData && !_summonData.isDead)
+    ? `<button class="btn-battle-action" data-action="dismiss">🚪 Congeda</button>`
+    : '';
   if (_battleState.supportAvailable && !_battleState.supportUsed) {
-    return btns + abBtns + `<button class="btn-battle-action" data-action="support">🤝 Aiuto</button>`;
+    return btns + abBtns + `<button class="btn-battle-action" data-action="support">🤝 Aiuto</button>` + dismissBtn;
   }
-  return btns + abBtns;
+  return btns + abBtns + dismissBtn;
 }
 
 function _buildItemButtons() {
@@ -306,7 +309,20 @@ function _bindEvents(container, abilities) {
 
 
          
-container.querySelector('#btn-flee')?.addEventListener('click', () => {
+container.querySelector('[data-action="dismiss"]')?.addEventListener('click', async () => {
+    if (_animLock) return;
+    _summonData = null;
+    const sprite = document.getElementById('summon-sprite');
+    if (sprite) sprite.closest('.battle-summon-sprite')?.remove();
+    const { supabase } = await import('../../supabase.js');
+    await supabase.from('active_summons')
+      .update({ status: 'dismissed' })
+      .eq('summoner_id', CUR.id);
+    const ba = container.querySelector('#battle-actions');
+    if (ba) ba.innerHTML = _buildButtons(abilities);
+    _rebindActions(container, abilities);
+  });
+  container.querySelector('#btn-flee')?.addEventListener('click', () => {
     if (_animLock) return;
     playSound('flee');
     _battleState.isOver = true;
