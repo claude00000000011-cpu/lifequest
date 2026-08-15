@@ -1,5 +1,40 @@
-// js/battle/config.js
+// ============================================================
+// js/battle/config.js — ZERO numeri di bilanciamento.
+// Tutti i valori numerici vivono in Supabase.
+// Questo file contiene solo:
+//   - costanti di struttura (nomi tabelle, nomi chiavi)
+//   - formule pure (funzioni senza magic numbers)
+//   - configurazioni non-numeriche
+// ============================================================
 
+
+// ── Tabelle Supabase da caricare all'avvio ──────────────────
+export const DB_TABLES = {
+  combatConfig:  'combat_config',
+  dungeonTiers:  'dungeon_tiers',
+  dungeonConfig: 'dungeon_config',
+  battleClasses: 'battle_classes',
+  battleEnemies: 'battle_enemies',
+  bossMechanics: 'boss_mechanics_data',
+};
+
+
+// ── Formula danno — l'unica formula che resta nel codice ────
+// K (def_constant) viene letto da DB.combatConfig.def_constant
+// Chiamata: COMBAT.damage(atk, def, DB.combatConfig.def_constant)
+export const COMBAT = {
+  damage: (atk, def, K) =>
+    Math.max(1, Math.floor(atk * (1 - def / (def + K)))),
+
+  critDamage: (baseDmg, multiplier, bonusPct) =>
+    Math.floor(baseDmg * multiplier * (1 + bonusPct)),
+
+  // Tutti gli altri parametri numerici vengono da DB.combatConfig
+  // Accesso: DB.combatConfig['def_constant'], DB.combatConfig['crit_multiplier'], ecc.
+};
+
+
+// ── Evoluzione classi ────────────────────────────────────────
 export const CLASS_EVOLUTION = {
   levelFirst:  20,
   levelSecond: 40,
@@ -9,6 +44,8 @@ export const CLASS_EVOLUTION = {
   hpBonus:     { warrior: 20, mage: 10, bard: 15, shadow: 12, oracle: 25 },
 };
 
+
+// ── Skill points ─────────────────────────────────────────────
 export const SKILL_POINTS = {
   perLevel:       1,
   startingPa:     0,
@@ -17,6 +54,8 @@ export const SKILL_POINTS = {
   maxPerBranch:   15,
 };
 
+
+// ── Costi abilità ────────────────────────────────────────────
 export const ABILITY_LEVEL_COSTS = [
   { pa: 1, gold: 0,   minCharLevel: 1  },
   { pa: 2, gold: 50,  minCharLevel: 5  },
@@ -25,197 +64,45 @@ export const ABILITY_LEVEL_COSTS = [
   { pa: 5, gold: 500, minCharLevel: 30 },
 ];
 
-export const COMBAT = {
-  damageFormula: (atk, def) => Math.max(1, Math.floor(atk * (1 - def / (def + 60)))),
-  damageVariance:    0.10,
-  critMultiplier:    1.5,
-  critBonusPve:      5,
-  magicDefReduction: 0.5,
-  actionsPerTurn:    1,
-  manaRegenPerTurn:  10,
-  guardDefBonus:     0.40,
-  maxItemsPerFight:  5,
-  maxStatusStacks:       3,
-  defaultStatusDuration: 3,
-  poisonDamagePerStack:  5,
-  regenHealPerStack:     8,
-  stunTurns:             1,
-  attackBuffPerStack:    0.10,
-  statusResistBase:      0.30,
-  pvpMatchmakingRange: 5,
-  pvpSeasonDays:       30,
-  pvpWinGold:          80,
-  pvpLossGold:         20,
-  pvpWinPoints:        25,
-  pvpLossPoints:       -10,
-  pvpMinPoints:        0,
-  dailyPveLimit:      9999,
-  dailyPvpLimit:      9999,
-  dailyDungeonLimit:  9999,
-  resetHourUTC:       0,
+
+// ── Progressione e unlock ────────────────────────────────────
+export const PROGRESSION = {
+  tutorialFights: 5,
+  startingGold:   50,
+  starterItem:    1,
+  UNLOCKS: {
+    classChoice:     1,
+    pvpArena:        5,
+    guilds:          15,
+    goldBoxes:       20,
+    dungeon3:        20,
+    dungeon4:        35,
+    dungeon5:        50,
+    evolution:       25,
+    guildWar:        30,
+    mythicBoxes:     50,
+    ultimateAbility: 40,
+  },
+  dungeonLevelCap: 2,
+  pvpLevelCap:     10,
+  PVP_SEASON_REWARDS: {
+    top1pct:  { gold: 500, legendaryItem: true  },
+    top10pct: { gold: 200, legendaryItem: false },
+    top50pct: { gold: 80,  legendaryItem: false },
+  },
+  pvpSeasonReset: 0.50,
 };
 
-export const DUNGEONS = [
-  {
-    tier:             1,
-    minLevel:         1,
-    normalRooms:      3,
-    enemiesMin:       1,
-    enemiesMax:       2,
-    goldPerEnemy:     10,
-    goldBoss:         50,
-    xpBonus:          60,
-    goldBonus:        40,
-    enemyHpBase:      10,
-    bossHpMult:       3.0,
-    enemyAttackBase:  136,
-    bossAttackMult:   1.6,
-    enemyDefenseBase: 8,
-    scalingPerLevel:  0.04,
-    dropRateNormal:   0.15,
-    dropRateBoss:     0.60,
-  },
-  {
-    tier:             2,
-    minLevel:         10,
-    normalRooms:      3,
-    enemiesMin:       1,
-    enemiesMax:       2,
-    goldPerEnemy:     18,
-    goldBoss:         90,
-    xpBonus:          110,
-    goldBonus:        70,
-    enemyHpBase:      19,
-    bossHpMult:       3.0,
-    enemyAttackBase:  325,
-    bossAttackMult:   1.8,
-    enemyDefenseBase: 15,
-    scalingPerLevel:  0.04,
-    dropRateNormal:   0.18,
-    dropRateBoss:     0.65,
-  },
-  {
-    tier:             3,
-    minLevel:         20,
-    normalRooms:      3,
-    enemiesMin:       2,
-    enemiesMax:       3,
-    goldPerEnemy:     28,
-    goldBoss:         160,
-    xpBonus:          210,
-    goldBonus:        130,
-    enemyHpBase:      29,
-    bossHpMult:       3.0,
-    enemyAttackBase:  569,
-    bossAttackMult:   2.0,
-    enemyDefenseBase: 24,
-    scalingPerLevel:  0.04,
-    dropRateNormal:   0.22,
-    dropRateBoss:     0.70,
-  },
-  {
-    tier:             4,
-    minLevel:         35,
-    normalRooms:      4,
-    enemiesMin:       2,
-    enemiesMax:       3,
-    goldPerEnemy:     45,
-    goldBoss:         280,
-    xpBonus:          420,
-    goldBonus:        220,
-    enemyHpBase:      41,
-    bossHpMult:       3.0,
-    enemyAttackBase:  884,
-    bossAttackMult:   2.2,
-    enemyDefenseBase: 36,
-    scalingPerLevel:  0.04,
-    dropRateNormal:   0.28,
-    dropRateBoss:     0.75,
-  },
-  {
-    tier:             5,
-    minLevel:         50,
-    normalRooms:      4,
-    enemiesMin:       2,
-    enemiesMax:       4,
-    goldPerEnemy:     70,
-    goldBoss:         450,
-    xpBonus:          750,
-    goldBonus:        380,
-    enemyHpBase:      55,
-    bossHpMult:       3.0,
-    enemyAttackBase:  1283,
-    bossAttackMult:   2.5,
-    enemyDefenseBase: 35,
-    scalingPerLevel:  0.035,
-    dropRateNormal:   0.35,
-    dropRateBoss:     0.85,
-  },
-];
 
-export const DROP_RARITY_RATES = [
-  [0, 0.40, 0.25, 0.08, 0.02, 0.00],
-  [0, 0.35, 0.30, 0.12, 0.04, 0.00],
-  [0, 0.25, 0.35, 0.18, 0.07, 0.01],
-  [0, 0.20, 0.35, 0.25, 0.12, 0.02],
-  [0, 0.15, 0.35, 0.30, 0.18, 0.05],
-];
-
-export const DROP_LUCK_BONUS_PER_POINT = 0.001;
-
-export const BOSS_MECHANICS = {
-  phase2HpThreshold: 0.40,
-  phase2AttackBonus: 0.25,
-  immunityTurns:     1,
-  immunityCooldown:  7,
-  immunityHpGate:    0.60,
-  immunityChance:    0.10,
-  buffChancePct:     0.15,
-  maxBossBuffs:      2,
-};
-
-export const SET_PIECES_REQUIRED = [0, 0, 2, 3, 4];
-
-export const EQUIPMENT_DEGRADATION = {
-  combatsPerTick: 10,
-  minDurability:  0,
-  repairCost: {
-    common:    20,
-    uncommon:  50,
-    rare:      120,
-    epic:      280,
-    legendary: 600,
-    mythic:    1200,
-  },
-};
-
-export const SMITH = {
-  upgradeMaxLevel:         5,
-  upgradeBonusPct:         0.10,
-  upgradeCost: {
-    common:    80,
-    uncommon:  120,
-    rare:      200,
-    epic:      500,
-    legendary: 900,
-    mythic:    1500,
-  },
-  fusionSuccessRate:       0.60,
-  fusionMaterialsRequired: 2,
-};
-
+// ── Economia ─────────────────────────────────────────────────
 export const ECONOMY = {
-  goldNormalMin:    5,
-  goldNormalMax:    15,
-  goldBossMin:      40,
-  goldBossMax:      120,
-  goldPvpWin:       80,
-  goldPvpLoss:      20,
-  goldDungeonBonus: 60,
-  goldGuildQuestMin:30,
-  goldGuildQuestMax:100,
-  goldSellPct:      0.20,
-  targetDailyGold:  300,
+  goldSellPct:       0.20,
+  targetDailyGold:   300,
+  goldPvpWin:        80,
+  goldPvpLoss:       20,
+  goldDungeonBonus:  60,
+  goldGuildQuestMin: 30,
+  goldGuildQuestMax: 100,
   LOOT_BOXES: {
     wood:   { cost: 50,   pity: 10, rarityTarget: 'uncommon'  },
     iron:   { cost: 150,  pity: 10, rarityTarget: 'rare'      },
@@ -229,19 +116,21 @@ export const ECONOMY = {
     mythic: { common: 0,    uncommon: 0,    rare: 0,    epic: 0.78, legendary: 0.20, mythic: 0.02 },
   },
   MERCHANT: {
-    rotationHours:  24,
-    slotsAvailable: 6,
-    priceHealSmall: 15,
-    priceHealMedium:35,
-    priceHealLarge: 70,
-    priceManaSmall: 15,
-    priceManaLarge: 60,
-    priceBombAoe:   40,
-    rareItemMarkup: 1.50,
-    dailyFreeItem:  1,
+    rotationHours:   24,
+    slotsAvailable:  6,
+    priceHealSmall:  15,
+    priceHealMedium: 35,
+    priceHealLarge:  70,
+    priceManaSmall:  15,
+    priceManaLarge:  60,
+    priceBombAoe:    40,
+    rareItemMarkup:  1.50,
+    dailyFreeItem:   1,
   },
 };
 
+
+// ── Gilde ────────────────────────────────────────────────────
 export const GUILDS = {
   minLevelToCreate:        10,
   creationCost:            500,
@@ -271,6 +160,8 @@ export const GUILDS = {
   warMatchmakingRange:     3,
 };
 
+
+// ── Coop ─────────────────────────────────────────────────────
 export const COOP = {
   maxRequestsPerDay:       1,
   requestVisibilityHours:  24,
@@ -293,155 +184,60 @@ export const COOP = {
   supportAttackBonus:  0.15,
 };
 
-export const PROGRESSION = {
-  tutorialFights: 5,
-  startingGold:   50,
-  starterItem:    1,
-  UNLOCKS: {
-    classChoice:     1,
-    pvpArena:        5,
-    guilds:          15,
-    goldBoxes:       20,
-    dungeon3:        20,
-    dungeon4:        35,
-    dungeon5:        50,
-    evolution:       25,
-    guildWar:        30,
-    mythicBoxes:     50,
-    ultimateAbility: 40,
-  },
-  dungeonLevelCap: 2,
-  pvpLevelCap:     10,
-  PVP_SEASON_REWARDS: {
-    top1pct:  { gold: 500, legendaryItem: true  },
-    top10pct: { gold: 200, legendaryItem: false },
-    top50pct: { gold: 80,  legendaryItem: false },
-  },
-  pvpSeasonReset: 0.50,
+
+// ── Drop rarity rates per tier (indice = tier-1) ─────────────
+// [tier][rarity]: common, uncommon, rare, epic, legendary, mythic
+export const DROP_RARITY_RATES = [
+  [0, 0.40, 0.25, 0.08, 0.02, 0.00],  // tier 1
+  [0, 0.35, 0.30, 0.12, 0.04, 0.00],  // tier 2
+  [0, 0.25, 0.35, 0.18, 0.07, 0.01],  // tier 3
+  [0, 0.20, 0.35, 0.25, 0.12, 0.02],  // tier 4
+  [0, 0.15, 0.35, 0.30, 0.18, 0.05],  // tier 5
+];
+
+export const DROP_LUCK_BONUS_PER_POINT = 0.001;
+
+
+// ── Meccaniche boss (fallback — valori reali da DB) ──────────
+export const BOSS_MECHANICS_FALLBACK = {
+  phase2HpThreshold: 0.40,
+  phase2AttackBonus: 0.25,
+  immunityTurns:     1,
+  immunityCooldown:  7,
+  immunityHpGate:    0.60,
+  immunityChance:    0.10,
+  buffChancePct:     0.15,
+  maxBossBuffs:      2,
 };
 
-export function _buildRooms({ baseHp, hpScale, baseAtk, baseDef, baseGold, xpPerRoom, bossId }) {
-  return Array.from({ length: 10 }, (_, i) => {
-    const isBoss = i === 9;
-    const hp  = Math.round(baseHp  * Math.pow(hpScale, i));
-    const atk = Math.round(baseAtk * Math.pow(hpScale, i));
-    const def = Math.round(baseDef * (1 + i * 0.12));
-    return {
-      room:        i + 1,
-      isBoss,
-      enemyHp:     hp,
-      enemyMaxHp:  hp,
-      gold:        Math.round(baseGold  * (1 + i * 0.30)),
-      xp:          Math.round(xpPerRoom * (1 + i * 0.25)),
-      bossId:      isBoss ? bossId : null,
-      enemyName:   isBoss ? `Boss: ${bossId.replace(/_/g, ' ')}` : `Nemico Stanza ${i + 1}`,
-      enemyAttack: atk,
-      enemyDef:    def,
-    };
-  });
-}
 
-export const WORLD_DUNGEONS = [
-  {
-    id: 'dungeon_01', name: 'Faro della Costa',
-    mapX: 0.38, mapY: 0.56, requiredLevel: 1, theme: 'coastal',
-    description: 'Un vecchio faro infestato da creature marine.',
-    rooms: _buildRooms({ baseHp: 31,  baseAtk: 7,  baseDef: 1,  hpScale: 1.35, baseGold: 5,    xpPerRoom: 8,    bossId: 'sea_guardian'      }),
+// ── Equipaggiamento ──────────────────────────────────────────
+export const SET_PIECES_REQUIRED = [0, 0, 2, 3, 4];
+
+export const EQUIPMENT_DEGRADATION = {
+  combatsPerTick: 10,
+  minDurability:  0,
+  repairCost: {
+    common:    20,
+    uncommon:  50,
+    rare:      120,
+    epic:      280,
+    legendary: 600,
+    mythic:    1200,
   },
-  {
-    id: 'dungeon_02', name: 'Porto Meridionale',
-    mapX: 0.44, mapY: 0.64, requiredLevel: 3, theme: 'port',
-    description: 'Contrabbandieri e mostri delle profondita controllano il porto.',
-    rooms: _buildRooms({ baseHp: 35,  baseAtk: 7,  baseDef: 2,  hpScale: 1.40, baseGold: 12,   xpPerRoom: 18,   bossId: 'harbor_master'     }),
+};
+
+export const SMITH = {
+  upgradeMaxLevel:         5,
+  upgradeBonusPct:         0.10,
+  upgradeCost: {
+    common:    80,
+    uncommon:  120,
+    rare:      200,
+    epic:      500,
+    legendary: 900,
+    mythic:    1500,
   },
-  {
-    id: 'dungeon_03', name: 'Isola Fortificata',
-    mapX: 0.18, mapY: 0.67, requiredLevel: 6, theme: 'fortress',
-    description: 'Una fortezza caduta in mano a mercenari corrotti.',
-    rooms: _buildRooms({ baseHp: 26,  baseAtk: 12, baseDef: 2,  hpScale: 1.42, baseGold: 22,   xpPerRoom: 35,   bossId: 'iron_warden'       }),
-  },
-  {
-    id: 'dungeon_04', name: "Villaggio sull'Isola",
-    mapX: 0.22, mapY: 0.50, requiredLevel: 9, theme: 'village',
-    description: 'Un villaggio maledetto dove i morti non restano tali.',
-    rooms: _buildRooms({ baseHp: 33,  baseAtk: 15, baseDef: 4,  hpScale: 1.45, baseGold: 35,   xpPerRoom: 55,   bossId: 'village_elder'     }),
-  },
-  {
-    id: 'dungeon_05', name: "Montagne dell'Isola",
-    mapX: 0.27, mapY: 0.42, requiredLevel: 12, theme: 'mountain',
-    description: 'Caverne profonde abitate da giganti di pietra.',
-    rooms: _buildRooms({ baseHp: 27,  baseAtk: 15, baseDef: 4,  hpScale: 1.47, baseGold: 50,   xpPerRoom: 80,   bossId: 'stone_titan'       }),
-  },
-  {
-    id: 'dungeon_06', name: 'Foresta Intricata',
-    mapX: 0.34, mapY: 0.30, requiredLevel: 15, theme: 'forest',
-    description: 'Una foresta antica dove gli alberi stessi sono nemici.',
-    rooms: _buildRooms({ baseHp: 34,  baseAtk: 19, baseDef: 6,  hpScale: 1.50, baseGold: 70,   xpPerRoom: 115,  bossId: 'ancient_treant'    }),
-  },
-  {
-    id: 'dungeon_07', name: 'Torre del Sentiero',
-    mapX: 0.46, mapY: 0.42, requiredLevel: 18, theme: 'tower',
-    description: 'Una torre di guardia occupata da stregoni ribelli.',
-    rooms: _buildRooms({ baseHp: 32,  baseAtk: 18, baseDef: 6,  hpScale: 1.50, baseGold: 95,   xpPerRoom: 160,  bossId: 'tower_sentinel'    }),
-  },
-  {
-    id: 'dungeon_08', name: 'Fortezza del Nord',
-    mapX: 0.54, mapY: 0.18, requiredLevel: 22, theme: 'fortress',
-    description: 'Fortezza di confine caduta dopo un assedio demoniaco.',
-    rooms: _buildRooms({ baseHp: 44,  baseAtk: 25, baseDef: 10, hpScale: 1.52, baseGold: 130,  xpPerRoom: 220,  bossId: 'fortress_lord'     }),
-  },
-  {
-    id: 'dungeon_09', name: 'Torre Settentrionale',
-    mapX: 0.65, mapY: 0.20, requiredLevel: 26, theme: 'tower',
-    description: 'Una torre ghiacciata con un guardiano immortale.',
-    rooms: _buildRooms({ baseHp: 40,  baseAtk: 22, baseDef: 10, hpScale: 1.52, baseGold: 175,  xpPerRoom: 300,  bossId: 'frost_watcher'     }),
-  },
-  {
-    id: 'dungeon_10', name: 'Castello della Capitale',
-    mapX: 0.52, mapY: 0.46, requiredLevel: 30, theme: 'castle',
-    description: "Il castello reale, corrotto dall'interno da un re ombra.",
-    rooms: _buildRooms({ baseHp: 52,  baseAtk: 28, baseDef: 14, hpScale: 1.55, baseGold: 230,  xpPerRoom: 400,  bossId: 'capital_king'      }),
-  },
-  {
-    id: 'dungeon_11', name: 'Vulcano Attivo',
-    mapX: 0.60, mapY: 0.52, requiredLevel: 34, theme: 'volcano',
-    description: 'Le profondita di un vulcano dove vive un demone del fuoco.',
-    rooms: _buildRooms({ baseHp: 47,  baseAtk: 24, baseDef: 13, hpScale: 1.55, baseGold: 300,  xpPerRoom: 530,  bossId: 'magma_lord'        }),
-  },
-  {
-    id: 'dungeon_12', name: 'Oasi del Deserto',
-    mapX: 0.78, mapY: 0.55, requiredLevel: 38, theme: 'desert',
-    description: "Sotto l'oasi si nasconde un labirinto di sabbia e morte.",
-    rooms: _buildRooms({ baseHp: 65,  baseAtk: 33, baseDef: 20, hpScale: 1.57, baseGold: 380,  xpPerRoom: 680,  bossId: 'sand_pharaoh'      }),
-  },
-  {
-    id: 'dungeon_13', name: 'Lago Tropicale',
-    mapX: 0.52, mapY: 0.72, requiredLevel: 42, theme: 'tropical',
-    description: "Acque cristalline che nascondono un'idra millenaria.",
-    rooms: _buildRooms({ baseHp: 60,  baseAtk: 28, baseDef: 17, hpScale: 1.57, baseGold: 470,  xpPerRoom: 860,  bossId: 'lagoon_hydra'      }),
-  },
-  {
-    id: 'dungeon_14', name: 'Castello Meridionale',
-    mapX: 0.50, mapY: 0.62, requiredLevel: 46, theme: 'castle',
-    description: "Il secondo castello, sede di un duca caduto nell'oscurita.",
-    rooms: _buildRooms({ baseHp: 77,  baseAtk: 36, baseDef: 27, hpScale: 1.60, baseGold: 570,  xpPerRoom: 1050, bossId: 'shadow_duke'       }),
-  },
-  {
-    id: 'dungeon_15', name: 'Isole Fluttuanti Est',
-    mapX: 0.80, mapY: 0.28, requiredLevel: 50, theme: 'floating',
-    description: 'Isole nel cielo pattugliate da colossi di pietra e nuvole.',
-    rooms: _buildRooms({ baseHp: 73,  baseAtk: 31, baseDef: 23, hpScale: 1.60, baseGold: 680,  xpPerRoom: 1280, bossId: 'sky_colossus'      }),
-  },
-  {
-    id: 'dungeon_16', name: 'Isole Fluttuanti Ovest',
-    mapX: 0.18, mapY: 0.22, requiredLevel: 55, theme: 'floating',
-    description: 'Isole avvolte nel vuoto, dimora di un titano del nulla.',
-    rooms: _buildRooms({ baseHp: 100, baseAtk: 43, baseDef: 35, hpScale: 1.62, baseGold: 820,  xpPerRoom: 1550, bossId: 'void_titan'        }),
-  },
-  {
-    id: 'dungeon_17', name: 'Castello Fluttuante',
-    mapX: 0.88, mapY: 0.18, requiredLevel: 60, theme: 'floating_castle',
-    description: 'Il trono finale. Chi lo governa non e di questo mondo.',
-    rooms: _buildRooms({ baseHp: 121, baseAtk: 48, baseDef: 43, hpScale: 1.65, baseGold: 1000, xpPerRoom: 1900, bossId: 'celestial_overlord' }),
-  },
-];
+  fusionSuccessRate:       0.60,
+  fusionMaterialsRequired: 2,
+};
