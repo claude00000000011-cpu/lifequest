@@ -86,8 +86,8 @@ function calcEnemyScaling(enemyData, playerLevel, playerAtk = 10, playerDef = 10
 
   // Gli HP nemici scalano con l'ATK del giocatore (come prima)
   const atkBaseForTier = (dungeonConfig?.enemyAttackBase || 14);
-  const atkRatio       = Math.max(1, playerAtk / (atkBaseForTier * 2));
-  const hpAtkScaling   = Math.min(atkRatio, 3.0);
+const atkRatio       = Math.max(1, playerAtk / (atkBaseForTier * 2));
+  const hpAtkScaling   = Math.min(atkRatio, 1.5);
 
   return {
     hp:      Math.floor(enemyData.hp_base * levelMult * hpAtkScaling),
