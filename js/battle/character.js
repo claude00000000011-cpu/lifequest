@@ -678,7 +678,7 @@ export async function loadEquipment(userId) {
         bonus_mana, bonus_luck_pct, class_restriction,
         buy_price, sell_price, level_req
       ),
-      enhancement:item_enhancements (
+      enhancement:item_enhancements!item_enhancements_equipment_id_fkey (
         enhancement_lvl,
         bonus_attack, bonus_defense, bonus_hp,
         crit_rate, crit_damage,
