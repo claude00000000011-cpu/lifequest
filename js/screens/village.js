@@ -368,7 +368,26 @@ function renderVillageMap(bc, level) {
 
       
 
-        <!-- Alleato evocato -->
+       <!-- Effetti attivi dall'equipaggiamento -->
+      ${(() => {
+        const equip = DB.characterEquipment?.[CUR.id] || [];
+        const effects = equip
+          .filter(e => e.item?.effect_type || (Array.isArray(e.item?.bonus_secondary) && e.item.bonus_secondary.length))
+          .map(e => {
+            const parts = [];
+            if (e.item.effect_type) parts.push(`✨ ${e.item.effect_type}`);
+            (e.item.bonus_secondary || []).forEach(b => {
+              parts.push(`🔸 ${b.description || `${b.type}: ${b.value}`}`);
+            });
+            return `<div class="veffect-row"><span class="veffect-slot">${slotEmoji(e.slot)}</span><span>${parts.join(' · ')}</span></div>`;
+          });
+        return effects.length ? `
+          <div class="village-section-title" style="margin-top:1rem">✨ Effetti Attivi</div>
+          <div class="village-effects-list">${effects.join('')}</div>
+        ` : '';
+      })()}
+
+      <!-- Alleato evocato -->
       <div id="summon-status-area"></div>
 
       <!-- Economia oggi -->
@@ -597,9 +616,54 @@ async function renderInventory(bc, user) {
       <div class="village-section-title" style="margin-top:1.25rem">
         🎒 Zaino (${sorted.length} oggetti)
       </div>
+
+      <!-- Filtri zaino -->
+      <div class="inv-filters" id="inv-filters">
+        <select class="inv-filter-select" id="inv-filter-slot" onchange="window._applyInvFilters?.()">
+          <option value="">Tutti i tipi</option>
+          <option value="weapon">⚔️ Arma</option>
+          <option value="armor">🛡️ Armatura</option>
+          <option value="helmet">⛑️ Elmo</option>
+          <option value="leggings">👖 Gambali</option>
+          <option value="gloves">🧤 Guanti</option>
+          <option value="shoes">👟 Scarpe</option>
+          <option value="ring">💍 Anello</option>
+          <option value="cloak">🧣 Mantello</option>
+          <option value="talisman">📿 Talismano</option>
+          <option value="pet">🐾 Pet</option>
+          <option value="consumable">🧪 Consumabile</option>
+        </select>
+        <select class="inv-filter-select" id="inv-filter-rarity" onchange="window._applyInvFilters?.()">
+          <option value="">Tutte le rarità</option>
+          <option value="common">⬜ Comune</option>
+          <option value="uncommon">🟩 Non comune</option>
+          <option value="rare">🟦 Raro</option>
+          <option value="epic">🟪 Epico</option>
+          <option value="legendary">🟧 Leggendario</option>
+          <option value="mythic">🟥 Mitico</option>
+        </select>
+        <select class="inv-filter-select" id="inv-filter-class" onchange="window._applyInvFilters?.()">
+          <option value="">Tutte le classi</option>
+          <option value="warrior">⚔️ Warrior</option>
+          <option value="mage">🔮 Mage</option>
+          <option value="shadow">🗡️ Shadow</option>
+          <option value="oracle">☀️ Oracle</option>
+          <option value="bard">🎸 Bard</option>
+        </select>
+        <select class="inv-filter-select" id="inv-filter-sort" onchange="window._applyInvFilters?.()">
+          <option value="rarity">Ordina: Rarità</option>
+          <option value="attack">Ordina: ATK</option>
+          <option value="defense">Ordina: DEF</option>
+          <option value="hp">Ordina: PF</option>
+          <option value="effect">Ordina: Effetti</option>
+        </select>
+        <button class="btn-sm btn-ghost" onclick="window._resetInvFilters?.()">✖ Reset</button>
+      </div>
+
+      <div id="inv-list-wrap">
       ${!sorted.length
         ? '<div class="empty-state" style="padding:2rem">Nessun oggetto. Esplora i dungeon o apri casse loot!</div>'
-        : `<div class="inventory-list">
+        : `<div class="inventory-list" id="inventory-list">
             ${sorted.map(entry => {
               const item = entry.item || entry.battle_items || null;
               if (!item) return '';
@@ -607,6 +671,15 @@ async function renderInventory(bc, user) {
             }).join('')}
           </div>`
       }
+      </div>
+
+
+
+
+
+
+
+      
     </div>
   `;
 }
@@ -1025,14 +1098,30 @@ function renderItemCard(item, price, canBuy, action) {
 
 function buildBonusText(item) {
   const parts = [];
-  if (item.bonus_attack  > 0) parts.push(`+${item.bonus_attack} ATK`);
-  if (item.bonus_defense > 0) parts.push(`+${item.bonus_defense} DEF`);
-  if (item.bonus_hp      > 0) parts.push(`+${item.bonus_hp} PF`);
-  if (item.bonus_mana    > 0) parts.push(`+${item.bonus_mana} Mana`);
-  if (item.bonus_speed   > 0) parts.push(`+${item.bonus_speed} VEL`);
-  if (item.bonus_luck_pct> 0) parts.push(`+${item.bonus_luck_pct}% Fortuna`);
-  if (item.heal_pct      > 0) parts.push(`Cura ${item.heal_pct}% PF`);
-  if (item.mana_restore_pct > 0) parts.push(`Ripristina ${item.mana_restore_pct}% Mana`);
+  if (item.bonus_attack      > 0) parts.push(`+${item.bonus_attack} ATK`);
+  if (item.bonus_defense     > 0) parts.push(`+${item.bonus_defense} DEF`);
+  if (item.bonus_hp          > 0) parts.push(`+${item.bonus_hp} PF`);
+  if (item.bonus_mana        > 0) parts.push(`+${item.bonus_mana} Mana`);
+  if (item.bonus_speed       > 0) parts.push(`+${item.bonus_speed} VEL`);
+  if (item.bonus_luck_pct    > 0) parts.push(`+${item.bonus_luck_pct}% Fortuna`);
+  if (item.bonus_strength    > 0) parts.push(`+${item.bonus_strength} FOR`);
+  if (item.bonus_intelligence> 0) parts.push(`+${item.bonus_intelligence} INT`);
+  if (item.bonus_agility     > 0) parts.push(`+${item.bonus_agility} AGI`);
+  if (item.bonus_vitality    > 0) parts.push(`+${item.bonus_vitality} VIT`);
+  if (item.bonus_spirit      > 0) parts.push(`+${item.bonus_spirit} SPI`);
+  if (item.bonus_charisma    > 0) parts.push(`+${item.bonus_charisma} CAR`);
+  if (item.bonus_luck        > 0) parts.push(`+${item.bonus_luck} LUCK`);
+  if (item.heal_pct          > 0) parts.push(`Cura ${item.heal_pct}% PF`);
+  if (item.mana_restore_pct  > 0) parts.push(`Ripristina ${item.mana_restore_pct}% Mana`);
+  if (item.damage_flat       > 0) parts.push(`+${item.damage_flat} DMG`);
+  if (item.absorb_pct        > 0) parts.push(`Assorbi ${item.absorb_pct}% danno`);
+  if (item.effect_type)           parts.push(`✨ ${item.effect_type}`);
+  // bonus_secondary è un array JSON [{type, value, description}]
+  const secondary = Array.isArray(item.bonus_secondary) ? item.bonus_secondary : [];
+  secondary.forEach(b => {
+    if (b.description) parts.push(`🔸 ${b.description}`);
+    else if (b.type && b.value) parts.push(`🔸 ${b.type}: ${b.value}`);
+  });
   return parts.join(' · ');
 }
 
@@ -2276,4 +2365,62 @@ window._equipItem = async function(inventoryId, itemId, slot) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ── Filtri inventario ─────────────────────────────────────────
+window._applyInvFilters = function() {
+  const slot    = document.getElementById('inv-filter-slot')?.value    || '';
+  const rarity  = document.getElementById('inv-filter-rarity')?.value  || '';
+  const cls     = document.getElementById('inv-filter-class')?.value   || '';
+  const sort    = document.getElementById('inv-filter-sort')?.value    || 'rarity';
+
+  const rarityOrder = { mythic:5, legendary:4, epic:3, rare:2, uncommon:1, common:0 };
+  const inv = DB.battleInventory?.[CUR.id] || [];
+
+  let filtered = inv.map(entry => ({
+    entry,
+    item: entry.item || entry.battle_items || null
+  })).filter(({ item }) => {
+    if (!item) return false;
+    if (slot   && item.slot !== slot) return false;
+    if (rarity && item.rarity !== rarity) return false;
+    if (cls    && !(item.class_restriction || []).includes(cls)) return false;
+    return true;
+  });
+
+  filtered.sort((a, b) => {
+    const ia = a.item, ib = b.item;
+    if (sort === 'rarity')  return (rarityOrder[ib.rarity] || 0) - (rarityOrder[ia.rarity] || 0);
+    if (sort === 'attack')  return (ib.bonus_attack  || 0) - (ia.bonus_attack  || 0);
+    if (sort === 'defense') return (ib.bonus_defense || 0) - (ia.bonus_defense || 0);
+    if (sort === 'hp')      return (ib.bonus_hp      || 0) - (ia.bonus_hp      || 0);
+    if (sort === 'effect')  return (ib.effect_type ? 1 : 0) - (ia.effect_type ? 1 : 0);
+    return 0;
+  });
+
+  const wrap = document.getElementById('inventory-list');
+  if (!wrap) return;
+  wrap.innerHTML = filtered.length
+    ? filtered.map(({ entry, item }) => renderInventoryItem(entry, item, CUR.id)).join('')
+    : '<div class="empty-state" style="padding:2rem">Nessun oggetto corrisponde ai filtri.</div>';
+};
+
+window._resetInvFilters = function() {
+  ['inv-filter-slot','inv-filter-rarity','inv-filter-class','inv-filter-sort']
+    .forEach(id => { const el = document.getElementById(id); if (el) el.value = id === 'inv-filter-sort' ? 'rarity' : ''; });
+  window._applyInvFilters?.();
+};
 
