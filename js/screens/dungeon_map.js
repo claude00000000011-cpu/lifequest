@@ -202,7 +202,8 @@ export async function renderDungeonDetail(containerEl, dungeon, playerLevel, onS
 
   const grid = containerEl.querySelector('#dm-room-grid');
 
-  dungeon.rooms.forEach((room) => {
+  const rooms = dungeon.rooms ?? loadDungeonRooms(dungeon.id) ?? [];
+  rooms.forEach((room) => {
     const done      = state.maxRoom >= room.room;
     const available = room.room === 1 || state.maxRoom >= room.room - 1;
     const locked    = !available;
