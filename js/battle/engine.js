@@ -302,32 +302,96 @@ function doItem(s, user, itemId) {
     s.log.push(`Hai già usato ${COMBAT.maxItemsPerFight} oggetti in questo scontro.`);
     return s;
   }
- 
-  const item = (DB.battleItems || []).find(i => i.id === itemId);
+
+  // Cerca prima in battleItems, poi in items (consumabili)
+  const item = (DB.battleItems || []).find(i => i.id === itemId)
+            || (DB.items       || []).find(i => i.id === itemId);
   if (!item) {
     s.log.push('Oggetto non trovato.');
     return s;
   }
- 
+
+  // ── Cura HP ──────────────────────────────────────────────────────────────
   if (item.heal_pct > 0) {
     const healed = Math.floor(s.player.hpMax * (item.heal_pct / 100));
     s.player.hp  = Math.min(s.player.hpMax, s.player.hp + healed);
     s.log.push(`🧪 ${item.name}: recuperi ${healed} PF.`);
   }
- 
+
+  // ── Cura Mana ────────────────────────────────────────────────────────────
   if (item.mana_restore_pct > 0) {
     const restored = Math.floor(s.player.manaMax * (item.mana_restore_pct / 100));
     s.player.mana  = Math.min(s.player.manaMax, s.player.mana + restored);
     s.log.push(`💙 ${item.name}: recuperi ${restored} Mana.`);
   }
- 
-  if (itemId === 'bomb_aoe') {
-    const dmg  = Math.floor(s.player.attack * 0.8); // era 0.6
+
+  // ── Danno diretto (damage_flat o bonus_attack come danno bomba) ───────────
+  if (item.damage_flat > 0) {
+    const dmg  = item.damage_flat;
     s.enemy.hp = Math.max(0, s.enemy.hp - dmg);
-    s.log.push(`💣 Bomba Esplosiva: ${dmg} danni al nemico!`);
-    if (s.enemy.hp === 0) s = checkVictory(s, 'enemy');
+    s.log.push(`💥 ${item.name}: infliggi ${dmg} danni!`);
+    if (s.enemy.hp <= 0) { s = checkVictory(s, 'enemy'); s.itemsUsedCount++; return s; }
   }
- 
+
+  // ── Effetti per ID specifico ──────────────────────────────────────────────
+  switch (itemId) {
+
+    case 'bomb_fire': {
+      // Bruciatura: danno immediato + DoT 3 turni
+      const dmg = Math.floor(s.player.attack * 0.6);
+      s.enemy.hp = Math.max(0, s.enemy.hp - dmg);
+      s.log.push(`🔥 ${item.name}: ${dmg} danni e bruciatura per 3 turni!`);
+      s = applyStatusEffect(s, 'enemy', { type: 'burn', damage: Math.floor(s.player.attack * 0.2), duration: 3 });
+      if (s.enemy.hp <= 0) { s = checkVictory(s, 'enemy'); s.itemsUsedCount++; return s; }
+      break;
+    }
+
+    case 'bomb_water': {
+      // Rallentamento: riduce velocità nemico per 3 turni
+      s.log.push(`💧 ${item.name}: il nemico è rallentato per 3 turni!`);
+      s = applyStatusEffect(s, 'enemy', { type: 'slow', speedMult: 0.5, duration: 3 });
+      break;
+    }
+
+    case 'bomb_dark': {
+      // Paura: riduce ATK e DEF nemico del 25% per 3 turni
+      s.log.push(`🌑 ${item.name}: il nemico è indebolito per 3 turni!`);
+      s = applyStatusEffect(s, 'enemy', { type: 'fear', atkMult: 0.75, defMult: 0.75, duration: 3 });
+      break;
+    }
+
+    case 'bomb_light': {
+      // Accecamento: riduce precisione nemico del 30% per 3 turni
+      s.log.push(`✨ ${item.name}: il nemico è accecato per 3 turni!`);
+      s = applyStatusEffect(s, 'enemy', { type: 'blind', misschance: 0.30, duration: 3 });
+      break;
+    }
+
+    case 'bomb_aoe': {
+      // Danno AOE basato sull'attacco del player
+      const dmg = Math.floor(s.player.attack * 0.8);
+      s.enemy.hp = Math.max(0, s.enemy.hp - dmg);
+      s.log.push(`💣 ${item.name}: ${dmg} danni esplosivi!`);
+      if (s.enemy.hp <= 0) { s = checkVictory(s, 'enemy'); s.itemsUsedCount++; return s; }
+      break;
+    }
+
+    case 'amulet_barrier': {
+      // +40 DEF per tutta la battaglia (buff permanente fino alla fine)
+      s.player.defense += 40;
+      s.log.push(`🛡️ ${item.name}: difesa aumentata di 40 per questa battaglia!`);
+      break;
+    }
+
+    case 'elixir_life': {
+      // Rianima con 50% HP — utile solo se HP <= 0, altrimenti cura al 50%
+      const revive = Math.floor(s.player.hpMax * 0.5);
+      s.player.hp  = Math.min(s.player.hpMax, s.player.hp + revive);
+      s.log.push(`💖 ${item.name}: recuperi ${revive} PF!`);
+      break;
+    }
+  }
+
   s.itemsUsedCount++;
   return s;
 }
