@@ -395,10 +395,10 @@ case 'dungeon_map': {
                 defense: bc.defense,
                 speed:   bc.speed,
               };
-              startDungeonBattle(contentEl, dungeon, room, player,
+             startDungeonBattle(contentEl, dungeon, room, player, playerLevel,
                 (dungeon, nextRoom) => {
                   if (nextRoom) {
-                    startDungeonBattle(contentEl, dungeon, nextRoom, player,
+                    startDungeonBattle(contentEl, dungeon, nextRoom, player, playerLevel,
                       (d, r) => showDetail(d),
                       showMap
                     );
