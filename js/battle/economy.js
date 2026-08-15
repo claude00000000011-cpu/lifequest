@@ -340,15 +340,14 @@ const CONSUMABLE_POOL = [
  * @returns {Array} slot mercante
  */
 export async function getMerchantSlots() {
-  if (DB.merchantSlots?.length) return DB.merchantSlots;
-  const { data, error } = await supabase
-    .from('items')
-    .select('*')
-    .eq('slot', 'consumable')
-    .order('buy_price', { ascending: true });
-  if (error || !data) return [];
-  DB.merchantSlots = data.map(item => ({ item, price: item.buy_price }));
-  persist();
+ const lastRot = DB.merchantLastRot;
+  const now     = Date.now();
+  const rotMs   = ECONOMY.MERCHANT.rotationHours * 3_600_000;
+
+  if (!lastRot || (now - lastRot) >= rotMs || !DB.merchantSlots.length) {
+    await rotateMerchant();
+  }
+
   return DB.merchantSlots;
 }
 
