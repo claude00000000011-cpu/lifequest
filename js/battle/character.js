@@ -742,6 +742,17 @@ export async function loadItems() {
     DB.battleItems = data;
     persist();
   }
+  // Carica consumabili da items
+  if (!DB.items?.length) {
+    const { data: itemsData, error: itemsError } = await supabase
+      .from('items')
+      .select('*')
+      .eq('slot', 'consumable');
+    if (!itemsError && itemsData) {
+      DB.items = itemsData;
+      persist();
+    }
+  }
 
   // Carica anche i range rarità per generateProceduralItem
   if (!DB.equipmentRarities || !Object.keys(DB.equipmentRarities).length) {
