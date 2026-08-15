@@ -1011,13 +1011,8 @@ function renderAcademy(bc, level) {
   const learnedMap = Object.fromEntries(
     (DB.characterAbilities?.[CUR.id] || []).map(a => [a.ability_id, a.level || 1])
   );
-  const { SKILL_POINTS, ABILITY_LEVEL_COSTS } = { SKILL_POINTS: { resetCost: 300 }, ABILITY_LEVEL_COSTS: [
-    { pa:1, gold:0, minCharLevel:1 },
-    { pa:2, gold:50, minCharLevel:5 },
-    { pa:3, gold:100, minCharLevel:10 },
-    { pa:4, gold:200, minCharLevel:20 },
-    { pa:5, gold:500, minCharLevel:30 },
-  ]};
+// ABILITY_LEVEL_COSTS rimosso — ora i costi vengono calcolati dinamicamente
+  // in base al livello corrente dell'abilità (vedi unlockAbility in character.js)
 
   const byBranch = {};
   classAbilities.forEach(a => {
