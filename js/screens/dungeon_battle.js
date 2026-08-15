@@ -4,8 +4,8 @@
 import { DB } from '../db.js';
 import { renderBattleResult } from './dungeon_map.js';
 
-export function startDungeonBattle(containerEl, dungeon, room, player, onContinue, onMap) {
-  const enemy = buildEnemyForRoom(room, dungeon);
+export function startDungeonBattle(containerEl, dungeon, room, player, playerLevel = 1, onContinue, onMap) {
+  const enemy = buildEnemyForRoom(room, dungeon, playerLevel);
 
 window._storyBattleResolve = (outcome, playerHpEnd) => {
     window._storyBattleResolve = null;
