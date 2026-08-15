@@ -10,7 +10,9 @@ import { DB } from '../db.js';
 // ── Costruzione stato iniziale ────────────────────────────────
  
 export function initBattle(playerStats, enemyData, playerLevel, support = null, playerDef = 10) {
-  const enemyScaling = calcEnemyScaling(enemyData, playerLevel, playerStats.attack, playerDef);
+  const enemyScaling = enemyData.already_scaled
+  ? { hp: enemyData.hp_base, attack: enemyData.attack_base, defense: enemyData.defense_base }
+  : calcEnemyScaling(enemyData, playerLevel, playerStats.attack, playerDef);
  
   const player = {
     id:               'player',
