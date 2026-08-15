@@ -249,7 +249,8 @@ function selectEnemies(tier, isBoss, count, playerLevel, roomIndex = 0) {
 function generateProceduralEnemy(tier, isBoss, playerLevel, index, roomIndex = 0) {
   const config    = DUNGEONS[tier - 1];
   const scaling   = 1 + Math.max(0, playerLevel - config.minLevel) * config.scalingPerLevel;
-  const roomMult  = 1 + roomIndex * 0.18; // +18% per stanza — stanza 1=×1, stanza 4=×1.54
+  const tierBonus = 1 + (tier - 1) * 0.08;
+  const roomMult  = tierBonus + roomIndex * 0.18; // +18% per stanza — stanza 1=×1, stanza 4=×1.54
   const bossMultH = isBoss ? config.bossHpMult    : 1;
   const bossMultA = isBoss ? config.bossAttackMult : 1;
 
