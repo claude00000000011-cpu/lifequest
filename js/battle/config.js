@@ -17,13 +17,7 @@ export const CLASS_EVOLUTION = {
   hpBonus:     { warrior: 20, mage: 10, bard: 15, shadow: 12, oracle: 25 },
 };
  
-export const EVOLUTION_PATHS = {
-  warrior: ['paladin', 'berserker'],
-  mage:    ['archmage', 'warlock'],
-  bard:    ['singer', 'diplomat'],
-  shadow:  ['assassin', 'hunter'],
-  oracle:  ['high_priest', 'seer'],
-};
+// EVOLUTION_PATHS rimosso — ora in Supabase (battle_classes.evolution_paths)
  
 export const SKILL_POINTS = {
   perLevel:       1,
