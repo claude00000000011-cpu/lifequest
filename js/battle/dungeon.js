@@ -247,32 +247,44 @@ function selectEnemies(tier, isBoss, count, playerLevel, roomIndex = 0) {
  * Usato solo come fallback.
  */
 function generateProceduralEnemy(tier, isBoss, playerLevel, index, roomIndex = 0) {
-  const config    = DUNGEONS[tier - 1];
-  const scaling   = 1 + Math.max(0, playerLevel - config.minLevel) * config.scalingPerLevel;
-  const tierBonus = 1 + (tier - 1) * 0.08;
-  const roomMult  = tierBonus + roomIndex * 0.18; // +18% per stanza — stanza 1=×1, stanza 4=×1.54
-  const bossMultH = isBoss ? config.bossHpMult    : 1;
-  const bossMultA = isBoss ? config.bossAttackMult : 1;
+ // Legge da DB.dungeonTiers invece che da DUNGEONS[] in config.js
+  const config  = DB.dungeonTiers?.[tier];
+  if (!config) {
+    console.warn('[generateProceduralEnemy] dungeonTiers non caricato per tier:', tier);
+    return null;
+  }
 
- return {
+  const scaling   = 1 + Math.max(0, playerLevel - config.min_level) * config.scaling_per_level;
+  const roomMult  = 1 + roomIndex * 0.18;
+  const bossMultH = isBoss ? config.boss_hp_mult  : 1;
+  const bossMultA = isBoss ? config.boss_atk_mult : 1;
+
+  // Speed varia per stanza e tier invece di essere sempre 5
+  const speedBase = Math.max(4, 3 + tier + Math.floor(roomIndex * 0.5));
+
+  return {
     id:                  `proc_t${tier}_${isBoss ? 'boss' : 'normal'}_r${roomIndex}_${index}`,
     name:                isBoss ? `Boss del Dungeon ${tier}` : `Nemico T${tier} (St.${roomIndex + 1})`,
     tier,
     is_boss:             isBoss,
-    hp_base:             Math.floor(config.enemyHpBase      * bossMultH * scaling * roomMult),
-    attack_base:         Math.floor(config.enemyAttackBase   * bossMultA * scaling * roomMult),
-    defense_base:        Math.floor(config.enemyDefenseBase  * scaling   * roomMult),
-    speed_base:          5,
+    hp_base:             Math.floor(config.enemy_hp_base  * bossMultH * scaling * roomMult),
+    attack_base:         Math.floor(config.enemy_atk_base * bossMultA * scaling * roomMult),
+    defense_base:        Math.floor(config.enemy_def_base * scaling   * roomMult),
+    speed_base:          speedBase,
     already_scaled:      true,
-    gold_min:            Math.floor((isBoss ? config.goldBoss : config.goldPerEnemy) * roomMult),
-    gold_max:            Math.floor((isBoss ? config.goldBoss : config.goldPerEnemy) * 2 * roomMult),
-    drop_rate_pct:       isBoss ? config.dropRateBoss * 100 : config.dropRateNormal * 100,
+    gold_min:            Math.floor((isBoss ? config.gold_boss : config.gold_per_enemy) * roomMult),
+    gold_max:            Math.floor((isBoss ? config.gold_boss : config.gold_per_enemy) * 2 * roomMult),
+    drop_rate_pct:       isBoss ? config.drop_rate_boss * 100 : config.drop_rate_normal * 100,
     icon_path:           null,
     has_immunity:        isBoss,
     buff_chance_pct:     isBoss ? 20 : 0,
-    phase2_hp_threshold: 50,
+    phase2_hp_threshold: 40,   // era 50 — allineato a combat_config.phase2_threshold
     phase2_attack_bonus: 25,
   };
+
+
+
+         
 }
 
 // ── Navigazione Stanze ────────────────────────────────────────
