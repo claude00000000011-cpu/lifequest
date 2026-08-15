@@ -100,9 +100,9 @@ export const DUNGEONS = [
     goldBoss:         50,
     xpBonus:          60,
     goldBonus:        40,
-    enemyHpBase:      120,   // era 80
-    bossHpMult:       3.0,   // era 3.5 — boss più gestibile
-    enemyAttackBase:  14,    // era 10
+   enemyHpBase:      10,
+    bossHpMult:       3.0,
+    enemyAttackBase:  136,
     bossAttackMult:   1.6,   // era 1.8
     enemyDefenseBase: 8,     // era 5
     scalingPerLevel:  0.04,  // era 0.03
@@ -119,9 +119,9 @@ export const DUNGEONS = [
     goldBoss:         90,
     xpBonus:          110,
     goldBonus:        70,
-    enemyHpBase:      200,   // era 140
+     enemyHpBase:      19,
     bossHpMult:       3.0,
-    enemyAttackBase:  22,    // era 18
+    enemyAttackBase:  325,
     bossAttackMult:   1.8,   // era 2.0
     enemyDefenseBase: 15,    // era 10
     scalingPerLevel:  0.04,
@@ -138,9 +138,9 @@ export const DUNGEONS = [
     goldBoss:         160,
     xpBonus:          210,
     goldBonus:        130,
-    enemyHpBase:      350,   // era 250
-    bossHpMult:       3.2,   // era 4.0
-    enemyAttackBase:  36,    // era 30
+    enemyHpBase:      29,
+    bossHpMult:       3.0,
+    enemyAttackBase:  569,
     bossAttackMult:   2.0,   // era 2.2
     enemyDefenseBase: 24,    // era 18
     scalingPerLevel:  0.04,
@@ -157,9 +157,9 @@ export const DUNGEONS = [
     goldBoss:         280,
     xpBonus:          420,
     goldBonus:        220,
-    enemyHpBase:      580,   // era 420
-    bossHpMult:       3.5,   // era 4.0
-    enemyAttackBase:  58,    // era 50
+  enemyHpBase:      41,
+    bossHpMult:       3.0,
+    enemyAttackBase:  884,
     bossAttackMult:   2.2,   // era 2.5
     enemyDefenseBase: 36,    // era 28
     scalingPerLevel:  0.04,
@@ -176,9 +176,9 @@ export const DUNGEONS = [
     goldBoss:           450,
     xpBonus:            750,
     goldBonus:          380,
-    enemyHpBase:        850,  // Bilanciato a 850
-    bossHpMult:         3.5,  // Boss più accessibile (3.5 anziché 4.0)
-    enemyAttackBase:    90,
+   enemyHpBase:      55,
+    bossHpMult:       3.0,
+    enemyAttackBase:  1283,
     bossAttackMult:     2.5,
     enemyDefenseBase:   35,   // Ridotto da 55 a 35 per evitare l'effetto "spugna blindata"
     scalingPerLevel:    0.035,// Scalato leggermente al ribasso (0.035 anziché 0.04)
@@ -439,73 +439,72 @@ export const WORLD_DUNGEONS = [
     id: 'dungeon_06', name: 'Foresta Intricata',
     mapX: 0.34, mapY: 0.30, requiredLevel: 15, theme: 'forest',
     description: 'Una foresta antica dove gli alberi stessi sono nemici.',
-    rooms: _buildRooms({ baseHp: 800,   hpScale: 1.55, baseGold: 70,   xpPerRoom: 115,  bossId: 'ancient_treant'    }),
+   rooms: _buildRooms({ baseHp: 71,    hpScale: 1.55, baseGold: 70,   xpPerRoom: 115,  bossId: 'ancient_treant'    }),
   },
   {
     id: 'dungeon_07', name: 'Torre del Sentiero',
     mapX: 0.46, mapY: 0.42, requiredLevel: 18, theme: 'tower',
     description: 'Una torre di guardia occupata da stregoni ribelli.',
-    rooms: _buildRooms({ baseHp: 1150,  hpScale: 1.60, baseGold: 95,   xpPerRoom: 160,  bossId: 'tower_sentinel'    }),
+   rooms: _buildRooms({ baseHp: 89,    hpScale: 1.60, baseGold: 95,   xpPerRoom: 160,  bossId: 'tower_sentinel'    }),
   },
   {
     id: 'dungeon_08', name: 'Fortezza del Nord',
     mapX: 0.54, mapY: 0.18, requiredLevel: 22, theme: 'fortress',
     description: 'Fortezza di confine caduta dopo un assedio demoniaco.',
-    rooms: _buildRooms({ baseHp: 1600,  hpScale: 1.60, baseGold: 130,  xpPerRoom: 220,  bossId: 'fortress_lord'     }),
+  rooms: _buildRooms({ baseHp: 110,   hpScale: 1.60, baseGold: 130,  xpPerRoom: 220,  bossId: 'fortress_lord'     }),
   },
   {
     id: 'dungeon_09', name: 'Torre Settentrionale',
     mapX: 0.65, mapY: 0.20, requiredLevel: 26, theme: 'tower',
     description: 'Una torre ghiacciata con un guardiano immortale.',
-    rooms: _buildRooms({ baseHp: 2200,  hpScale: 1.65, baseGold: 175,  xpPerRoom: 300,  bossId: 'frost_watcher'     }),
-  },
+   rooms: _buildRooms({ baseHp: 141,   hpScale: 1.65, baseGold: 175,  xpPerRoom: 300,  bossId: 'frost_watcher'     }),
   {
     id: 'dungeon_10', name: 'Castello della Capitale',
     mapX: 0.52, mapY: 0.46, requiredLevel: 30, theme: 'castle',
     description: 'Il castello reale, corrotto dall\'interno da un re ombra.',
-    rooms: _buildRooms({ baseHp: 3000,  hpScale: 1.65, baseGold: 230,  xpPerRoom: 400,  bossId: 'capital_king'      }),
+    rooms: _buildRooms({ baseHp: 172,   hpScale: 1.65, baseGold: 230,  xpPerRoom: 400,  bossId: 'capital_king'      }),
   },
   {
     id: 'dungeon_11', name: 'Vulcano Attivo',
     mapX: 0.60, mapY: 0.52, requiredLevel: 34, theme: 'volcano',
     description: 'Le profondità di un vulcano dove vive un demone del fuoco.',
-    rooms: _buildRooms({ baseHp: 4000,  hpScale: 1.70, baseGold: 300,  xpPerRoom: 530,  bossId: 'magma_lord'        }),
+    rooms: _buildRooms({ baseHp: 207,   hpScale: 1.70, baseGold: 300,  xpPerRoom: 530,  bossId: 'magma_lord'        }),
   },
   {
     id: 'dungeon_12', name: "Oasi del Deserto",
     mapX: 0.78, mapY: 0.55, requiredLevel: 38, theme: 'desert',
     description: 'Sotto l\'oasi si nasconde un labirinto di sabbia e morte.',
-    rooms: _buildRooms({ baseHp: 5200,  hpScale: 1.70, baseGold: 380,  xpPerRoom: 680,  bossId: 'sand_pharaoh'      }),
+    rooms: _buildRooms({ baseHp: 249,   hpScale: 1.70, baseGold: 380,  xpPerRoom: 680,  bossId: 'sand_pharaoh'      }),
   },
   {
     id: 'dungeon_13', name: 'Lago Tropicale',
     mapX: 0.52, mapY: 0.72, requiredLevel: 42, theme: 'tropical',
     description: 'Acque cristalline che nascondono un\'idra millenaria.',
-    rooms: _buildRooms({ baseHp: 6600,  hpScale: 1.72, baseGold: 470,  xpPerRoom: 860,  bossId: 'lagoon_hydra'      }),
+   rooms: _buildRooms({ baseHp: 295,   hpScale: 1.72, baseGold: 470,  xpPerRoom: 860,  bossId: 'lagoon_hydra'      }),
   },
   {
     id: 'dungeon_14', name: 'Castello Meridionale',
     mapX: 0.50, mapY: 0.62, requiredLevel: 46, theme: 'castle',
     description: 'Il secondo castello, sede di un duca caduto nell\'oscurità.',
-    rooms: _buildRooms({ baseHp: 8200,  hpScale: 1.75, baseGold: 570,  xpPerRoom: 1050, bossId: 'shadow_duke'       }),
+    rooms: _buildRooms({ baseHp: 348,   hpScale: 1.75, baseGold: 570,  xpPerRoom: 1050, bossId: 'shadow_duke'       }),
   },
   {
     id: 'dungeon_15', name: 'Isole Fluttuanti Est',
     mapX: 0.80, mapY: 0.28, requiredLevel: 50, theme: 'floating',
     description: 'Isole nel cielo pattugliate da colossi di pietra e nuvole.',
-    rooms: _buildRooms({ baseHp: 10000, hpScale: 1.80, baseGold: 680,  xpPerRoom: 1280, bossId: 'sky_colossus'      }),
+   rooms: _buildRooms({ baseHp: 409,   hpScale: 1.80, baseGold: 680,  xpPerRoom: 1280, bossId: 'sky_colossus'      }),
   },
   {
     id: 'dungeon_16', name: 'Isole Fluttuanti Ovest',
     mapX: 0.18, mapY: 0.22, requiredLevel: 55, theme: 'floating',
     description: 'Isole avvolte nel vuoto, dimora di un titano del nulla.',
-    rooms: _buildRooms({ baseHp: 12500, hpScale: 1.82, baseGold: 820,  xpPerRoom: 1550, bossId: 'void_titan'        }),
+    rooms: _buildRooms({ baseHp: 476,   hpScale: 1.82, baseGold: 820,  xpPerRoom: 1550, bossId: 'void_titan'        }),
   },
   {
     id: 'dungeon_17', name: 'Castello Fluttuante',
     mapX: 0.88, mapY: 0.18, requiredLevel: 60, theme: 'floating_castle',
     description: 'Il trono finale. Chi lo governa non è di questo mondo.',
-    rooms: _buildRooms({ baseHp: 15500, hpScale: 1.85, baseGold: 1000, xpPerRoom: 1900, bossId: 'celestial_overlord' }),
+    rooms: _buildRooms({ baseHp: 533,   hpScale: 1.85, baseGold: 1000, xpPerRoom: 1900, bossId: 'celestial_overlord' }),
   },
 ];
 
