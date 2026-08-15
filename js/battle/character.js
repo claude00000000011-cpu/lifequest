@@ -786,6 +786,38 @@ export async function loadItems() {
 }
 
 export async function loadEnemies(tier = null) {
+  // ── combat_config ─────────────────────────────────────────
+  if (!DB.combatConfig) {
+    const { data: ccData, error: ccError } = await supabase
+      .from('combat_config')
+      .select('*');
+    if (!ccError && ccData) {
+      DB.combatConfig = Object.fromEntries(ccData.map(r => [r.key, Number(r.value)]));
+      persist();
+    }
+  }
+
+  // ── dungeon_config ────────────────────────────────────────
+  if (!DB.dungeonConfig) {
+    const { data: dcData, error: dcError } = await supabase
+      .from('dungeon_config')
+      .select('*');
+    if (!dcError && dcData) {
+      DB.dungeonConfig = Object.fromEntries(dcData.map(r => [r.id, r]));
+      persist();
+    }
+  }
+
+  // ── dungeon_tiers ─────────────────────────────────────────
+  if (!DB.dungeonTiers) {
+    const { data: dtData, error: dtError } = await supabase
+      .from('dungeon_tiers')
+      .select('*');
+    if (!dtError && dtData) {
+      DB.dungeonTiers = Object.fromEntries(dtData.map(r => [r.tier, r]));
+      persist();
+    }
+  }
   let query = supabase.from('battle_enemies').select('*');
   if (tier) query = query.eq('tier', tier);
   const { data, error } = await query;
