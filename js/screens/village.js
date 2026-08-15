@@ -1096,18 +1096,16 @@ function renderAcademy(bc, level) {
 // ════════════════════════════════════════════════════════════
 
 function renderClassSelection(level, bc) {
-  const classes = [
-    { id:'warrior', icon:'⚔️', name:'Guerriero', color:'#DC2626', stat:'Corpo',
-      desc:'Alta difesa, abilità fisiche. Attira i colpi in gilda. Evolve in Paladino o Berserker.' },
-    { id:'mage',    icon:'🔮', name:'Mago',      color:'#3B82F6', stat:'Mente',
-      desc:'Danni magici elemental altissimi. Bassa difesa. Controllo del campo. Evolve in Arcimago o Stregone.' },
-    { id:'bard',    icon:'🎸', name:'Bardo',     color:'#F59E0B', stat:'Cultura',
-      desc:'Supporto e buff agli alleati. Può chiamare aiuto ogni giorno. Evolve in Cantore o Diplomatico.' },
-    { id:'shadow',  icon:'🗡️', name:'Ombra',    color:'#6B7280', stat:'Sfide',
-      desc:'Alta evasione, veleno, critici. Può rubare oggetti ai nemici PvE. Evolve in Assassino o Cacciatore.' },
-    { id:'oracle',  icon:'☀️', name:'Oracolo',  color:'#A855F7', stat:'Sociale',
-      desc:'Guaritore principale, previsione mosse nemico, buff passivo alla gilda. Evolve in Gran Sacerdote o Veggente.' },
-  ];
+  // Legge le classi da Supabase invece che hardcodate
+  const classes = DB.battleClasses ? Object.values(DB.battleClasses) : [];
+
+  if (!classes.length) {
+    // Fallback: ricarica e riprova
+    import('../battle/character.js').then(({ loadBattleClasses }) =>
+      loadBattleClasses().then(() => renderVillage())
+    );
+    return '<div class="feed-loading">Caricamento classi…</div>';
+  }
 
   return `
     <div class="class-selection-screen">
@@ -1118,20 +1116,25 @@ function renderClassSelection(level, bc) {
         </p>
       </div>
       <div class="class-grid">
-        ${classes.map(c => `
-          <div class="class-card" style="border-color:${c.color}55"
-               onclick="window._selectClass?.('${c.id}')">
-            <div class="class-card__icon" style="background:${c.color}22;border-color:${c.color}44">
-              ${c.icon}
+        ${classes.map(c => {
+          const color = c.color_class || '#DC2626';
+          const stat  = { corpo:'Corpo', mente:'Mente', cultura:'Cultura', sfide:'Sfide', sociale:'Sociale' }[c.primary_stat] || c.primary_stat;
+          return `
+            <div class="class-card" style="border-color:${color}55"
+                 onclick="window._selectClass?.('${c.id}')">
+              <div class="class-card__icon" style="background:${color}22;border-color:${color}44">
+                ${c.icon || '⚔️'}
+              </div>
+              <h3 class="class-card__name" style="color:${color}">${escHtml(c.name)}</h3>
+              <div class="class-card__stat">Stat primaria: <strong>${stat}</strong></div>
+              <p class="class-card__desc">${escHtml(c.description || '')}</p>
+              ${c.evolution_desc ? `<div class="class-card__evo">🔀 Evolve in: <em>${escHtml(c.evolution_desc)}</em></div>` : ''}
+              <button class="btn-primary" style="background:${color};border:none;margin-top:0.75rem">
+                Scegli ${escHtml(c.name)}
+              </button>
             </div>
-            <h3 class="class-card__name" style="color:${c.color}">${c.name}</h3>
-            <div class="class-card__stat">Stat primaria: <strong>${c.stat}</strong></div>
-            <p class="class-card__desc">${c.desc}</p>
-            <button class="btn-primary" style="background:${c.color};border:none;margin-top:0.75rem">
-              Scegli ${c.name}
-            </button>
-          </div>
-        `).join('')}
+          `;
+        }).join('')}
       </div>
     </div>
   `;
