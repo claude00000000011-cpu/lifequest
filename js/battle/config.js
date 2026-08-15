@@ -538,23 +538,5 @@ export const WORLD_DUNGEONS = [
   },
 ];
 
-// Boss con meccaniche speciali — espandi a piacere
-export const BOSS_DATA = {
-  sea_guardian:       { extraAbility: 'heal',         healPercent: 0.15, description: 'Si rigenera al 15% dei suoi HP una volta.' },
-  harbor_master:      { extraAbility: 'double_attack', description: 'Attacca due volte per turno.' },
-  iron_warden:        { extraAbility: 'shield',        shieldHp: 200,    description: 'Ha uno scudo da 200 HP che va distrutto prima.' },
-  village_elder:      { extraAbility: 'summon',        summonHp: 150,    description: 'Evoca un servitore a metà battaglia.' },
-  stone_titan:        { extraAbility: 'stun',          stunChance: 0.30, description: '30% di probabilità di stordire il giocatore.' },
-  ancient_treant:     { extraAbility: 'regen',         regenPerTurn: 80, description: 'Si rigenera di 80 HP ogni turno.' },
-  tower_sentinel:     { extraAbility: 'counter',       counterDmg: 0.50, description: 'Contrattacca con il 50% del danno ricevuto.' },
-  fortress_lord:      { extraAbility: 'armor_break',   description: 'Riduce la difesa del giocatore del 30%.' },
-  frost_watcher:      { extraAbility: 'freeze',        freezeChance: 0.25, description: '25% di probabilità di congelare (salta turno).' },
-  capital_king:       { extraAbility: 'phase',         phaseAt: 0.50,    description: 'A metà vita entra in fase 2: +50% attacco.' },
-  magma_lord:         { extraAbility: 'burn',          burnDmgPerTurn: 100, description: 'Brucia il giocatore per 100 dmg/turno per 3 turni.' },
-  sand_pharaoh:       { extraAbility: 'revive',        description: 'Risorge una volta con il 30% dei HP.' },
-  lagoon_hydra:       { extraAbility: 'multi_head',    heads: 3,         description: 'Ha 3 teste: ognuna va eliminata (HP divisi in 3).' },
-  shadow_duke:        { extraAbility: 'lifesteal',     stealPercent: 0.20, description: 'Ruba il 20% del danno inflitto come HP.' },
-  sky_colossus:       { extraAbility: 'aoe',           aoeDmg: 200,      description: 'Ogni 3 turni infligge 200 dmg AOE inevitabili.' },
-  void_titan:         { extraAbility: 'nullify',       description: 'Annulla il primo attacco speciale del giocatore.' },
-  celestial_overlord: { extraAbility: 'all',           description: 'Boss finale: usa tutte le meccaniche precedenti a rotazione.' },
-};
+// BOSS_DATA rimosso — ora gestito da Supabase (tabella boss_mechanics_data)
+// Letto tramite loadEnemies() → DB.bossMechanics
