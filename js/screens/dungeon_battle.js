@@ -60,10 +60,11 @@ function buildEnemyForRoom(room, dungeon, playerLevel = 1) {
 
   // Stats base scalate
 // Stats da WORLD_DUNGEONS — già calibrate stanza per stanza
-  const baseHp  = Math.floor(room.enemyHp     * levelMult);
+ const baseHp  = Math.floor(room.enemyHp     * levelMult);
   const baseAtk = Math.floor(room.enemyAttack * levelMult);
   const baseDef = Math.floor(room.enemyDef    * levelMult);
-  const baseSpd = Math.round(5 + roomIndex * 0.3);
+  // Speed ora scala per stanza e dungeon invece di essere sempre ~5
+  const baseSpd = Math.max(4, Math.round(4 + dungeonIndex * 0.3 + roomIndex * 0.4));
 
  // Legge meccaniche boss da Supabase (DB.bossMechanics) invece che da config.js
   const bossMech = (isBoss && room.bossId && DB.bossMechanics)
