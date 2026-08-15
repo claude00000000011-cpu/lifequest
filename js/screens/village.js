@@ -628,7 +628,7 @@ async function renderMerchant() {
         <div class="merchant-avatar">🧙</div>
         <div class="merchant-speech">
           "Benvenuto, eroe! I miei migliori affari si rinnovano ogni 24 ore."
-          <span class="merchant-timer">⏰ Nuovi oggetti tra ${nextRot}</span>
+    <span class="merchant-timer">🛒 Catalogo sempre disponibile</span>
         </div>
       </div>
 
