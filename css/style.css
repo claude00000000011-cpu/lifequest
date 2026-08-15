@@ -1368,12 +1368,36 @@ select {
   height: 100%;
   object-fit: contain;
   display: block;
+
+
+
+
+
+
+
+
+
+   
 }
 .dm-markers {
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
+.dm-marker {
+  pointer-events: all;
+}
+
+
+
+
+
+
+
+
+
+
+
 
 /* ── Marker dungeon ── */
 .dm-marker {
