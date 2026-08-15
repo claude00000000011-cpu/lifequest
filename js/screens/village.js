@@ -156,7 +156,7 @@ container.innerHTML = `
 // ════════════════════════════════════════════════════════════
 
 function renderVillageHeader(bc, user, level) {
-  const classData  = (DB.battleClasses || []).find(c => c.id === bc.class_id);
+    const classData  = DB.battleClasses?.[bc.class_id] || null;
   const classIcon  = { warrior:'⚔️', mage:'🔮', bard:'🎸', shadow:'🗡️', oracle:'☀️' }[bc.class_id] || '⚔️';
   const classColor = { warrior:'#DC2626', mage:'#3B82F6', bard:'#F59E0B', shadow:'#6B7280', oracle:'#A855F7' }[bc.class_id] || 'var(--accent)';
 
@@ -297,6 +297,28 @@ function _updateVillageTabArrows() {
 // ════════════════════════════════════════════════════════════
 
 async function renderVillageTabContent(bc, user, level) {
+  // Tutorial prima-volta dopo scelta classe
+  if (DB._showClassTutorial) {
+    DB._showClassTutorial = false;
+    return `
+      <div class="tutorial-screen" style="padding:1.5rem;max-width:480px;margin:0 auto">
+        <div style="font-size:2.5rem;text-align:center;margin-bottom:1rem">⚔️</div>
+        <h2 style="text-align:center;margin-bottom:1rem">Benvenuto, Eroe!</h2>
+        <div class="tutorial-card" style="background:var(--card-bg);border-radius:12px;padding:1.2rem;margin-bottom:1rem;border:1px solid var(--border)">
+          <p style="margin-bottom:0.8rem">🌍 <strong>Il tuo mondo è qui.</strong> Il Villaggio è la tua base: esplora la mappa, entra nei dungeon, potenzia il tuo personaggio.</p>
+          <p style="margin-bottom:0.8rem">📈 <strong>I punti esperienza (XP) si guadagnano solo nella vita reale</strong> — completando quest, studiando, leggendo, allenandoti e svolgendo attività quotidiane.</p>
+          <p style="margin-bottom:0.8rem">⚔️ <strong>Salendo di livello</strong> le tue statistiche di combattimento crescono automaticamente in base alla tua classe.</p>
+          <p style="margin-bottom:0.8rem">🎒 <strong>Equipaggiamento:</strong> trova oggetti nei dungeon, compra al mercante, potenziamoli al fabbro — ogni pezzo migliora le tue stat in battaglia.</p>
+          <p style="margin-bottom:0">🗺️ <strong>Modalità Storia:</strong> 17 dungeon da affrontare in ordine. Ogni dungeon ha 10 stanze e un boss finale. Completa un dungeon per sbloccare il successivo.</p>
+        </div>
+        <button class="btn-primary" style="width:100%;padding:0.9rem;font-size:1rem"
+                onclick="this.closest('.tutorial-screen').remove(); window._switchVillageTab?.('map')">
+          Inizia l'avventura! 🚀
+        </button>
+      </div>
+    `;
+  }
+
   switch (_villageTab) {
     case 'map':       return renderVillageMap(bc, level);
     case 'port':      return await renderPort(bc, level);
@@ -1827,13 +1849,17 @@ window._loadEconomySummary = async function() {
 
 // Chiamato dopo il render mappa
 
-// Scelta classe
 window._selectClass = async function(classId) {
   if (!confirm(`Sei sicuro di voler scegliere ${classId}? La scelta è definitiva.`)) return;
   const { ok, error } = await chooseClass(CUR.id, classId);
   if (!ok) return toast(error || 'Errore', 'error');
   playSound('class_select');
+  // Forza reload del personaggio da Supabase prima di rerenderizzare
+  const { syncBattleCharacter } = await import('../battle/character.js');
+  await syncBattleCharacter(CUR.id);
   toast(`Classe ${classId} scelta! Buona fortuna, eroe. ⚔️`, 'success');
+  // Mostra tutorial prima-volta
+  DB._showClassTutorial = true;
   renderVillage();
 };
 
