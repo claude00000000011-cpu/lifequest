@@ -519,8 +519,8 @@ function checkVictory(s, defeated) {
  
 // ── Calcolo Ricompense ────────────────────────────────────────
 
-export function calcPveRewards(enemyData, playerLuck, dungeonTier) {
-  const gold = Number(enemyData.gold_reward || 0);
+export function calcPveRewards(enemyData, playerLuck, dungeonTier, streakMultiplier = 1.0) {
+  const gold = Math.floor(Number(enemyData.gold_reward || 0) * streakMultiplier);
   const xp   = Number(enemyData.xp_reward || 0);
 
   // Probabilità base di drop determinata dal tier del dungeon
