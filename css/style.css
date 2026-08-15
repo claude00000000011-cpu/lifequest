@@ -1373,21 +1373,15 @@ select {
 
 
 
-
-
-
-
-   
 }
+
+
+
 .dm-markers {
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
-.dm-marker {
-  pointer-events: all;
-}
-
 
 
 
