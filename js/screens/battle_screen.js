@@ -211,45 +211,96 @@ const heroLoopGif = `/lifequest/assets/battle/classes/${heroClass}_loop.gif`;
 
 
 
-        <!-- Info eroe in basso a destra -->
-        <div class="battle-hero-info-overlay">
-          <div class="battle-bar-row">
-            <span class="battle-bar-label" style="color:var(--hp-bar)">HP</span>
-            <div class="battle-bar-track"><div class="hp-fill" id="hero-hp-fill" style="width:100%"></div></div>
-            <span class="battle-bar-value" id="hero-hp-val">${s.player.hp}/${s.player.hpMax}</span>
-          </div>
-          <div class="battle-bar-row">
-            <span class="battle-bar-label" style="color:var(--mana-bar)">MP</span>
-            <div class="battle-bar-track"><div class="mana-fill" id="hero-mana-fill" style="width:100%"></div></div>
-            <span class="battle-bar-value" id="hero-mana-val">${s.player.mana}/${s.player.manaMax}</span>
-          </div>
 
 
-
-          
-         <div id="hero-status" class="hero-status-effects"></div>
-          <div class="battle-speed-bar-wrap" style="margin-top:4px;">
-            <span style="font-size:0.68rem;color:var(--text-2);">⚡ VEL</span>
-            <div style="display:flex;align-items:center;gap:4px;margin-top:2px;">
-              <span style="font-size:0.7rem;color:var(--mana-bar);min-width:18px;">${s.player.speed}</span>
-              <div style="flex:1;height:4px;background:var(--surface-0);border-radius:2px;overflow:hidden;">
-                <div id="speed-bar-player" style="height:100%;border-radius:2px;background:var(--mana-bar);transition:width 0.4s;
-                  width:${Math.round((s.player.speed / Math.max(s.player.speed, s.enemy.speed, 1)) * 100)}%;"></div>
+      <!-- HUD JRPG in basso -->
+        <div style="
+          position:absolute; bottom:0; left:0; right:0;
+          display:flex; gap:5px; padding:6px;
+          background:linear-gradient(to top, rgba(0,0,0,0.88) 80%, transparent);
+        ">
+          <!-- Giocatore -->
+          <div style="flex:1;background:rgba(10,20,40,0.92);border:1px solid #3B82F688;border-radius:8px;padding:6px 8px;min-width:0;">
+            <div style="font-size:10px;font-weight:700;color:#93C5FD;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">🧙 Tu</div>
+            <div style="display:flex;align-items:center;gap:3px;margin-bottom:2px;">
+              <span style="font-size:8px;color:#EF4444;width:16px;">HP</span>
+              <div style="flex:1;height:5px;background:#1F2937;border-radius:3px;overflow:hidden;">
+                <div id="hero-hp-fill" style="height:100%;background:#22C55E;border-radius:3px;transition:width 0.3s;width:100%;"></div>
               </div>
-              <div style="flex:1;height:4px;background:var(--surface-0);border-radius:2px;overflow:hidden;">
-                <div id="speed-bar-enemy" style="height:100%;border-radius:2px;background:var(--dmg-color);transition:width 0.4s;
-                  width:${Math.round((s.enemy.speed / Math.max(s.player.speed, s.enemy.speed, 1)) * 100)}%;"></div>
-              </div>
-              <span style="font-size:0.7rem;color:var(--dmg-color);min-width:18px;text-align:right;">${s.enemy.speed}</span>
+              <span id="hero-hp-val" style="font-size:8px;color:#D1FAE5;width:55px;text-align:right;">${s.player.hp}/${s.player.hpMax}</span>
             </div>
-            <div style="font-size:0.65rem;color:var(--text-3);margin-top:1px;">
-              ${s.player.speed >= s.enemy.speed ? '🟢 Vai prima' : '🔴 Vai dopo'}
+            <div style="display:flex;align-items:center;gap:3px;margin-bottom:2px;">
+              <span style="font-size:8px;color:#3B82F6;width:16px;">MP</span>
+              <div style="flex:1;height:5px;background:#1F2937;border-radius:3px;overflow:hidden;">
+                <div id="hero-mana-fill" style="height:100%;background:#3B82F6;border-radius:3px;transition:width 0.3s;width:100%;"></div>
+              </div>
+              <span id="hero-mana-val" style="font-size:8px;color:#BFDBFE;width:55px;text-align:right;">${s.player.mana}/${s.player.manaMax}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:3px;">
+              <span style="font-size:8px;color:#F59E0B;width:16px;">ATB</span>
+              <div style="flex:1;height:4px;background:#1F2937;border-radius:3px;overflow:hidden;">
+                <div id="hero-atb-fill" style="height:100%;background:#F59E0B;border-radius:3px;transition:width 0.4s;width:${Math.round(s.player.speed/Math.max(s.player.speed,s.enemy.speed,1)*100)}%;"></div>
+              </div>
+              <span style="font-size:8px;color:#FDE68A;width:20px;text-align:right;">${s.player.speed}</span>
+            </div>
+            <div id="hero-status" class="hero-status-effects" style="margin-top:2px;"></div>
+          </div>
+
+          ${_summonData ? `
+          <!-- Evocato -->
+          <div style="flex:1;background:rgba(10,30,20,0.92);border:1px solid #10B98188;border-radius:8px;padding:6px 8px;min-width:0;">
+            <div style="font-size:10px;font-weight:700;color:#6EE7B7;margin-bottom:3px;">🐾 Alleato</div>
+            <div style="display:flex;align-items:center;gap:3px;margin-bottom:2px;">
+              <span style="font-size:8px;color:#EF4444;width:16px;">HP</span>
+              <div style="flex:1;height:5px;background:#1F2937;border-radius:3px;overflow:hidden;">
+                <div id="summon-hp-fill" style="height:100%;background:#10B981;border-radius:3px;transition:width 0.3s;width:${Math.round(_summonData.hp/Math.max(_summonData.hpMax,1)*100)}%;"></div>
+              </div>
+              <span id="summon-hp-val" style="font-size:8px;color:#D1FAE5;width:55px;text-align:right;">${_summonData.hp}/${_summonData.hpMax}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:3px;">
+              <span style="font-size:8px;color:#F59E0B;width:16px;">ATB</span>
+              <div style="flex:1;height:4px;background:#1F2937;border-radius:3px;overflow:hidden;">
+                <div style="height:100%;background:#10B981;border-radius:3px;width:60%;"></div>
+              </div>
             </div>
           </div>
+          ` : ''}
+
+          <!-- Nemico -->
+          <div style="flex:1;background:rgba(40,10,10,0.92);border:1px solid #EF444488;border-radius:8px;padding:6px 8px;min-width:0;">
+            <div style="font-size:10px;font-weight:700;color:#FCA5A5;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.enemy.isBoss?'👑':'⚔️'} ${escHtml(s.enemy.name)}</div>
+            <div style="display:flex;align-items:center;gap:3px;margin-bottom:2px;">
+              <span style="font-size:8px;color:#EF4444;width:16px;">HP</span>
+              <div style="flex:1;height:5px;background:#1F2937;border-radius:3px;overflow:hidden;">
+                <div id="enemy-hp-fill" style="height:100%;background:#EF4444;border-radius:3px;transition:width 0.3s;width:100%;"></div>
+              </div>
+              <span id="enemy-hp-val" style="font-size:8px;color:#FECACA;width:55px;text-align:right;">${s.enemy.hp}/${s.enemy.hpMax}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:3px;">
+              <span style="font-size:8px;color:#F59E0B;width:16px;">ATB</span>
+              <div style="flex:1;height:4px;background:#1F2937;border-radius:3px;overflow:hidden;">
+                <div id="enemy-atb-fill" style="height:100%;background:#EF4444;border-radius:3px;transition:width 0.4s;width:${Math.round(s.enemy.speed/Math.max(s.player.speed,s.enemy.speed,1)*100)}%;"></div>
+              </div>
+              <span style="font-size:8px;color:#FDE68A;width:20px;text-align:right;">${s.enemy.speed}</span>
+            </div>
+            <div id="enemy-status" class="enemy-status-effects" style="margin-top:2px;"></div>
+          </div>
+        </div>
 
       </section>
 
-      </section>
+
+
+
+
+
+
+
+
+
+
+
+      
 
       <!-- ZONA LOG (15%) -->
       <section class="battle-log-zone" aria-live="polite">
@@ -993,6 +1044,7 @@ function _classifyLog(msg) {
 }
 
 function _setDisabled(container, disabled) {
-  container.querySelectorAll('.btn-battle-action,.btn-battle-item,#btn-flee').forEach(b => { b.disabled = disabled; });
+  container.querySelectorAll('.btn-battle-action,.btn-battle-item').forEach(b => { b.disabled = disabled; });
+}
 }
 
