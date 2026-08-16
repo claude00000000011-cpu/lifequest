@@ -9,14 +9,13 @@ export function startDungeonBattle(containerEl, dungeon, room, player, playerLev
 
 window._storyBattleResolve = (outcome, playerHpEnd) => {
     window._storyBattleResolve = null;
+    window._gotoTab?.('battle');
+    window._switchVillageTab?.('dungeon_map');
     if (outcome === 'win-back') {
-      // Ha vinto ma vuole tornare alla mappa — salva progresso e mostra mappa
       onContinue(dungeon, null);
     } else {
       renderBattleResult(containerEl, dungeon, room, outcome, playerHpEnd, onContinue, onMap);
     }
-    window._gotoTab?.('battle');
-    window._switchVillageTab?.('dungeon_map');
   };
 
   import('./battle_screen.js').then(m => {
