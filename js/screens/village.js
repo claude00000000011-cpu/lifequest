@@ -509,7 +509,7 @@ case 'dungeon_map': {
                 defense: bc.defense,
                 speed:   bc.speed,
               };
-             startDungeonBattle(contentEl, dungeon, room, player, playerLevel,
+            startDungeonBattle(contentEl, dungeon, room, player, playerLevel,
                 (dungeon, nextRoom) => {
                   if (nextRoom) {
                     startDungeonBattle(contentEl, dungeon, nextRoom, player, playerLevel,
@@ -517,7 +517,7 @@ case 'dungeon_map': {
                       showMap
                     );
                   } else {
-                    showMap();
+                    showDetail(dungeon);
                   }
                 },
                 showMap
@@ -530,9 +530,6 @@ case 'dungeon_map': {
       }, 50);
       return '';
     }
-
-
-               
     
     default:          return renderVillageMap(bc, level);
   }
@@ -704,28 +701,38 @@ async function renderPort(bc, level) {
           const runsLeft = 4 - (p.runs_today || 0);
           const maxDiff  = p.max_difficulty_unlocked || 1;
           return `
-            <div class="daily-dungeon-card" onclick="window._openDailyDungeon?.('${d.id}')">
-              <div class="daily-dungeon-icon">${d.icon}</div>
-              <div class="daily-dungeon-info">
-                <div class="daily-dungeon-name">${escHtml(d.name)}</div>
-                <div class="daily-dungeon-slot" style="font-size:11px;color:var(--text-2)">
+           <div class="daily-dungeon-card" onclick="window._openDailyDungeon?.('${d.id}')"
+                 style="background:var(--surface-1);border-radius:14px;padding:12px;border:1px solid var(--border);display:flex;align-items:center;gap:12px;cursor:pointer;">
+              <div class="daily-dungeon-icon" style="font-size:2rem;min-width:40px;text-align:center;
+                background:var(--surface-2);border-radius:10px;padding:8px;line-height:1;">${d.icon}</div>
+              <div class="daily-dungeon-info" style="flex:1;min-width:0;">
+                <div class="daily-dungeon-name" style="font-weight:600;color:var(--text-1);font-size:0.95rem;">${escHtml(d.name)}</div>
+                <div class="daily-dungeon-slot" style="font-size:11px;color:var(--text-2);margin-top:1px;">
                   Slot: ${d.slot}
                 </div>
-                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
+                <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:5px;">
                   ${[1,2,3,4,5].map(diff => `
-                    <span style="font-size:10px;padding:2px 6px;border-radius:10px;
-                      background:${diff <= maxDiff ? diffColors[diff]+'22' : 'var(--surface-1)'};
+                    <span style="font-size:10px;padding:2px 7px;border-radius:10px;
+                      background:${diff <= maxDiff ? diffColors[diff]+'33' : 'var(--surface-0)'};
                       color:${diff <= maxDiff ? diffColors[diff] : 'var(--text-3)'};
-                      border:1px solid ${diff <= maxDiff ? diffColors[diff]+'44' : 'var(--border)'}">
+                      border:1px solid ${diff <= maxDiff ? diffColors[diff]+'66' : 'var(--border)'};
+                      font-weight:${diff <= maxDiff ? '600' : '400'};">
                       ${diff <= maxDiff ? diffLabels[diff] : '🔒'}
                     </span>
                   `).join('')}
                 </div>
               </div>
-              <div style="text-align:right;font-size:11px;color:${runsLeft > 0 ? 'var(--text-accent)' : 'var(--text-3)'}">
-                ${runsLeft > 0 ? `${runsLeft} run<br>rimaste` : 'Completato<br>oggi'}
+              <div style="text-align:right;font-size:11px;min-width:48px;
+                color:${runsLeft > 0 ? 'var(--text-accent)' : 'var(--text-3)'};
+                background:var(--surface-2);border-radius:8px;padding:6px 8px;line-height:1.4;">
+                ${runsLeft > 0 ? `<strong>${runsLeft}</strong><br>run<br>rimaste` : '✓<br>oggi'}
               </div>
             </div>
+
+
+
+
+            
           `;
         }).join('')}
       </div>
@@ -764,7 +771,10 @@ window._openDailyDungeon = async function(dungeonId) {
   const rarNames   = { common:'Comune', uncommon:'Non Comune', rare:'Raro', epic:'Epico', legendary:'Leggendario', mythic:'Mitico' };
   const goldByDiff = [0, 300, 700, 1400, 3200, 8000];
 
+const modalId = 'daily-dungeon-modal';
+  document.getElementById(modalId)?.remove();
   const modal = document.createElement('div');
+  modal.id = modalId;
   modal.style.cssText = 'position:fixed;inset:0;background:#0009;z-index:9999;display:flex;align-items:flex-end;justify-content:center';
   modal.innerHTML = `
     <div style="background:var(--surface-2);border-radius:16px 16px 0 0;padding:1.5rem;width:100%;max-width:480px;max-height:85vh;overflow-y:auto">
