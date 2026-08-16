@@ -258,7 +258,7 @@ const heroLoopGif = `/lifequest/assets/battle/classes/${heroClass}_loop.gif`;
 function _buildButtons(abilities) {
   const base = [
     { action:'attack',  label:'⚔️ Attacca' },
-    { action:'guard',   label:'🛡️ Difendi' },
+   { action:'guard',   label:'🛡️ Contrattacco' },
   ];
   const btns = base.map(b =>
     `<button class="btn-battle-action" data-action="${b.action}">${b.label}</button>`
@@ -736,7 +736,46 @@ function _showEndOverlay(container, won, gold, xp = 0, item = null) {
       <div class="battle-end-title">${won === null ? 'Fuggito' : won ? 'Vittoria!' : 'Sconfitta'}</div>
       ${gold > 0 ? `<div class="battle-rewards">💰 +${gold} Gold</div>` : ''}
       ${xp   > 0 ? `<div class="battle-rewards">⚡ +${xp} XP</div>`   : ''}
-      ${item      ? `<div class="battle-rewards">🎁 ${escHtml(item.name)}</div>` : ''}
+     ${item ? (() => {
+        const rarColors = { common:'#9CA3AF', uncommon:'#22C55E', rare:'#3B82F6', epic:'#7C3AED', legendary:'#F59E0B', mythic:'#DC2626' };
+        const rarNames  = { common:'Comune', uncommon:'Non Comune', rare:'Raro', epic:'Epico', legendary:'Leggendario', mythic:'Mitico' };
+        const col = rarColors[item.rarity] || '#9CA3AF';
+        const bonusParts = [];
+        if (item.bonus_attack   > 0) bonusParts.push(`+${item.bonus_attack} ATK`);
+        if (item.bonus_defense  > 0) bonusParts.push(`+${item.bonus_defense} DEF`);
+        if (item.bonus_hp       > 0) bonusParts.push(`+${item.bonus_hp} PF`);
+        if (item.bonus_mana     > 0) bonusParts.push(`+${item.bonus_mana} MP`);
+        if (item.bonus_speed    > 0) bonusParts.push(`+${item.bonus_speed} VEL`);
+        if (item.crit_chance    > 0) bonusParts.push(`🎯 +${item.crit_chance}% Crit`);
+        if (item.lifesteal_pct  > 0) bonusParts.push(`🩸 +${item.lifesteal_pct}% Vampirismo`);
+        if (item.dodge_chance   > 0) bonusParts.push(`💨 +${item.dodge_chance}% Schivata`);
+        if (item.double_hit_chance > 0) bonusParts.push(`⚡ +${item.double_hit_chance}% DoppioColpo`);
+        const subParts = [];
+        if (item.damage_reduction_pct > 0) subParts.push(`🛡️ -${item.damage_reduction_pct}% DannoSubito`);
+        if (item.reflect_pct    > 0) subParts.push(`🔄 ${item.reflect_pct}% Riflesso`);
+        if (item.hp_regen_turn  > 0) subParts.push(`💓 +${item.hp_regen_turn} HP/turno`);
+        if (item.revive_once)        subParts.push(`✨ Rinascita 1x`);
+        const allParts = [...bonusParts, ...subParts];
+        return `
+          <div class="battle-rewards item-drop-card" style="
+            border: 1px solid ${col}88;
+            border-radius: 10px;
+            padding: 10px 12px;
+            margin-top: 6px;
+            background: ${col}11;
+            box-shadow: 0 0 12px ${col}44;
+            text-align: left;
+          ">
+            <div style="color:${col}; font-weight:700; font-size:1rem; text-shadow:0 0 8px ${col}88;">
+              🎁 ${escHtml(item.name)}
+            </div>
+            <div style="font-size:0.72rem; color:${col}; opacity:0.85; margin-top:2px;">
+              ${rarNames[item.rarity] || ''} · ${escHtml(item.slot || '')}${item.class_restriction ? ` · Solo ${item.class_restriction}` : ''}
+            </div>
+            ${allParts.length ? `<div style="font-size:0.75rem; color:var(--text-2); margin-top:5px; line-height:1.6;">${allParts.join(' &nbsp;·&nbsp; ')}</div>` : ''}
+          </div>
+        `;
+      })() : ''}
       <div id="battle-end-btn-area" style="margin-top:0.75rem">
         <button class="btn-primary" id="btn-back-from-battle">← Villaggio</button>
       </div>
