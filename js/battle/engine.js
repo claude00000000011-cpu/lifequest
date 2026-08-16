@@ -530,7 +530,18 @@ function doItem(s, user, itemId) {
 
 function doGuard(s, user) {
   s[user]._guarding = true;
-  s.log.push(`🛡️ Sei in posizione di guardia. Difesa +${Math.round(COMBAT.guardDefBonus * 100)}% questo turno.`);
+  const counterChance = 25 + (s[user].counter_chance ?? 0);
+  const doubleChance  = s[user].double_hit_chance ?? 0;
+  s.log.push(`🛡️ Posizione di contrattacco! Difesa +${Math.round(COMBAT.guardDefBonus * 100)}%.`);
+  const opponent = user === 'player' ? 'enemy' : 'player';
+  if (Math.random() * 100 < counterChance) {
+    s.log.push(`⚔️ Contrattacchi prima che il nemico agisca!`);
+    s = doAttack(s, user, opponent);
+    if (!s.isOver && Math.random() * 100 < doubleChance) {
+      s.log.push(`⚡ Doppio Colpo nel contrattacco!`);
+      s = doAttack(s, user, opponent);
+    }
+  }
   return s;
 }
  
