@@ -962,7 +962,33 @@ async function renderInventory(bc, user) {
 
      <div class="village-section-title" style="margin-top:1.25rem;display:flex;align-items:center;justify-content:space-between">
         <span>🎒 Zaino (${sorted.length} oggetti)</span>
-        <button class="btn-sm btn-primary" onclick="window._autoEquipBest?.()">⚡ Auto-Equip</button>
+       <div style="display:flex;gap:6px;align-items:center">
+          <select id="auto-equip-mode" class="inv-filter-select" style="width:auto">
+            <option value="best">⚖️ Migliore (classe)</option>
+            <optgroup label="── Sotto-stat ──">
+              <option value="crit_chance">💥 Crit Chance</option>
+              <option value="crit_damage">💢 Crit Damage</option>
+              <option value="lifesteal_pct">🩸 Lifesteal</option>
+              <option value="armor_pierce_pct">🗡️ Armor Pierce</option>
+              <option value="bonus_damage_pct">⚔️ Bonus Danno</option>
+              <option value="execute_threshold">☠️ Esecuzione</option>
+              <option value="on_kill_hp_restore">💚 HP per Kill</option>
+              <option value="damage_reduction_pct">🛡️ Riduz. Danno</option>
+              <option value="reflect_pct">🔄 Riflesso</option>
+              <option value="hp_regen_turn">❤️ Regen HP</option>
+              <option value="mana_regen_turn">💧 Regen Mana</option>
+              <option value="shield_on_hit">🔵 Scudo</option>
+              <option value="dodge_chance">💨 Schivata</option>
+              <option value="counter_chance">⚔️ Contrattacco</option>
+              <option value="double_hit_chance">⚡ Doppio Colpo</option>
+              <option value="status_resist_pct">🧿 Resist. Status</option>
+              <option value="gold_bonus_pct">🪙 Bonus Gold</option>
+              <option value="cooldown_reduction">⏱️ Riduz. CD</option>
+              <option value="mana_on_hit">💙 Mana per Colpo</option>
+            </optgroup>
+          </select>
+          <button class="btn-sm btn-primary" onclick="window._autoEquipBest?.(document.getElementById('auto-equip-mode')?.value)">⚡ Auto-Equip</button>
+        </div>
       </div>
 
       <!-- Filtri zaino -->
@@ -2727,12 +2753,27 @@ window._sendChatMessage = async function() {
 
 
 
-window._autoEquipBest = async function() {
+window._autoEquipBest = async function(mode = 'best') {
   const bc  = getBattleChar(CUR.id);
   if (!bc) return toast('Personaggio non trovato', 'error');
   const inv = await loadInventory(CUR.id);
 
-  // Pesi per classe
+
+
+
+
+
+
+         
+const SUB_STATS = [
+    'crit_chance','crit_damage','lifesteal_pct','armor_pierce_pct',
+    'bonus_damage_pct','execute_threshold','on_kill_hp_restore',
+    'damage_reduction_pct','reflect_pct','hp_regen_turn','mana_regen_turn',
+    'shield_on_hit','dodge_chance','counter_chance','double_hit_chance',
+    'status_resist_pct','gold_bonus_pct','cooldown_reduction','mana_on_hit',
+  ];
+  const isStat = SUB_STATS.includes(mode);
+
   const classWeights = {
     warrior: { bonus_attack:1.5, bonus_defense:1.0, bonus_hp:0.10, bonus_speed:1.0, bonus_mana:0.05 },
     mage:    { bonus_attack:0.5, bonus_defense:0.8, bonus_hp:0.08, bonus_speed:0.8, bonus_mana:1.5  },
@@ -2740,18 +2781,37 @@ window._autoEquipBest = async function() {
     oracle:  { bonus_attack:0.6, bonus_defense:1.0, bonus_hp:0.15, bonus_speed:0.8, bonus_mana:1.3  },
     bard:    { bonus_attack:0.8, bonus_defense:0.8, bonus_hp:0.10, bonus_speed:1.2, bonus_mana:1.2  },
   };
-  const w = classWeights[bc.class_id] || classWeights.warrior;
 
-  const score = (item) =>
-    (item.bonus_attack   || 0) * w.bonus_attack  +
-    (item.bonus_defense  || 0) * w.bonus_defense +
-    (item.bonus_hp       || 0) * w.bonus_hp      +
-    (item.bonus_speed    || 0) * w.bonus_speed   +
-    (item.bonus_mana     || 0) * w.bonus_mana;
+  const score = (item) => {
+    if (isStat) {
+      const primary  = (item[mode] || 0) * 1000;
+      const tiebreak = (item.bonus_attack || 0) * 0.5 + (item.bonus_defense || 0) * 0.3 + (item.bonus_hp || 0) * 0.01;
+      return primary + tiebreak;
+    }
+    const w = classWeights[bc.class_id] || classWeights.warrior;
+    return (
+      (item.bonus_attack  || 0) * w.bonus_attack  +
+      (item.bonus_defense || 0) * w.bonus_defense +
+      (item.bonus_hp      || 0) * w.bonus_hp      +
+      (item.bonus_speed   || 0) * w.bonus_speed   +
+      (item.bonus_mana    || 0) * w.bonus_mana
+    );
+  };
 
+
+
+
+
+
+
+         
   // Raggruppa per slot e trova il migliore equipaggiabile
   const slots = ['weapon','armor','helmet','leggings','gloves','shoes','ring','cloak','talisman','pet'];
   const best  = {};
+
+
+
+         
 
   for (const entry of inv) {
     const item = entry.item || entry.battle_items;
@@ -2814,7 +2874,8 @@ if (!Object.keys(best).length) return toast('Nessun oggetto equipaggiabile trova
   await syncBattleCharacter(CUR.id);
   await syncPowerLevel(CUR.id);
   playSound('equip');
-  toast(`⚡ Auto-equip: ${equipped} oggetti equipaggiati!`, 'success');
+   const modeLabel = isStat ? mode.replace(/_/g, ' ') : 'classe';
+  toast(`⚡ Auto-equip (${modeLabel}): ${equipped} oggetti equipaggiati!`, 'success');
   renderVillage();
 };
 
