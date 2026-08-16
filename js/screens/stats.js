@@ -501,6 +501,11 @@ function renderAdminPanel() {
         <button class="btn-secondary" onclick="window._adminFullHeal?.()">❤️ Full Heal</button>
         <button class="btn-secondary" onclick="window._adminResetDailyCap?.()">🔄 Reset cap giornaliero</button>
         <button class="btn-secondary" onclick="window._adminAddSkillPoints?.(10)">+10 Punti Abilità</button>
+        <button class="btn-secondary" onclick="window._adminResetDungeonProgress?.()">🗺️ Reset Dungeon</button>
+        <button class="btn-secondary" onclick="window._adminSetLevel?.(1)">📉 Setta Lv 1</button>
+        <button class="btn-secondary" onclick="window._adminSetLevel?.(10)">📈 Setta Lv 10</button>
+        <button class="btn-secondary" onclick="window._adminSetLevel?.(30)">📈 Setta Lv 30</button>
+        <button class="btn-secondary" onclick="window._adminInvalidateCache?.()">🔄 Invalida Cache</button>
       </div>
 
       <!-- SEZIONE: MODERAZIONE -->
@@ -578,8 +583,17 @@ window._adminApplyUserStats = async function() {
   DB.users[CUR.id] = updated;
   setCUR(updated);
   persist();
-  Users.update(CUR.id, { xp: newXP, level: newLv, stats: newStats });
 
+
+  
+ // Allinea XP al livello impostato se il livello è stato cambiato manualmente
+  const { xpForLevel } = await import('../xp.js');
+  const xpForNewLv = xpForLevel ? xpForLevel(newLv) : newXP;
+  const finalXP = get('level') > 0 ? Math.max(newXP, xpForNewLv) : newXP;
+  DB.users[CUR.id] = { ...updated, xp: finalXP };
+  setCUR({ ...updated, xp: finalXP });
+  persist();
+  Users.update(CUR.id, { xp: finalXP, level: newLv, stats: newStats });
   toast('✅ Statistiche utente aggiornate!', 'success');
   renderAdminPanel();
 };
@@ -619,6 +633,68 @@ window._adminApplyBattleStats = async function() {
   toast('✅ Stat battaglia aggiornate!', 'success');
   renderAdminPanel();
 };
+
+
+
+
+
+
+
+
+
+window._adminResetDungeonProgress = async function() {
+  if (!isAdmin()) return;
+  const { supabase } = await import('../../supabase.js');
+  await supabase.from('user_dungeon_progress').delete().eq('user_id', CUR.id);
+  toast('🗺️ Progresso dungeon resettato!', 'success');
+};
+
+window._adminSetLevel = async function(targetLevel) {
+  if (!isAdmin()) return;
+  const { setCUR, persist } = await import('../db.js');
+  const { Users } = await import('../api.js');
+  // Calcola XP minima per il livello target
+  let xp = 0;
+  if (targetLevel <= 20)       xp = Math.floor(50  * Math.pow(targetLevel, 1.2));
+  else if (targetLevel <= 50)  xp = Math.floor(35  * Math.pow(targetLevel, 1.5));
+  else if (targetLevel <= 100) xp = Math.floor(20  * Math.pow(targetLevel, 1.7));
+  else                         xp = Math.floor(10  * Math.pow(targetLevel, 1.9));
+  const user = DB.users[CUR.id] || {};
+  const updated = { ...user, xp, level: targetLevel };
+  DB.users[CUR.id] = updated;
+  setCUR(updated);
+  persist();
+  Users.update(CUR.id, { xp, level: targetLevel });
+  toast(`📈 Livello impostato a ${targetLevel} (XP: ${xp.toLocaleString()})`, 'success');
+  renderAdminPanel();
+};
+
+window._adminInvalidateCache = function() {
+  if (!isAdmin()) return;
+  // Invalida cache DB in memoria
+  if (window.DB) {
+    delete window.DB._cache;
+    if (window.DB.characterEquipment) window.DB.characterEquipment = {};
+  }
+  // Invalida cache dungeonMap
+  import('../screens/dungeon_map.js').then(m => {
+    if (m._invalidateProgressCache) m._invalidateProgressCache();
+  });
+  toast('🔄 Cache invalidata — ricarica la pagina', 'info');
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // ── Azioni rapide ──────────────────────────────────────────────
 
