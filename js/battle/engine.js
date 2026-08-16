@@ -73,8 +73,31 @@ export function initBattle(playerStats, enemyData, playerLevel, support = null, 
     statusEffects:    [],
     activeBuffs:      [],
     isPhase2:         false,
-    immunityLeft:     0,
+   immunityLeft:     0,
     immunityCooldown: 0,
+    crit_chance:          enemyData.crit_chance          ?? 0,
+    crit_damage:          enemyData.crit_damage          ?? 0,
+    lifesteal_pct:        enemyData.lifesteal_pct        ?? 0,
+    armor_pierce_pct:     enemyData.armor_pierce_pct     ?? 0,
+    bonus_damage_pct:     enemyData.bonus_damage_pct     ?? 0,
+    execute_threshold:    enemyData.execute_threshold    ?? 0,
+    on_kill_hp_restore:   enemyData.on_kill_hp_restore   ?? 0,
+    damage_reduction_pct: enemyData.damage_reduction_pct ?? 0,
+    reflect_pct:          enemyData.reflect_pct          ?? 0,
+    hp_regen_turn:        enemyData.hp_regen_turn        ?? 0,
+    mana_regen_turn:      enemyData.mana_regen_turn      ?? 0,
+    shield_on_hit:        enemyData.shield_on_hit        ?? 0,
+    revive_once:          enemyData.revive_once          ?? false,
+    revive_once_used:     false,
+    dodge_chance:         enemyData.dodge_chance         ?? 0,
+    counter_chance:       enemyData.counter_chance       ?? 0,
+    gold_bonus_pct:       enemyData.gold_bonus_pct       ?? 0,
+    xp_bonus_pct:         enemyData.xp_bonus_pct         ?? 0,
+    cooldown_reduction:   enemyData.cooldown_reduction   ?? 0,
+    mana_on_hit:          enemyData.mana_on_hit          ?? 0,
+    double_hit_chance:    enemyData.double_hit_chance    ?? 0,
+    status_resist_pct:    enemyData.status_resist_pct    ?? 0,
+    summon_boost_pct:     enemyData.summon_boost_pct     ?? 0,
     enemyData,
   };
  
@@ -199,7 +222,7 @@ export function processPlayerAction(state, action, payload = {}, abilityData = n
  
 // ── Attacco base ──────────────────────────────────────────────
  
-function doAttack(s, attacker, defender) {
+function doAttack(s, attacker, defender, opts = {}) {
   const atk = s[attacker];
   const def = s[defender];
  
@@ -208,15 +231,18 @@ function doAttack(s, attacker, defender) {
     return s;
   }
  
- const cc      = DB.combatConfig || {};
+  const cc      = DB.combatConfig || {};
   const K       = cc.def_constant      ?? 80;
   const variance= cc.damage_variance   ?? 0.10;
   const critMult= cc.crit_multiplier   ?? 1.5;
   const critCap = cc.crit_cap_pct      ?? 25;
 
-  const effectiveDef = attacker === 'player'
+  // guardMult: passato da doEnemyAttack quando il player sta usando Guard
+  const guardMult    = opts.guardMult ?? 1.0;
+  const baseDefense  = attacker === 'player'
     ? Math.max(0, def.defense * (1 - (atk.magic_pierce ?? 0) / 100))
     : def.defense;
+  const effectiveDef = Math.floor(baseDefense * guardMult);
   const rawDmg  = COMBAT.damage(atk.attack, effectiveDef, K);
   const varied  = applyVariance(rawDmg, variance);
 
@@ -225,8 +251,8 @@ function doAttack(s, attacker, defender) {
   const critMultFinal = critMult + ((atk.crit_damage_bonus ?? 0) / 100) + ((atk.crit_damage ?? 0) / 100);
   let finalDmg     = isCrit ? Math.floor(varied * critMultFinal) : varied;
 
-  // bonus_damage_pct
-  if (attacker === 'player' && (atk.bonus_damage_pct ?? 0) > 0) {
+ // bonus_damage_pct
+  if ((atk.bonus_damage_pct ?? 0) > 0) {
     finalDmg = Math.floor(finalDmg * (1 + atk.bonus_damage_pct / 100));
   }
   // armor_pierce_pct già applicato sopra via effectiveDef
@@ -246,12 +272,13 @@ function doAttack(s, attacker, defender) {
   const actor    = attacker === 'player' ? 'Attacchi' : `${atk.name} attacca`;
   s.log.push(`${actor} per ${dmgAfterReduction} danni.${critText}`);
 
-  // lifesteal
-  if (attacker === 'player' && (atk.lifesteal_pct ?? 0) > 0) {
+ // lifesteal
+  if ((atk.lifesteal_pct ?? 0) > 0) {
     const stolen = Math.floor(dmgAfterReduction * atk.lifesteal_pct / 100);
     if (stolen > 0) {
-      s.player.hp = Math.min(s.player.hpMax, s.player.hp + stolen);
-      s.log.push(`🩸 Vampirismo: recuperi ${stolen} PF.`);
+      s[attacker].hp = Math.min(s[attacker].hpMax, s[attacker].hp + stolen);
+      const lsText = attacker === 'player' ? 'recuperi' : `${atk.name} recupera`;
+      s.log.push(`🩸 Vampirismo: ${lsText} ${stolen} PF.`);
     }
   }
 
@@ -276,18 +303,18 @@ function doAttack(s, attacker, defender) {
     s.log.push(`💙 +${def.mana_on_hit} MP per il colpo subito.`);
   }
 
-  // execute_threshold — uccide nemici sotto soglia HP
-  if (attacker === 'player' && (atk.execute_threshold ?? 0) > 0 && s.enemy.hp > 0) {
-    const pct = (s.enemy.hp / s.enemy.hpMax) * 100;
+// execute_threshold — uccide il difensore sotto soglia HP
+  if ((atk.execute_threshold ?? 0) > 0 && s[defender].hp > 0) {
+    const pct = (s[defender].hp / s[defender].hpMax) * 100;
     if (pct < atk.execute_threshold) {
-      s.log.push(`☠️ Esecuzione! Il nemico è sotto ${atk.execute_threshold}% HP.`);
-      s.enemy.hp = 0;
+      s.log.push(`☠️ Esecuzione! ${def.name} è sotto ${atk.execute_threshold}% HP.`);
+      s[defender].hp = 0;
     }
   }
 
   // on_kill_hp_restore
-  if (attacker === 'player' && s.enemy.hp === 0 && (atk.on_kill_hp_restore ?? 0) > 0) {
-    s.player.hp = Math.min(s.player.hpMax, s.player.hp + atk.on_kill_hp_restore);
+  if (s[defender].hp === 0 && (atk.on_kill_hp_restore ?? 0) > 0) {
+    s[attacker].hp = Math.min(s[attacker].hpMax, s[attacker].hp + atk.on_kill_hp_restore);
     s.log.push(`💚 +${atk.on_kill_hp_restore} HP per la kill.`);
   }
 
@@ -295,11 +322,11 @@ function doAttack(s, attacker, defender) {
     s = checkVictory(s, defender);
   }
 
-  // double_hit_chance — secondo colpo
-  if (!s.isOver && attacker === 'player' && (atk.double_hit_chance ?? 0) > 0) {
+// double_hit_chance — secondo colpo
+  if (!s.isOver && (atk.double_hit_chance ?? 0) > 0) {
     if (Math.random() * 100 < atk.double_hit_chance) {
       s.log.push(`⚡ Doppio Colpo!`);
-      s = doAttack(s, 'player', 'enemy');
+      s = doAttack(s, attacker, defender);
     }
   }
 
@@ -549,48 +576,52 @@ function processEnemyTurn(s) {
     s = doEnemyAttack(s, 1.4);
   } else if (hpPct < 0.50 && enemy.isBoss) {
     s = doEnemyAttack(s, 1.2);
-  } else {
+ } else {
     s = doEnemyAttack(s, 1.0);
   }
- 
+
+  // counter_chance — il giocatore contrattacca dopo aver subito un attacco
+  if (!s.isOver && (s.player.counter_chance ?? 0) > 0) {
+    if (Math.random() * 100 < s.player.counter_chance) {
+      s.log.push(`⚔️ Contrattacco!`);
+      s = doAttack(s, 'player', 'enemy');
+    }
+  }
+
   return s;
 }
  
 function doEnemyAttack(s, multiplier = 1.0) {
   const enemy = s.enemy;
+
+  // Calcola attacco effettivo senza mutare lo stato
   let effectiveAtk = enemy.attack;
- 
-if (enemy.isPhase2) {
-    const p2bonus = (DB.combatConfig?.phase2_atk_bonus ?? BOSS_MECHANICS.phase2AttackBonus);
+
+  if (enemy.isPhase2) {
+    const p2bonus = DB.combatConfig?.phase2_atk_bonus ?? BOSS_MECHANICS.phase2AttackBonus;
     effectiveAtk = Math.floor(effectiveAtk * (1 + p2bonus));
   }
- 
-  const attackBuff = enemy.activeBuffs.filter(b => b.type === 'attackBuff').length;
-  effectiveAtk     = Math.floor(effectiveAtk * (1 + attackBuff * COMBAT.attackBuffPerStack));
-  effectiveAtk     = Math.floor(effectiveAtk * multiplier);
- 
-  // Difesa giocatore con guardia
-  const guardMult    = s.player._guarding ? (1 + COMBAT.guardDefBonus) : 1;
-  const effectiveDef = Math.floor(s.player.defense * guardMult);
- 
-  const cc       = DB.combatConfig || {};
-  const K        = cc.def_constant    ?? 80;
-  const variance = cc.damage_variance ?? 0.10;
 
-  const rawDmg   = COMBAT.damage(effectiveAtk, effectiveDef, K);
-  const finalDmg = applyVariance(rawDmg, variance);
- 
-  s.player.hp        = Math.max(0, s.player.hp - finalDmg);
-  s.player._guarding = false;
- 
-  s.log.push(`${enemy.name} ti colpisce per ${finalDmg} danni!`);
- 
-  if (s.player.hp === 0) {
-    s.isOver = true;
-    s.winner = 'enemy';
-    s.log.push(`💀 Sei stato sconfitto...`);
+  const attackBuff = enemy.activeBuffs.filter(b => b.type === 'attackBuff').length;
+  if (attackBuff > 0) {
+    effectiveAtk = Math.floor(effectiveAtk * (1 + attackBuff * COMBAT.attackBuffPerStack));
   }
- 
+
+  effectiveAtk = Math.floor(effectiveAtk * multiplier);
+
+  // Guardia: bonus difesa passato come opt, senza toccare defense
+  const guardMult = s.player._guarding ? (1 + COMBAT.guardDefBonus) : 1.0;
+
+  // Sostituisce attack temporaneamente solo nel clone per doAttack
+  const originalAtk  = s.enemy.attack;
+  s.enemy.attack     = effectiveAtk;
+
+  s = doAttack(s, 'enemy', 'player', { guardMult });
+
+  // Ripristina il valore reale
+  s.enemy.attack     = originalAtk;
+  s.player._guarding = false;
+
   return s;
 }
  
@@ -659,19 +690,18 @@ function applyStartOfTurn(s, target) {
     s[target].mana + COMBAT.manaRegenPerTurn
   );
 // Rigenerazione HP passiva (classe + item)
-  const hpRegen = (target === 'player')
-    ? (s.player.hp_regen || 0) + (s.player.hp_regen_turn || 0)
-    : 0;
+ const hpRegen = (s[target].hp_regen || 0) + (s[target].hp_regen_turn || 0);
   if (hpRegen > 0) {
-    s.player.hp = Math.min(s.player.hpMax, s.player.hp + hpRegen);
-    s.log.push(`💚 Rigenerazione: recuperi ${hpRegen} PF.`);
+    s[target].hp = Math.min(s[target].hpMax, s[target].hp + hpRegen);
+    const regenText = target === 'player' ? 'recuperi' : `${s.enemy.name} recupera`;
+    s.log.push(`💚 Rigenerazione: ${regenText} ${hpRegen} PF.`);
   }
 
-  // Rigenerazione Mana da item
-  if (target === 'player' && (s.player.mana_regen_turn ?? 0) > 0) {
-    const mr = s.player.mana_regen_turn;
-    s.player.mana = Math.min(s.player.manaMax, s.player.mana + mr);
-    s.log.push(`💧 Rigenerazione Mana: +${mr} MP.`);
+  const manaRegen = s[target].mana_regen_turn ?? 0;
+  if (manaRegen > 0 && s[target].manaMax > 0) {
+    s[target].mana = Math.min(s[target].manaMax, s[target].mana + manaRegen);
+    const manaText = target === 'player' ? 'recuperi' : `${s.enemy.name} recupera`;
+    s.log.push(`💧 Rigenerazione Mana: ${manaText} +${manaRegen} MP.`);
   }
 
   return s;
