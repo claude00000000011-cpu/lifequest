@@ -227,7 +227,27 @@ const heroLoopGif = `/lifequest/assets/battle/classes/${heroClass}_loop.gif`;
 
 
           
-          <div id="hero-status" class="hero-status-effects"></div>
+         <div id="hero-status" class="hero-status-effects"></div>
+          <div class="battle-speed-bar-wrap" style="margin-top:4px;">
+            <span style="font-size:0.68rem;color:var(--text-2);">⚡ VEL</span>
+            <div style="display:flex;align-items:center;gap:4px;margin-top:2px;">
+              <span style="font-size:0.7rem;color:var(--mana-bar);min-width:18px;">${s.player.speed}</span>
+              <div style="flex:1;height:4px;background:var(--surface-0);border-radius:2px;overflow:hidden;">
+                <div id="speed-bar-player" style="height:100%;border-radius:2px;background:var(--mana-bar);transition:width 0.4s;
+                  width:${Math.round((s.player.speed / Math.max(s.player.speed, s.enemy.speed, 1)) * 100)}%;"></div>
+              </div>
+              <div style="flex:1;height:4px;background:var(--surface-0);border-radius:2px;overflow:hidden;">
+                <div id="speed-bar-enemy" style="height:100%;border-radius:2px;background:var(--dmg-color);transition:width 0.4s;
+                  width:${Math.round((s.enemy.speed / Math.max(s.player.speed, s.enemy.speed, 1)) * 100)}%;"></div>
+              </div>
+              <span style="font-size:0.7rem;color:var(--dmg-color);min-width:18px;text-align:right;">${s.enemy.speed}</span>
+            </div>
+            <div style="font-size:0.65rem;color:var(--text-3);margin-top:1px;">
+              ${s.player.speed >= s.enemy.speed ? '🟢 Vai prima' : '🔴 Vai dopo'}
+            </div>
+          </div>
+
+      </section>
 
       </section>
 
