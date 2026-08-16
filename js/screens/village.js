@@ -618,7 +618,7 @@ function renderVillageMap(bc, level) {
 
 // ── PORTO (Dungeon) ───────────────────────────────────────────
 
-function _renderLootBoxGridHtml(bc, level) {
+function renderLootBoxGrid(bc, level) {
   const boxes = [
     { type: 'wood',   icon: '📦', name: 'Cassa di Legno', color: '#92400E', minLevel: 1  },
     { type: 'iron',   icon: '🗃️', name: 'Cassa di Ferro', color: '#4B5563', minLevel: 25 },
@@ -626,21 +626,38 @@ function _renderLootBoxGridHtml(bc, level) {
     { type: 'arcana', icon: '🔮', name: 'Cassa Arcana',    color: '#7C3AED', minLevel: 70 },
     { type: 'mythic', icon: '🌟', name: 'Cassa Mitica',    color: '#DC2626', minLevel: 88 },
   ];
+  const rarNames = { common:'Comune', uncommon:'Non Comune', rare:'Raro', epic:'Epico', legendary:'Leggendario', mythic:'Mitico' };
   return boxes.map(box => {
-    const boxCfg = ECONOMY.LOOT_BOXES[box.type];
+    const check     = canOpenBox(CUR.id, box.type);
+    const boxCfg    = ECONOMY.LOOT_BOXES[box.type];
     if (!boxCfg) return '';
-    const check = canOpenBox(CUR.id, box.type);
-    const locked = level < box.minLevel;
+    const locked    = level < box.minLevel;
+    const rates     = ECONOMY.BOX_RATES[box.type] || {};
+    const pityCount = DB.lootBoxHistory?.[CUR.id]?.[box.type] || 0;
     return `
-      <div class="loot-box-card" style="border-color:${locked ? 'var(--border)' : box.color+'44'};opacity:${locked ? 0.5 : 1}">
-        <div style="font-size:28px;text-align:center">${box.icon}</div>
-        <div class="loot-box-name" style="color:${locked ? 'var(--text-3)' : box.color}">${box.name}</div>
-        <div class="loot-box-cost">🪙 ${boxCfg.cost.toLocaleString()} Gold</div>
+      <div class="loot-box-card ${locked ? 'loot-box-card--locked' : ''}"
+           style="border-color:${box.color}44">
+        <div class="loot-box-icon" style="background:${box.color}22">${box.icon}</div>
+        <div class="loot-box-info">
+          <div class="loot-box-name" style="color:${box.color}">${box.name}</div>
+          <div class="loot-box-cost">🪙 ${boxCfg.cost.toLocaleString()} Gold</div>
+          <div class="loot-box-rates">
+            ${Object.entries(rates)
+              .filter(([,v]) => v > 0)
+              .map(([r, v]) => `<span class="rarity-tag rarity-${r}">${rarNames[r]} ${Math.round(v*100)}%</span>`)
+              .join('')}
+          </div>
+          ${pityCount > 0 ? `
+            <div class="pity-counter">
+              Pity: ${pityCount}/${boxCfg.pity}
+              <div class="pity-bar"><div class="pity-fill" style="width:${Math.round((pityCount/boxCfg.pity)*100)}%"></div></div>
+            </div>
+          ` : ''}
+        </div>
         ${locked
-          ? `<div style="font-size:11px;color:var(--text-3)">Lv ${box.minLevel} richiesto</div>`
-          : `<button onclick="window._openBox?.('${box.type}')"
-               style="width:100%;padding:6px;border-radius:8px;background:${box.color};color:white;border:none;cursor:pointer;font-size:13px"
-               ${!check.canOpen ? 'disabled title="' + check.reason + '"' : ''}>
+          ? `<div class="loot-box-lock">🔒 Lv.${box.minLevel}</div>`
+          : `<button class="btn-sm btn-primary" onclick="window._openBox?.('${box.type}')"
+                     ${!check.canOpen && check.reason?.includes('Gold') ? 'disabled title="Gold insufficienti"' : ''}>
                Apri
              </button>`
         }
@@ -648,7 +665,6 @@ function _renderLootBoxGridHtml(bc, level) {
     `;
   }).join('');
 }
-
 async function renderPort(bc, level) {
   const { supabase: sb } = await import('../../supabase.js');
   const { data: dungeons } = await sb
@@ -708,7 +724,7 @@ async function renderPort(bc, level) {
       </div>
       <div class="village-section-title" style="margin-top:1.5rem">📦 Casse Loot</div>
       <div class="loot-boxes-grid">
-        ${_renderLootBoxGridHtml(bc, level)}
+       ${renderLootBoxGrid(bc, level)}
       </div>
     </div>
   `;
