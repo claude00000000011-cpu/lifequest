@@ -1060,5 +1060,5 @@ function _classifyLog(msg) {
 function _setDisabled(container, disabled) {
   container.querySelectorAll('.btn-battle-action,.btn-battle-item').forEach(b => { b.disabled = disabled; });
 }
-}
+
 
