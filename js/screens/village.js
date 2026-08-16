@@ -2764,14 +2764,35 @@ window._autoEquipBest = async function() {
     }
   }
 
-  if (!Object.keys(best).length) return toast('Nessun oggetto equipaggiabile trovato', 'error');
+
+
+         
+if (!Object.keys(best).length) return toast('Nessun oggetto equipaggiabile trovato', 'error');
+
+  // Confronto con equipaggiamento attuale
+  const equip = DB.characterEquipment[CUR.id] || [];
+  for (const slot of slots) {
+    if (!best[slot]) continue;
+    const currentEq   = equip.find(e => e.slot === slot);
+    const currentItem = currentEq?.item;
+    const currentScore = currentItem ? score(currentItem) : -1;
+    if (best[slot].score <= currentScore) {
+      delete best[slot]; // non sostituire se quello attuale è uguale o migliore
+    }
+  }
+
+  if (!Object.keys(best).length) return toast('Equipaggiamento già ottimale!', 'info');
 
   const { supabase: sb } = await import('../../supabase.js');
   let equipped = 0;
-
   for (const slot of slots) {
     if (!best[slot]) continue;
     const { entry, item } = best[slot];
+
+
+
+
+           
     const { error } = await sb.from('character_equipment').upsert({
       character_id: bc.id,
       slot,
