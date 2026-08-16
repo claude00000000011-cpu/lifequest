@@ -32,6 +32,7 @@ import { checkDungeonAccess,
 import { ECONOMY, PROGRESSION,
          DUNGEONS, GUILDS }         from '../battle/config.js';
 import { renderDungeonMap, renderDungeonDetail } from './dungeon_map.js';
+import { isAdmin } from './stats.js';
 import { startDungeonBattle }                    from './dungeon_battle.js';
 
 // ── Stato navigazione villaggio ───────────────────────────────
