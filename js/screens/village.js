@@ -538,70 +538,82 @@ function renderVillageMap(bc, level) {
   `;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // ── PORTO (Dungeon) ───────────────────────────────────────────
 
 async function renderPort(bc, level) {
-  const tierInfo = [
-    { tier: 1, name: 'Grotte dei Goblin',      icon: '🕳️', minLevel: 1  },
-    { tier: 2, name: 'Cripta del Necromante',  icon: '💀', minLevel: 10 },
-    { tier: 3, name: 'Torre del Drago Minore', icon: '🐉', minLevel: 20 },
-    { tier: 4, name: 'Abisso Demoniaco',       icon: '😈', minLevel: 35 },
-    { tier: 5, name: 'Dominio dell\'Entità',   icon: '🌌', minLevel: 50 },
-  ];
+  const { supabase: sb } = await import('../../supabase.js');
+  const { data: dungeons } = await sb
+    .from('daily_dungeons')
+    .select('*')
+    .order('sort_order');
 
-  // Carica nemici T1-T2 se non in cache
-  await Promise.all([loadEnemies(1), loadEnemies(2)]);
+  const { data: progress } = await sb
+    .from('daily_dungeon_progress')
+    .select('*')
+    .eq('character_id', bc.id);
 
-  const accessChecks = await Promise.all(
-    tierInfo.map(t => checkDungeonAccess(CUR.id, t.tier))
-  );
+  const progressMap = {};
+  (progress || []).forEach(p => { progressMap[p.dungeon_id] = p; });
 
- // Controlla sessione attiva: prima in memoria, poi su Supabase
-  let activeDungeon = getActiveDungeon();
-  if (!activeDungeon) {
-    const { resumeDungeon } = await import('../battle/dungeon.js');
-    const result = await resumeDungeon(CUR.id);
-    if (result.ok) activeDungeon = result.dungeon;
-  }
+  const diffLabels = ['', 'Comune', 'Non Comune', 'Raro', 'Epico', 'Leggendario'];
+  const diffColors = ['', '#9CA3AF', '#22C55E', '#3B82F6', '#A855F7', '#F59E0B'];
 
   return `
     <div class="village-port">
-      ${activeDungeon ? `
-        <div class="village-alert">
-          ⚠️ Hai un dungeon Tier ${activeDungeon.tier} in corso!
-          Stanza ${activeDungeon.currentRoom + 1} di ${activeDungeon.totalRooms}.
-          <button class="btn-sm btn-primary" onclick="window._resumeDungeon?.()">Continua →</button>
-        </div>
-      ` : ''}
-
-      <div class="village-section-title">⛵ Dungeon Disponibili</div>
-
-      ${tierInfo.map((t, i) => {
-        const access  = accessChecks[i];
-        const dungeon = DUNGEONS[t.tier - 1];
-        const locked  = !access.canEnter;
-        return `
-          <div class="dungeon-card ${locked ? 'dungeon-card--locked' : ''}">
-            <div class="dungeon-card__icon">${t.icon}</div>
-            <div class="dungeon-card__info">
-              <div class="dungeon-card__name">Tier ${t.tier} — ${t.name}</div>
-              <div class="dungeon-card__meta">
-                Lv.min ${t.minLevel} · ${dungeon.normalRooms + 1} stanze ·
-                <span style="color:var(--gold)">🪙 ${dungeon.goldBonus}G bonus</span> ·
-                <span style="color:#fbbf24">⚡ ${dungeon.xpBonus} XP</span>
+      <div class="village-section-title">⚔️ Dungeon Giornalieri</div>
+      <div style="font-size:12px;color:var(--text-2);margin-bottom:1rem">
+        Ogni dungeon droppa 2 pezzi equipaggiamento del tipo corrispondente.
+        Puoi fare ogni dungeon fino a <strong>4 volte al giorno</strong>.
+        Sconfiggi la difficoltà corrente per sbloccare quella successiva.
+      </div>
+      <div class="daily-dungeon-grid">
+        ${(dungeons || []).map(d => {
+          const p = progressMap[d.id] || { max_difficulty_unlocked: 1, runs_today: 0 };
+          const runsLeft = 4 - (p.runs_today || 0);
+          const maxDiff  = p.max_difficulty_unlocked || 1;
+          return `
+            <div class="daily-dungeon-card" onclick="window._openDailyDungeon?.('${d.id}')">
+              <div class="daily-dungeon-icon">${d.icon}</div>
+              <div class="daily-dungeon-info">
+                <div class="daily-dungeon-name">${escHtml(d.name)}</div>
+                <div class="daily-dungeon-slot" style="font-size:11px;color:var(--text-2)">
+                  Slot: ${d.slot}
+                </div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
+                  ${[1,2,3,4,5].map(diff => `
+                    <span style="font-size:10px;padding:2px 6px;border-radius:10px;
+                      background:${diff <= maxDiff ? diffColors[diff]+'22' : 'var(--surface-1)'};
+                      color:${diff <= maxDiff ? diffColors[diff] : 'var(--text-3)'};
+                      border:1px solid ${diff <= maxDiff ? diffColors[diff]+'44' : 'var(--border)'}">
+                      ${diff <= maxDiff ? diffLabels[diff] : '🔒'}
+                    </span>
+                  `).join('')}
+                </div>
               </div>
-              ${locked ? `<div class="dungeon-card__lock">🔒 ${escHtml(access.reason)}</div>` : ''}
+              <div style="text-align:right;font-size:11px;color:${runsLeft > 0 ? 'var(--text-accent)' : 'var(--text-3)'}">
+                ${runsLeft > 0 ? `${runsLeft} run<br>rimaste` : 'Completato<br>oggi'}
+              </div>
             </div>
-            ${!locked ? `
-              <button class="btn-sm btn-primary dungeon-enter-btn"
-                      onclick="window._enterDungeon?.(${t.tier})">
-                Entra
-              </button>
-            ` : ''}
-          </div>
-        `;
-      }).join('')}
-
+          `;
+        }).join('')}
+      </div>
       <div class="village-section-title" style="margin-top:1.5rem">📦 Casse Loot</div>
       <div class="loot-boxes-grid">
         ${renderLootBoxGrid(bc, level)}
@@ -610,54 +622,136 @@ async function renderPort(bc, level) {
   `;
 }
 
-function renderLootBoxGrid(bc, level) {
-  const boxes = [
-    { type: 'wood',   icon: '📦', name: 'Cassa di Legno',   color: '#92400E', minLevel: 1  },
-    { type: 'iron',   icon: '🗃️', name: 'Cassa di Ferro',   color: '#4B5563', minLevel: 1  },
-    { type: 'gold',   icon: '💛', name: 'Cassa d\'Oro',      color: '#D97706', minLevel: PROGRESSION.UNLOCKS.goldBoxes  },
-    { type: 'mythic', icon: '🌟', name: 'Cassa Mitica',      color: '#DC2626', minLevel: PROGRESSION.UNLOCKS.mythicBoxes },
-  ];
 
-  const rarNames = { common:'Comune', uncommon:'Non Comune', rare:'Raro', epic:'Epico', legendary:'Leggendario', mythic:'Mitico' };
 
-  return boxes.map(box => {
-    const check     = canOpenBox(CUR.id, box.type);
-    const boxCfg    = ECONOMY.LOOT_BOXES[box.type];
-    const locked    = level < box.minLevel;
-    const rates     = ECONOMY.BOX_RATES[box.type];
-    const pityCount = DB.lootBoxHistory?.[CUR.id]?.[box.type] || 0;
-    const topRarity = Object.entries(rates).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1]).map(([k]) => k)[0];
 
-    return `
-      <div class="loot-box-card ${locked ? 'loot-box-card--locked' : ''}"
-           style="border-color:${box.color}44">
-        <div class="loot-box-icon" style="background:${box.color}22">${box.icon}</div>
-        <div class="loot-box-info">
-          <div class="loot-box-name" style="color:${box.color}">${box.name}</div>
-          <div class="loot-box-cost">🪙 ${boxCfg.cost} Gold</div>
-          <div class="loot-box-rates">
-            ${Object.entries(rates)
-              .filter(([,v]) => v > 0)
-              .map(([r, v]) => `<span class="rarity-tag rarity-${r}">${rarNames[r]} ${Math.round(v*100)}%</span>`)
-              .join('')}
-          </div>
-          ${pityCount > 0 ? `
-            <div class="pity-counter">
-              Pity: ${pityCount}/${boxCfg.pity}
-              <div class="pity-bar"><div class="pity-fill" style="width:${Math.round((pityCount/boxCfg.pity)*100)}%"></div></div>
-            </div>
-          ` : ''}
-        </div>
-        ${locked
-          ? `<div class="loot-box-lock">🔒 Lv.${box.minLevel}</div>`
-          : `<button class="btn-sm btn-primary" onclick="window._openBox?.('${box.type}')"
-                     ${!check.canOpen && check.reason?.includes('Gold') ? 'disabled title="Gold insufficienti"' : ''}>
-               Apri
-             </button>`}
+
+window._openDailyDungeon = async function(dungeonId) {
+  const { supabase: sb } = await import('../../supabase.js');
+  const bc = getBattleChar(CUR.id);
+  const { data: dungeon } = await sb.from('daily_dungeons').select('*').eq('id', dungeonId).single();
+  const { data: difficulties } = await sb
+    .from('daily_dungeon_difficulties')
+    .select('*')
+    .eq('dungeon_id', dungeonId)
+    .order('difficulty');
+  const { data: progRow } = await sb
+    .from('daily_dungeon_progress')
+    .select('*')
+    .eq('character_id', bc.id)
+    .eq('dungeon_id', dungeonId)
+    .maybeSingle();
+  const prog = progRow || { max_difficulty_unlocked: 1, runs_today: 0, last_run_date: null };
+  const today = new Date().toISOString().slice(0, 10);
+  const runsToday = prog.last_run_date === today ? (prog.runs_today || 0) : 0;
+  const diffLabels = ['', 'Comune', 'Non Comune', 'Raro', 'Epico', 'Leggendario'];
+  const diffColors = ['', '#9CA3AF', '#22C55E', '#3B82F6', '#A855F7', '#F59E0B'];
+  const rarNames   = { common:'Comune', uncommon:'Non Comune', rare:'Raro', epic:'Epico', legendary:'Leggendario', mythic:'Mitico' };
+  const goldByDiff = [0, 300, 700, 1400, 3200, 8000];
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:#0009;z-index:9999;display:flex;align-items:flex-end;justify-content:center';
+  modal.innerHTML = `
+    <div style="background:var(--surface-2);border-radius:16px 16px 0 0;padding:1.5rem;width:100%;max-width:480px;max-height:85vh;overflow-y:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+        <h3 style="margin:0">${dungeon.icon} ${escHtml(dungeon.name)}</h3>
+        <button onclick="this.closest('div[style]').parentElement.remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-2)">✕</button>
       </div>
-    `;
-  }).join('');
-}
+      <div style="font-size:12px;color:var(--text-2);margin-bottom:1rem">
+        ${escHtml(dungeon.description || '')} · Run oggi: <strong>${runsToday}/4</strong>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        ${(difficulties || []).map(d => {
+          const unlocked = d.difficulty <= (prog.max_difficulty_unlocked || 1);
+          const locked   = !unlocked;
+          const gold     = goldByDiff[d.difficulty] || 0;
+          return `
+            <div style="background:var(--surface-1);border-radius:12px;padding:12px;
+                        border:1px solid ${unlocked ? diffColors[d.difficulty]+'44' : 'var(--border)'};
+                        opacity:${locked ? 0.5 : 1}">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div>
+                  <div style="font-weight:500;color:${diffColors[d.difficulty]}">${diffLabels[d.difficulty]}</div>
+                  <div style="font-size:11px;color:var(--text-2);margin-top:2px">
+                    Drop: <strong>${rarNames[d.rarity_drop]}</strong> · 🪙 ${gold.toLocaleString()}G · 📦 2 pezzi
+                  </div>
+                </div>
+                ${locked
+                  ? `<span style="font-size:18px">🔒</span>`
+                  : runsToday >= 4
+                    ? `<span style="font-size:11px;color:var(--text-3)">Limite giornaliero</span>`
+                    : `<button onclick="window._startDailyDungeon?.('${dungeonId}', ${d.difficulty}); this.closest('div[style]').parentElement.parentElement.parentElement.remove()"
+                               style="padding:6px 14px;border-radius:8px;background:${diffColors[d.difficulty]};color:white;border:none;cursor:pointer;font-size:13px">
+                         Entra
+                       </button>`
+                }
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+};
+
+
+
+
+
+
+
+
+
+window._startDailyDungeon = async function(dungeonId, difficulty) {
+  const { supabase: sb } = await import('../../supabase.js');
+  const bc = getBattleChar(CUR.id);
+  const { data: diffData } = await sb
+    .from('daily_dungeon_difficulties')
+    .select('*')
+    .eq('dungeon_id', dungeonId)
+    .eq('difficulty', difficulty)
+    .single();
+  if (!diffData) return toast('Dungeon non trovato', 'error');
+  const rooms = diffData.rooms;
+  const firstRoom = rooms[0];
+  const { data: enemyData } = await sb
+    .from('battle_enemies')
+    .select('*')
+    .eq('id', firstRoom.enemy_id)
+    .single();
+  if (!enemyData) return toast('Nemico non trovato', 'error');
+  const enemy = {
+    ...enemyData,
+    hp_base:      enemyData.hp_base,
+    attack_base:  enemyData.attack,
+    defense_base: enemyData.defense,
+    speed_base:   enemyData.speed,
+    already_scaled: false,
+  };
+  import('./battle_screen.js').then(m => m.renderBattleScreen?.(enemy, {
+    dailyDungeon: true,
+    dungeonId,
+    difficulty,
+    diffData,
+    roomIndex: 0,
+    bc_id: bc.id,
+  }));
+  window._gotoTab?.('battle');
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // ── MERCANTE ──────────────────────────────────────────────────
 
