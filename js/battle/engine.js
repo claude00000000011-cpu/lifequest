@@ -528,21 +528,11 @@ function doItem(s, user, itemId) {
 }
 
 // ── Guardia ───────────────────────────────────────────────────
-
 function doGuard(s, user) {
   s[user]._guarding = true;
-  const counterChance = 25 + (s[user].counter_chance ?? 0);
-  const doubleChance  = s[user].double_hit_chance ?? 0;
-s.log.push(`🛡️ Posizione di contrattacco!`);
-  const opponent = user === 'player' ? 'enemy' : 'player';
-  if (Math.random() * 100 < counterChance) {
-    s.log.push(`⚔️ Contrattacchi prima che il nemico agisca!`);
-    s = doAttack(s, user, opponent);
-    if (!s.isOver && Math.random() * 100 < doubleChance) {
-      s.log.push(`⚡ Doppio Colpo nel contrattacco!`);
-      s = doAttack(s, user, opponent);
-    }
-  }
+  s[user]._taunting = true;
+  s.log.push(`🛡️ Provocazione! Il nemico si concentra su di te — danno ricevuto -30% per 2 turni.`);
+  applyStatusEffect(s, user, 'taunt', 1, 2);
   return s;
 }
  
@@ -621,7 +611,10 @@ function doEnemyAttack(s, multiplier = 1.0) {
   effectiveAtk = Math.floor(effectiveAtk * multiplier);
 
   // Guardia: bonus difesa passato come opt, senza toccare defense
-  const guardMult = s.player._guarding ? (1 + COMBAT.guardDefBonus) : 1.0;
+ const tauntActive = s.player.statusEffects?.some(e => e.type === 'taunt' && e.turnsLeft > 0);
+  const guardMult = s.player._guarding
+    ? (1 + COMBAT.guardDefBonus)
+    : tauntActive ? 1.3 : 1.0;
 
   // Sostituisce attack temporaneamente solo nel clone per doAttack
   const originalAtk  = s.enemy.attack;
