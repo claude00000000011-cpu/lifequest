@@ -281,7 +281,7 @@ window._openTestBattle = async function() {
 
       
       <div style="display:flex;gap:8px;margin-top:4px">
-        <button onclick="this.closest('div[style]').remove()" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:none;cursor:pointer">Annulla</button>
+       <button onclick="this.closest('div[style]').remove(); window._switchVillageTab?.('port')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:none;cursor:pointer">Annulla</button>
         <button id="tb-start" style="flex:1;padding:8px;border-radius:8px;background:#7c3aed;color:white;border:none;cursor:pointer">⚔️ Combatti</button>
       </div>
     </div>
