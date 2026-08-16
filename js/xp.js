@@ -160,8 +160,8 @@ export async function awardXP(baseXP, category = null, units = null) {
     if (bc) {
       const newSP = (bc.skill_points || 0) + levelsGained;
       DB.battleCharacters[CUR.id].skill_points = newSP;
-      import('./battle/character.js').then(() => {
-        supabase.from('battle_characters')
+     import('../../supabase.js').then(({ supabase: sb }) => {
+        sb.from('battle_characters')
           .update({ skill_points: newSP })
           .eq('id', bc.id);
       });
