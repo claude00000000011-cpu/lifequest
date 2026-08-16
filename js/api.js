@@ -1274,10 +1274,16 @@ export async function syncCloudDataOnLogin(userId) {
     persist();
 
     // Sync personaggio battle (fire-and-forget)
-    import('./battle/character.js').then(({ syncBattleCharacter, loadItems }) => {
+   import('./battle/character.js').then(({ syncBattleCharacter, loadItems, loadAbilities }) => {
       syncBattleCharacter(userId);
       loadItems(true);
+      loadAbilities(userId);
     });
+
+
+
+
+    
   } catch (e) {
     console.warn('[Sync] Errore sync:', e);
   }
