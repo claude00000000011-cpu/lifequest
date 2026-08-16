@@ -560,6 +560,12 @@ function applyStartOfTurn(s, target) {
     s[target].manaMax,
     s[target].mana + COMBAT.manaRegenPerTurn
   );
+  // Rigenerazione HP passiva (Oracolo)
+  if (target === 'player' && s.player.hp_regen > 0) {
+    const regen = s.player.hp_regen;
+    s.player.hp = Math.min(s.player.hpMax, s.player.hp + regen);
+    if (regen > 0) s.log.push(`💚 Rigenerazione passiva: recuperi ${regen} PF.`);
+  }
   return s;
 }
  
