@@ -281,12 +281,16 @@ window._openTestBattle = async function() {
 
       
       <div style="display:flex;gap:8px;margin-top:4px">
-       <button onclick="this.closest('div[style]').remove(); window._switchVillageTab?.('port')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:none;cursor:pointer">Annulla</button>
+      <button id="tb-cancel" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:none;cursor:pointer">Annulla</button>
         <button id="tb-start" style="flex:1;padding:8px;border-radius:8px;background:#7c3aed;color:white;border:none;cursor:pointer">⚔️ Combatti</button>
       </div>
     </div>
   `;
   document.body.appendChild(modal);
+modal.querySelector('#tb-cancel').addEventListener('click', () => {
+    modal.remove();
+    window._switchVillageTab?.('port');
+  });
   modal.querySelector('#tb-start').addEventListener('click', async () => {
 
 
@@ -837,7 +841,7 @@ window._startDailyDungeon = async function(dungeonId, difficulty) {
     speed_base:   enemyData.speed,
     already_scaled: false,
   };
-  import('./battle_screen.js').then(m => m.renderBattleScreen?.(enemy, {
+  await import('./battle_screen.js').then(m => m.renderBattleScreen?.(enemy, {
     dailyDungeon: true,
     dungeonId,
     difficulty,
@@ -845,7 +849,6 @@ window._startDailyDungeon = async function(dungeonId, difficulty) {
     roomIndex: 0,
     bc_id: bc.id,
   }));
-  window._gotoTab?.('battle');
 };
 
 
