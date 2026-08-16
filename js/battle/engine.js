@@ -57,8 +57,7 @@ export function initBattle(playerStats, enemyData, playerLevel, support = null, 
   };
  
   const enemy = {
- 
-  const enemy = {
+
     id:               'enemy',
     name:             enemyData.name,
     hp:               enemyScaling.hp,
