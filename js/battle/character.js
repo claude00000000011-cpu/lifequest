@@ -133,15 +133,41 @@ const cc = DB.combatConfig;
   const equipment = DB.characterEquipment[userId] || [];
   const eqBonus   = calcEquipmentBonus(equipment);
  
+// Bonus passivi di classe crescenti ogni 10 livelli
+  const passiveData = classData.passive_bonus_per_10lvl || {};
+  const passiveTiers = Math.floor(level / 10);
+  const baseCritRate   = classData.base_crit_rate   ?? 0;
+  const baseCritDmg    = classData.base_crit_damage  ?? 0;
+  const baseDodge      = classData.base_dodge        ?? 0;
+  const baseHpRegen    = classData.hp_regen_per_turn ?? 0;
+  const baseDmgRed     = classData.dmg_reduction     ?? 0;
+  const baseMagicPierce= classData.magic_pierce      ?? 0;
+
+  const passiveCritRate    = baseCritRate    + (passiveData.crit_rate    ?? 0) * passiveTiers;
+  const passiveCritDmg     = baseCritDmg     + (passiveData.crit_damage  ?? 0) * passiveTiers;
+  const passiveDodge       = baseDodge       + (passiveData.dodge        ?? 0) * passiveTiers;
+  const passiveHpRegen     = baseHpRegen     + (passiveData.hp_regen     ?? 0) * passiveTiers;
+  const passiveDmgRed      = baseDmgRed      + (passiveData.dmg_reduction?? 0) * passiveTiers;
+  const passiveMagicPierce = baseMagicPierce + (passiveData.magic_pierce ?? 0) * passiveTiers;
+  const passiveAtkBonusPct = (passiveData.atk_bonus_pct ?? 0) * passiveTiers;
+
+  const finalLuck = Math.min(luckCap, luck + eqBonus.luck + passiveCritRate);
+
   return {
-    hp:      hp      + eqBonus.hp,
-    attack:  attack  + eqBonus.attack,
-    defense: defense + eqBonus.defense,
-    speed:   speed   + eqBonus.speed,
-    mana:    mana    + eqBonus.mana,
-    luck:    luck    + eqBonus.luck,
+    hp:             hp      + eqBonus.hp,
+    attack:         attack  + eqBonus.attack,
+    defense:        defense + eqBonus.defense,
+    speed:          speed   + eqBonus.speed,
+    mana:           mana    + eqBonus.mana,
+    luck:           finalLuck,
     level,
     classId,
+    crit_damage_bonus: passiveCritDmg  + (eqBonus.crit_damage  ?? 0),
+    dodge_chance:      passiveDodge,
+    hp_regen:          passiveHpRegen,
+    dmg_reduction:     passiveDmgRed,
+    magic_pierce:      passiveMagicPierce,
+    atk_bonus_pct:     passiveAtkBonusPct,
   };
 }
 
