@@ -951,7 +951,19 @@ async function renderInventory(bc, user) {
                   <div class="equip-item-icon">${slotEmoji(slot)}</div>
                  <div class="equip-item-name">${escHtml(item.name)}</div>
                   <div class="equip-item-dur">Durabilità: ${s.durability}%</div>
-                  <div class="inv-item__bonuses" style="font-size:10px;margin-top:4px">${buildBonusText(item)}</div>
+                  <div class="equip-substat-wrap" style="margin-top:4px;">
+                    <div class="equip-substat-preview" style="font-size:10px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;">
+                      ${buildBonusText(item).split(' · ').slice(0,2).join(' · ')}${buildBonusText(item).split(' · ').length > 2 ? ' …' : ''}
+                    </div>
+                    <details style="margin-top:2px;">
+                      <summary style="font-size:10px;color:var(--text-3);cursor:pointer;list-style:none;display:flex;align-items:center;gap:3px;">
+                        <span class="equip-expand-arrow" style="font-size:9px;">▼</span> tutte le stat
+                      </summary>
+                      <div style="font-size:10px;color:var(--text-2);margin-top:4px;line-height:1.7;">
+                        ${buildBonusText(item).split(' · ').join('<br>')}
+                      </div>
+                    </details>
+                  </div>
                   <button class="btn-sm btn-danger"
                     onclick="window._unequipItem?.('${s.id}', '${slot}')">
                     Rimuovi
@@ -963,9 +975,9 @@ async function renderInventory(bc, user) {
         }).join('')}
       </div>
 
-     <div class="village-section-title" style="margin-top:1.25rem;display:flex;align-items:center;justify-content:space-between">
+    <div class="village-section-title" style="margin-top:1.25rem;display:flex;flex-wrap:wrap;align-items:center;gap:8px;justify-content:space-between">
         <span>🎒 Zaino (${sorted.length} oggetti)</span>
-       <div style="display:flex;gap:6px;align-items:center">
+       <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
           <select id="auto-equip-mode" class="inv-filter-select" style="width:auto">
             <option value="best">⚖️ Migliore (classe)</option>
             <optgroup label="── Sotto-stat ──">
