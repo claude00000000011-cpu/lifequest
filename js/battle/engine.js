@@ -194,9 +194,19 @@ function doAttack(s, attacker, defender) {
 
   const critChance = Math.min(critCap, atk.luck || 0);
   const isCrit     = Math.random() * 100 < critChance;
-  const finalDmg   = isCrit ? Math.floor(varied * critMult) : varied;
+  const critMultFinal = critMult + ((atk.crit_damage_bonus ?? 0) / 100);
+  const finalDmg   = isCrit ? Math.floor(varied * critMultFinal) : varied;
  
-  s[defender].hp = Math.max(0, def.hp - finalDmg);
+  const dodgeChance = attacker === 'enemy' ? (def.dodge_chance ?? 0) : 0;
+  const isDodged    = Math.random() * 100 < dodgeChance;
+  if (isDodged) {
+    s.log.push(`Hai schivato l'attacco!`);
+    return s;
+  }
+  const dmgAfterReduction = attacker === 'enemy'
+    ? Math.max(1, Math.floor(finalDmg * (1 - (def.dmg_reduction ?? 0) / 100)))
+    : finalDmg;
+  s[defender].hp = Math.max(0, def.hp - dmgAfterReduction);
  
   const critText = isCrit ? ' 💥 CRITICO!' : '';
   const actor    = attacker === 'player' ? 'Attacchi' : `${atk.name} attacca`;
