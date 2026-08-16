@@ -1474,8 +1474,31 @@ function buildBonusText(item) {
   if (item.heal_pct          > 0) parts.push(`Cura ${item.heal_pct}% PF`);
   if (item.mana_restore_pct  > 0) parts.push(`Ripristina ${item.mana_restore_pct}% Mana`);
   if (item.damage_flat       > 0) parts.push(`+${item.damage_flat} DMG`);
-  if (item.absorb_pct        > 0) parts.push(`Assorbi ${item.absorb_pct}% danno`);
+ if (item.absorb_pct        > 0) parts.push(`Assorbi ${item.absorb_pct}% danno`);
   if (item.effect_type)           parts.push(`✨ ${item.effect_type}`);
+  // Sotto-stat
+  if (item.crit_chance          > 0) parts.push(`🎯 +${item.crit_chance}% Crit`);
+  if (item.crit_damage          > 0) parts.push(`💥 +${item.crit_damage}% DannoCrit`);
+  if (item.lifesteal_pct        > 0) parts.push(`🩸 +${item.lifesteal_pct}% Vampirismo`);
+  if (item.armor_pierce_pct     > 0) parts.push(`🔩 +${item.armor_pierce_pct}% Perforazione`);
+  if (item.bonus_damage_pct     > 0) parts.push(`⚡ +${item.bonus_damage_pct}% Danno`);
+  if (item.execute_threshold    > 0) parts.push(`☠️ Esecuzione <${item.execute_threshold}% HP`);
+  if (item.on_kill_hp_restore   > 0) parts.push(`💚 +${item.on_kill_hp_restore} HP per kill`);
+  if (item.damage_reduction_pct > 0) parts.push(`🛡️ -${item.damage_reduction_pct}% DanoSubito`);
+  if (item.reflect_pct          > 0) parts.push(`🔄 ${item.reflect_pct}% Riflesso`);
+  if (item.hp_regen_turn        > 0) parts.push(`💓 +${item.hp_regen_turn} HP/turno`);
+  if (item.mana_regen_turn      > 0) parts.push(`💧 +${item.mana_regen_turn} MP/turno`);
+  if (item.shield_on_hit        > 0) parts.push(`🔵 Scudo ${item.shield_on_hit} se colpito`);
+  if (item.revive_once             ) parts.push(`✨ Rinascita 1x`);
+  if (item.dodge_chance         > 0) parts.push(`💨 +${item.dodge_chance}% Schivata`);
+  if (item.counter_chance       > 0) parts.push(`⚔️ +${item.counter_chance}% Contrattacco`);
+  if (item.gold_bonus_pct       > 0) parts.push(`🪙 +${item.gold_bonus_pct}% Gold`);
+  if (item.xp_bonus_pct         > 0) parts.push(`✨ +${item.xp_bonus_pct}% XP`);
+  if (item.cooldown_reduction   > 0) parts.push(`⏱️ -${item.cooldown_reduction} Cooldown`);
+  if (item.mana_on_hit          > 0) parts.push(`💙 +${item.mana_on_hit} MP se colpito`);
+  if (item.double_hit_chance    > 0) parts.push(`⚡ +${item.double_hit_chance}% Doppio Colpo`);
+  if (item.status_resist_pct    > 0) parts.push(`🔰 +${item.status_resist_pct}% ResistenzaStato`);
+  if (item.summon_boost_pct     > 0) parts.push(`🐾 +${item.summon_boost_pct}% Pet Danno`);
   // bonus_secondary è un array JSON [{type, value, description}]
   const secondary = Array.isArray(item.bonus_secondary) ? item.bonus_secondary : [];
   secondary.forEach(b => {
