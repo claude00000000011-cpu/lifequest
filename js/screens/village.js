@@ -310,7 +310,7 @@ window._openTestBattle = async function() {
         attack_base: enemyData.attack, defense_base: enemyData.defense,
         speed_base: enemyData.speed, already_scaled: false, _testMode: true,
       };
-      import('../battle/battle_screen.js').then(m => m.renderBattleScreen?.(enemy, { testMode: true }));
+   import('./battle_screen.js').then(m => m.renderBattleScreen?.(enemy, { testMode: true }));
       window._gotoTab?.('battle');
       return;
     }
