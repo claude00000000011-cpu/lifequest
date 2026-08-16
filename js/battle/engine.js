@@ -581,11 +581,25 @@ function processEnemyTurn(s) {
     s = doEnemyAttack(s, 1.0);
   }
 
-  // counter_chance — il giocatore contrattacca dopo aver subito un attacco
+ // counter_chance — il giocatore contrattacca dopo aver subito un attacco
   if (!s.isOver && (s.player.counter_chance ?? 0) > 0) {
     if (Math.random() * 100 < s.player.counter_chance) {
       s.log.push(`⚔️ Contrattacco!`);
       s = doAttack(s, 'player', 'enemy');
+    }
+  }
+
+  // Attacco secondario al summon (se presente e non in taunt)
+  const tauntActive = s.player.statusEffects?.some(e => e.type === 'taunt' && e.turnsLeft > 0);
+  if (!s.isOver && s.summon && !s.summon.isDead && !tauntActive) {
+    if (Math.random() < 0.4) {
+      const summonDmg = Math.max(1, Math.floor(s.enemy.attack * 0.5) - Math.floor((s.summon.defense || 5) * 0.3));
+      s.summon.hp = Math.max(0, s.summon.hp - summonDmg);
+      s.log.push(`⚔️ ${s.enemy.name} attacca l'alleato per ${summonDmg} danni!`);
+      if (s.summon.hp <= 0) {
+        s.summon.isDead = true;
+        s.log.push(`💀 L'alleato è caduto!`);
+      }
     }
   }
 
