@@ -1014,7 +1014,7 @@ function _updateBars(container, s) {
 }
 
 function _updateStatuses(container, s) {
-  const icons = { poison:'☠️', regen:'💚', stun:'⭐', attackBuff:'⬆️', attackDebuff:'⬇️' };
+ const icons = { poison:'☠️', regen:'💚', stun:'⭐', attackBuff:'⬆️', attackDebuff:'⬇️', taunt:'🛡️' };
   const render = (effects) => effects.map(e =>
     `<span class="status-badge" title="${e.type}">${icons[e.type] || '❓'}${e.stacks > 1 ? e.stacks : ''}</span>`
   ).join('');
