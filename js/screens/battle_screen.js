@@ -566,9 +566,78 @@ async function _onBattleEnd(container, state) {
 if (won) {
     playSound('victory');
 
+    // ── Daily Dungeon ─────────────────────────────────────────
+    if (_dungeonCtx?.dailyDungeon) {
+      const { supabase: sb } = await import('../../supabase.js');
+      const ctx       = _dungeonCtx;
+      const diffData  = ctx.diffData;
+      const rooms     = diffData.rooms;
+      const nextIndex = ctx.roomIndex + 1;
+      const goldByDiff = [0, 300, 700, 1400, 3200, 8000];
+      goldEarned = Math.floor(goldByDiff[ctx.difficulty] / rooms.length);
+      await updateGold(CUR.id, goldEarned, 'daily_dungeon');
+      playSound('gold');
+
+      if (nextIndex < rooms.length) {
+        // Prossima stanza
+        const nextRoom = rooms[nextIndex];
+        const { data: nextEnemy } = await sb.from('battle_enemies').select('*').eq('id', nextRoom.enemy_id).single();
+        if (nextEnemy) {
+          const enemy = {
+            ...nextEnemy,
+            hp_base: nextEnemy.hp_base, attack_base: nextEnemy.attack,
+            defense_base: nextEnemy.defense, speed_base: nextEnemy.speed,
+            already_scaled: false,
+          };
+          _showEndOverlay(container, true, goldEarned, 0, null, () => {
+            renderBattleScreen(enemy, { ...ctx, roomIndex: nextIndex });
+          });
+          return;
+        }
+      }
+
+      // Dungeon completato — drop 2 item e aggiorna progressi
+      const { addToInventory } = await import('../battle/economy.js');
+      const bc = (await import('../battle/character.js')).getBattleChar(CUR.id);
+      const pool = (DB.battleItems || []).filter(i => i.rarity === diffData.rarity_drop && i.slot !== 'consumable');
+      const picked = [];
+      for (let i = 0; i < 2; i++) {
+        if (pool.length) picked.push(pool[Math.floor(Math.random() * pool.length)]);
+      }
+      for (const item of picked) await addToInventory(CUR.id, bc.id, item.id);
+      itemDropped = picked[0] || null;
+
+      // Aggiorna progressi
+      const today = new Date().toISOString().slice(0, 10);
+      const { data: prog } = await sb.from('daily_dungeon_progress').select('*')
+        .eq('character_id', bc.id).eq('dungeon_id', ctx.dungeonId).maybeSingle();
+      const runsToday = prog?.last_run_date === today ? (prog.runs_today || 0) : 0;
+      const newMaxDiff = Math.max(prog?.max_difficulty_unlocked || 1, ctx.difficulty < 5 ? ctx.difficulty + 1 : 5);
+      await sb.from('daily_dungeon_progress').upsert({
+        character_id: bc.id,
+        dungeon_id:   ctx.dungeonId,
+        difficulty:   ctx.difficulty,
+        max_difficulty_unlocked: newMaxDiff,
+        runs_today:   runsToday + 1,
+        last_run_date: today,
+        updated_at:   new Date().toISOString(),
+      }, { onConflict: 'character_id,dungeon_id' });
+
+      await incrementDailyLimit(CUR.id, 'pve_count');
+      _showEndOverlay(container, true, goldEarned, 0, itemDropped);
+      return;
+    }
+
     // Usa defeatEnemy se siamo in un dungeon — gestisce streak, progresso stanza e moltiplicatore gold
     let rewards;
     if (_dungeonCtx?.dungeon && _enemyData) {
+
+
+
+
+
+
+             
       const { defeatEnemy } = await import('../battle/dungeon.js');
       const dungeonRewards = await defeatEnemy(CUR.id, _enemyData);
       rewards = {
