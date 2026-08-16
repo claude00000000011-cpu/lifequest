@@ -276,14 +276,11 @@ export async function renderBattleResult(containerEl, dungeon, room, outcome, pl
     await markRoomComplete(dungeon.id, room.room, goldEarned, xpEarned);
   }
 
-  const isLastRoom  = room.room === 10;
+ const isLastRoom  = room.isBoss || room.room === 10;
   const nextRoomNum = room.room + 1;
-  const nextRoom    = dungeon.rooms[nextRoomNum - 1];
-
   const winMsg = isLastRoom
     ? `🏆 Dungeon completato! Il prossimo dungeon è ora sbloccato.`
-    : `Prossima stanza: ${nextRoom?.enemyName} — ❤️ ${nextRoom?.enemyHp.toLocaleString()} HP`;
-
+    : `Prossima stanza ${nextRoomNum}`;
   containerEl.innerHTML = `
     <div class="dm-result ${outcome}">
       <div class="dm-result-icon">
@@ -323,6 +320,6 @@ export async function renderBattleResult(containerEl, dungeon, room, outcome, pl
   `;
 
   containerEl.querySelector('#dm-to-map')?.addEventListener('click', onMap);
-  containerEl.querySelector('#dm-continue')?.addEventListener('click', () => onContinue(dungeon, nextRoom));
+    containerEl.querySelector('#dm-continue')?.addEventListener('click', () => onContinue(dungeon, null));
   containerEl.querySelector('#dm-retry')?.addEventListener('click', () => onContinue(dungeon, room));
 }
