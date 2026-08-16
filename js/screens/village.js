@@ -2513,7 +2513,7 @@ window._dismissSummon = async function() {
   await supabase.from('active_summons')
     .update({ status: 'dismissed' })
     .eq('summoner_id', CUR.id);
- delete DB.activeSummons?.[CUR.id];
+ delete DB.activeSummon?.[CUR.id];
   persist();
   toast('Alleato congedato.', 'info');
   renderVillage();
