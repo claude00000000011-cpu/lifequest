@@ -243,9 +243,43 @@ window._openTestBattle = async function() {
   modal.style.cssText = 'position:fixed;inset:0;background:#0008;z-index:9999;display:flex;align-items:center;justify-content:center';
   modal.innerHTML = `
     <div style="background:var(--surface-2);border-radius:16px;padding:1.5rem;width:320px;display:flex;flex-direction:column;gap:12px">
-      <h3 style="margin:0">⚗️ Test Battaglia</h3>
-      <label style="font-size:12px">Dungeon<select id="tb-dungeon" style="width:100%;margin-top:4px">${opts}</select></label>
-      <label style="font-size:12px">Stanza (1-10)<input id="tb-room" type="number" min="1" max="10" value="1" style="width:100%;margin-top:4px"></label>
+
+
+
+    
+     <h3 style="margin:0">⚗️ Test Battaglia</h3>
+      <label style="font-size:12px">Tipo
+        <select id="tb-type" style="width:100%;margin-top:4px" onchange="
+          document.getElementById('tb-world-fields').style.display=this.value==='world'?'':'none';
+          document.getElementById('tb-daily-fields').style.display=this.value==='daily'?'':'none';
+        ">
+          <option value="world">🗺️ World Dungeon</option>
+          <option value="daily">⚔️ Daily Dungeon</option>
+        </select>
+      </label>
+      <div id="tb-world-fields">
+        <label style="font-size:12px">Dungeon<select id="tb-dungeon" style="width:100%;margin-top:4px">${opts}</select></label>
+        <label style="font-size:12px">Stanza (1-10)<input id="tb-room" type="number" min="1" max="10" value="1" style="width:100%;margin-top:4px"></label>
+      </div>
+      <div id="tb-daily-fields" style="display:none">
+        <label style="font-size:12px">Slot<select id="tb-daily-slot" style="width:100%;margin-top:4px">
+          <option value="dungeon_weapon">⚔️ Arma</option>
+          <option value="dungeon_armor">🛡️ Armatura</option>
+          <option value="dungeon_helmet">⛑️ Elmo</option>
+          <option value="dungeon_leggings">👖 Gambali</option>
+          <option value="dungeon_gloves">🧤 Guanti</option>
+          <option value="dungeon_shoes">👟 Scarpe</option>
+          <option value="dungeon_ring">💍 Anello</option>
+          <option value="dungeon_cloak">🧣 Mantello</option>
+          <option value="dungeon_talisman">📿 Talismano</option>
+          <option value="dungeon_pet">🐾 Pet</option>
+        </select></label>
+        <label style="font-size:12px">Difficoltà (1-5)<input id="tb-daily-diff" type="number" min="1" max="5" value="1" style="width:100%;margin-top:4px"></label>
+        <label style="font-size:12px">Stanza (1-5)<input id="tb-daily-room" type="number" min="1" max="5" value="1" style="width:100%;margin-top:4px"></label>
+      </div>
+
+
+      
       <div style="display:flex;gap:8px;margin-top:4px">
         <button onclick="this.closest('div[style]').remove()" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:none;cursor:pointer">Annulla</button>
         <button id="tb-start" style="flex:1;padding:8px;border-radius:8px;background:#7c3aed;color:white;border:none;cursor:pointer">⚔️ Combatti</button>
@@ -254,7 +288,36 @@ window._openTestBattle = async function() {
   `;
   document.body.appendChild(modal);
   modal.querySelector('#tb-start').addEventListener('click', async () => {
+
+
+           
+   const type = modal.querySelector('#tb-type').value;
+    if (type === 'daily') {
+      const dungeonId = modal.querySelector('#tb-daily-slot').value;
+      const diff      = parseInt(modal.querySelector('#tb-daily-diff').value) || 1;
+      const roomIdx   = (parseInt(modal.querySelector('#tb-daily-room').value) || 1) - 1;
+      modal.remove();
+      const { supabase: sb } = await import('../../supabase.js');
+      const { data: diffData } = await sb.from('daily_dungeon_difficulties')
+        .select('*').eq('dungeon_id', dungeonId).eq('difficulty', diff).single();
+      if (!diffData) return toast('Difficoltà non trovata', 'error');
+      const room = diffData.rooms[roomIdx];
+      if (!room) return toast('Stanza non trovata', 'error');
+      const { data: enemyData } = await sb.from('battle_enemies').select('*').eq('id', room.enemy_id).single();
+      if (!enemyData) return toast('Nemico non trovato', 'error');
+      const enemy = {
+        ...enemyData, hp_base: enemyData.hp_base,
+        attack_base: enemyData.attack, defense_base: enemyData.defense,
+        speed_base: enemyData.speed, already_scaled: false, _testMode: true,
+      };
+      import('../battle/battle_screen.js').then(m => m.renderBattleScreen?.(enemy, { testMode: true }));
+      window._gotoTab?.('battle');
+      return;
+    }
     const wi   = parseInt(modal.querySelector('#tb-dungeon').value);
+
+
+           
     const room = Math.min(10, Math.max(1, parseInt(modal.querySelector('#tb-room').value) || 1));
     modal.remove();
     const { loadDungeonRooms } = await import('../battle/config.js');
