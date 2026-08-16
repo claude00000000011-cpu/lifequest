@@ -469,8 +469,22 @@ async function _handleAction(container, action, payload, abilityData = null) {
   }
 
  _battleState = newState;
-  _updateBars(container, newState);
+ _updateBars(container, newState);
   _updateStatuses(container, newState);
+  // Sincronizza HP alleato se attaccato dal nemico via engine
+  if (_summonData && !_summonData.isDead && newState.summon) {
+    _summonData.hp = newState.summon.hp;
+    _summonData.isDead = newState.summon.isDead || false;
+    const fill = document.getElementById('summon-hp-fill');
+    const val  = document.getElementById('summon-hp-val');
+    const pct  = Math.round((_summonData.hp / _summonData.hpMax) * 100);
+    if (fill) fill.style.width = pct + '%';
+    if (val)  val.textContent  = `${_summonData.hp}/${_summonData.hpMax}`;
+    if (_summonData.isDead) {
+      const sprite = document.getElementById('summon-sprite');
+      if (sprite) sprite.style.opacity = '0.3';
+    }
+  }
   document.getElementById('battle-turn').textContent = Math.min(newState.turn, 10);
 
   // Attacco automatico alleato evocato
