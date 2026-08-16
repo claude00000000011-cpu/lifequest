@@ -702,7 +702,7 @@ export async function incrementFightStreak(userId) {
       .select('fight_streak')
       .eq('user_id', userId)
       .eq('date', today)
-      .single();
+      .maybeSingle();
     const newStreak = (current?.fight_streak || 0) + 1;
     await supabase
       .from('daily_battle_limits')
