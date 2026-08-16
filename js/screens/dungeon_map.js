@@ -235,7 +235,15 @@ if (!rooms) {
         ${locked ? '<span class="dm-room-lock">🔒</span>' : ''}
       </div>
       <div class="dm-room-enemy">${room.enemyName}</div>
-      <div class="dm-room-hp">❤️ ${room.enemyHp.toLocaleString()} HP</div>
+     <div class="dm-room-hp">❤️ ${(() => {
+        const excess      = Math.max(0, playerLevel - (dungeon.requiredLevel || 1));
+        const levelMult   = 1 + excess * 0.04;
+        const atkBaseForTier = 14;
+        const atkRatio    = Math.max(1, 10 / (atkBaseForTier * 2));
+        const hpAtkScaling = Math.min(atkRatio, 1.5);
+        const scaledHp    = Math.floor(room.enemyHp * levelMult * hpAtkScaling);
+        return scaledHp.toLocaleString();
+      })()} HP</div>
       <div class="dm-room-rewards">
         <span>💰 ${room.gold}g</span>
         <span>✨ ${room.xp} XP</span>
