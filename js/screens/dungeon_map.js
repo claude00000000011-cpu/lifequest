@@ -11,6 +11,7 @@ import { CUR }                         from '../db.js';
 
 // Cache locale per evitare troppe query
 let _progressCache = null;
+export function _invalidateProgressCache() { _progressCache = null; }
 
 async function loadProgress() {
   if (_progressCache) return _progressCache;
