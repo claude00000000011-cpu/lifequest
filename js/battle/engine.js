@@ -195,10 +195,16 @@ function doAttack(s, attacker, defender) {
   const rawDmg  = COMBAT.damage(atk.attack, effectiveDef, K);
   const varied  = applyVariance(rawDmg, variance);
 
-  const critChance = Math.min(critCap, atk.luck || 0);
+  const critChance = Math.min(critCap, (atk.luck || 0) + (atk.crit_chance ?? 0));
   const isCrit     = Math.random() * 100 < critChance;
-  const critMultFinal = critMult + ((atk.crit_damage_bonus ?? 0) / 100);
-  const finalDmg   = isCrit ? Math.floor(varied * critMultFinal) : varied;
+  const critMultFinal = critMult + ((atk.crit_damage_bonus ?? 0) / 100) + ((atk.crit_damage ?? 0) / 100);
+  let finalDmg     = isCrit ? Math.floor(varied * critMultFinal) : varied;
+
+  // bonus_damage_pct
+  if (attacker === 'player' && (atk.bonus_damage_pct ?? 0) > 0) {
+    finalDmg = Math.floor(finalDmg * (1 + atk.bonus_damage_pct / 100));
+  }
+  // armor_pierce_pct già applicato sopra via effectiveDef
  
   const dodgeChance = attacker === 'enemy' ? (def.dodge_chance ?? 0) : 0;
   const isDodged    = Math.random() * 100 < dodgeChance;
@@ -206,19 +212,72 @@ function doAttack(s, attacker, defender) {
     s.log.push(`Hai schivato l'attacco!`);
     return s;
   }
-  const dmgAfterReduction = attacker === 'enemy'
+ const dmgAfterReduction = attacker === 'enemy'
     ? Math.max(1, Math.floor(finalDmg * (1 - (def.dmg_reduction ?? 0) / 100)))
     : finalDmg;
   s[defender].hp = Math.max(0, def.hp - dmgAfterReduction);
- 
+
   const critText = isCrit ? ' 💥 CRITICO!' : '';
   const actor    = attacker === 'player' ? 'Attacchi' : `${atk.name} attacca`;
-  s.log.push(`${actor} per ${finalDmg} danni.${critText}`);
- 
-  if (s[defender].hp === 0) {
+  s.log.push(`${actor} per ${dmgAfterReduction} danni.${critText}`);
+
+  // lifesteal
+  if (attacker === 'player' && (atk.lifesteal_pct ?? 0) > 0) {
+    const stolen = Math.floor(dmgAfterReduction * atk.lifesteal_pct / 100);
+    if (stolen > 0) {
+      s.player.hp = Math.min(s.player.hpMax, s.player.hp + stolen);
+      s.log.push(`🩸 Vampirismo: recuperi ${stolen} PF.`);
+    }
+  }
+
+  // reflect
+  if (attacker === 'enemy' && (def.reflect_pct ?? 0) > 0) {
+    const reflected = Math.floor(dmgAfterReduction * def.reflect_pct / 100);
+    if (reflected > 0) {
+      s.enemy.hp = Math.max(0, s.enemy.hp - reflected);
+      s.log.push(`🔄 Rifletti ${reflected} danni al nemico!`);
+    }
+  }
+
+  // shield_on_hit — il giocatore assorbe danno futuro
+  if (attacker === 'enemy' && (def.shield_on_hit ?? 0) > 0) {
+    s.player.shield = (s.player.shield || 0) + def.shield_on_hit;
+    s.log.push(`🔵 Scudo +${def.shield_on_hit} attivato.`);
+  }
+
+  // mana_on_hit — il giocatore guadagna mana se colpito
+  if (attacker === 'enemy' && (def.mana_on_hit ?? 0) > 0) {
+    s.player.mana = Math.min(s.player.manaMax, s.player.mana + def.mana_on_hit);
+    s.log.push(`💙 +${def.mana_on_hit} MP per il colpo subito.`);
+  }
+
+  // execute_threshold — uccide nemici sotto soglia HP
+  if (attacker === 'player' && (atk.execute_threshold ?? 0) > 0 && s.enemy.hp > 0) {
+    const pct = (s.enemy.hp / s.enemy.hpMax) * 100;
+    if (pct < atk.execute_threshold) {
+      s.log.push(`☠️ Esecuzione! Il nemico è sotto ${atk.execute_threshold}% HP.`);
+      s.enemy.hp = 0;
+    }
+  }
+
+  // on_kill_hp_restore
+  if (attacker === 'player' && s.enemy.hp === 0 && (atk.on_kill_hp_restore ?? 0) > 0) {
+    s.player.hp = Math.min(s.player.hpMax, s.player.hp + atk.on_kill_hp_restore);
+    s.log.push(`💚 +${atk.on_kill_hp_restore} HP per la kill.`);
+  }
+
+ if (s[defender].hp === 0) {
     s = checkVictory(s, defender);
   }
- 
+
+  // double_hit_chance — secondo colpo
+  if (!s.isOver && attacker === 'player' && (atk.double_hit_chance ?? 0) > 0) {
+    if (Math.random() * 100 < atk.double_hit_chance) {
+      s.log.push(`⚡ Doppio Colpo!`);
+      s = doAttack(s, 'player', 'enemy');
+    }
+  }
+
   return s;
 }
  
@@ -235,7 +294,8 @@ function doAbility(s, attacker, defender, abilityData) {
   // Scala i valori in base al livello corrente dell'abilità
   const abilityLevel = abilityData._currentLevel || 1;
   const levelMult    = 1 + (abilityLevel - 1) * 0.15; // +15% per livello
-  const manaCost     = Math.round((abilityData.mana_cost || 0) * levelMult);
+ const cdReduction  = s.player?.cooldown_reduction ?? 0;
+  const manaCost     = Math.max(0, Math.round((abilityData.mana_cost || 0) * levelMult * (1 - cdReduction / 100)));
  
   if (atk.mana < manaCost) {
     s.log.push(`Mana insufficiente! (${atk.mana}/${manaCost})`);
@@ -270,8 +330,9 @@ function doAbility(s, attacker, defender, abilityData) {
       s.log.push(`⬆️ ${abilityData.name}: attacco aumentato per ${abilityData.duration_turns} turni.`);
     }
  
-    if (abilityData.debuff_pct < 0) {
-      const resisted = Math.random() < COMBAT.statusResistBase;
+   if (abilityData.debuff_pct < 0) {
+      const resistBase = COMBAT.statusResistBase - ((s[defender].status_resist_pct ?? 0) / 100);
+      const resisted = Math.random() < Math.max(0, resistBase);
       if (!resisted) {
         applyStatusEffect(s, defender, 'attackDebuff', 1, abilityData.duration_turns || 2);
         s.log.push(`⬇️ ${abilityData.name}: attacco del nemico ridotto!`);
@@ -280,8 +341,9 @@ function doAbility(s, attacker, defender, abilityData) {
       }
     }
  
-    if (abilityData.id?.includes('poison')) {
-      const resisted = Math.random() < COMBAT.statusResistBase;
+   if (abilityData.id?.includes('poison')) {
+      const resistBase = COMBAT.statusResistBase - ((s[defender].status_resist_pct ?? 0) / 100);
+      const resisted = Math.random() < Math.max(0, resistBase);
       if (!resisted) {
         applyStatusEffect(s, defender, 'poison', 1, abilityData.duration_turns || 3);
         s.log.push(`☠️ ${abilityData.name}: veleno applicato!`);
@@ -291,11 +353,11 @@ function doAbility(s, attacker, defender, abilityData) {
     }
  
     if (abilityData.id?.includes('stun') || abilityData.id?.includes('slow')) {
-      // I boss in fase 2 sono immuni allo stordimento
       if (s[defender].isBoss && s[defender].isPhase2) {
         s.log.push(`🛡️ ${s[defender].name} è in fase 2 e resiste allo stordimento!`);
       } else {
-        const resisted = Math.random() < COMBAT.statusResistBase;
+        const resistBase = COMBAT.statusResistBase - ((s[defender].status_resist_pct ?? 0) / 100);
+        const resisted = Math.random() < Math.max(0, resistBase);
         if (!resisted) {
           applyStatusEffect(s, defender, 'stun', 1, COMBAT.stunTurns);
           s.log.push(`⚡ ${abilityData.name}: stordimento!`);
@@ -304,6 +366,9 @@ function doAbility(s, attacker, defender, abilityData) {
         }
       }
     }
+
+  // cooldown_reduction — riduce manaCost come proxy del cooldown
+  // (il vero cooldown va implementato quando aggiungi CD alle abilità)
   }
  
   if (type === 'passive') {
@@ -440,10 +505,15 @@ function doSupport(s) {
  
 function processEnemyTurn(s) {
   const enemy = s.enemy;
- 
+
   const stun = enemy.statusEffects.find(e => e.type === 'stun' && e.turnsLeft > 0);
   if (stun) {
     s.log.push(`⚡ ${enemy.name} è stordito e salta il turno!`);
+    // counter_chance dopo schivata — il giocatore contrattacca se nemico è stordito
+    if ((s.player.counter_chance ?? 0) > 0 && Math.random() * 100 < s.player.counter_chance) {
+      s.log.push(`⚔️ Contrattacco!`);
+      s = doAttack(s, 'player', 'enemy');
+    }
     return s;
   }
  
@@ -563,12 +633,22 @@ function applyStartOfTurn(s, target) {
     s[target].manaMax,
     s[target].mana + COMBAT.manaRegenPerTurn
   );
-  // Rigenerazione HP passiva (Oracolo)
-  if (target === 'player' && s.player.hp_regen > 0) {
-    const regen = s.player.hp_regen;
-    s.player.hp = Math.min(s.player.hpMax, s.player.hp + regen);
-    if (regen > 0) s.log.push(`💚 Rigenerazione passiva: recuperi ${regen} PF.`);
+// Rigenerazione HP passiva (classe + item)
+  const hpRegen = (target === 'player')
+    ? (s.player.hp_regen || 0) + (s.player.hp_regen_turn || 0)
+    : 0;
+  if (hpRegen > 0) {
+    s.player.hp = Math.min(s.player.hpMax, s.player.hp + hpRegen);
+    s.log.push(`💚 Rigenerazione: recuperi ${hpRegen} PF.`);
   }
+
+  // Rigenerazione Mana da item
+  if (target === 'player' && (s.player.mana_regen_turn ?? 0) > 0) {
+    const mr = s.player.mana_regen_turn;
+    s.player.mana = Math.min(s.player.manaMax, s.player.mana + mr);
+    s.log.push(`💧 Rigenerazione Mana: +${mr} MP.`);
+  }
+
   return s;
 }
  
@@ -601,24 +681,31 @@ function tickStatusEffects(s, target) {
 // ── Fine Battaglia ────────────────────────────────────────────
  
 function checkVictory(s, defeated) {
+  // revive_once — il giocatore sopravvive una volta
+  if (defeated === 'player' && s.player.revive_once && !s.player._revivedOnce) {
+    s.player._revivedOnce = true;
+    s.player.hp = Math.floor(s.player.hpMax * 0.25);
+    s.log.push(`✨ Rinascita! Sopravvivi con il 25% dei PF!`);
+    return s;
+  }
+
   s.isOver = true;
   s.winner = defeated === 'enemy' ? 'player' : 'enemy';
- 
+
   if (s.winner === 'player') {
     s.log.push(`⚔️ Vittoria! ${s.enemy.name} è stato sconfitto!`);
   } else {
     s.log.push(`💀 Sconfitta... ${s.enemy.name} ti ha battuto.`);
   }
- 
+
   return s;
 }
  
 // ── Calcolo Ricompense ────────────────────────────────────────
 
-export function calcPveRewards(enemyData, playerLuck, dungeonTier, streakMultiplier = 1.0) {
-  const gold = Math.floor(Number(enemyData.gold_reward || 0) * streakMultiplier);
- const xp = 0;           //exp ZERO nei combattimenti
-
+export function calcPveRewards(enemyData, playerLuck, dungeonTier, streakMultiplier = 1.0, playerStats = {}) {
+  const goldBonus = 1 + ((playerStats.gold_bonus_pct ?? 0) / 100);
+  const gold = Math.floor(Number(enemyData.gold_reward || 0) * streakMultiplier * goldBonus);
   // Probabilità base di drop determinata dal tier del dungeon
   const dropRates = [0.15, 0.18, 0.22, 0.28, 0.35];
   const baseDropRate = dropRates[Math.min(Math.max(dungeonTier - 1, 0), 4)] || 0.15;
