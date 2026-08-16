@@ -290,6 +290,7 @@ export function playSoundDucked(name, duckPct = 0.5) {
       audio.currentTime = 0;
       audio.play().catch(() => { try { _playSynth(name); } catch(e) {} });
       audio.addEventListener('ended', restore, { once: true });
+      setTimeout(restore, 8000); // fallback se ended non scatta
       return;
     }
     try { _playSynth(name); } catch(e) {}
