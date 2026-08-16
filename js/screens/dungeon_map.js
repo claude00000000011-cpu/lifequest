@@ -240,7 +240,7 @@ if (!rooms) {
         <span>✨ ${room.xp} XP</span>
       </div>
       ${!locked && !done ? '<button class="dm-btn-enter">⚔️ Entra</button>' : ''}
-      ${done && room.room < 10 ? '<button class="dm-btn-replay">🔁 Rifai</button>' : ''}
+    ${done ? '<button class="dm-btn-replay">🔁 Rifai</button>' : ''}
     `;
 
     if (!locked) {
@@ -305,9 +305,13 @@ export async function renderBattleResult(containerEl, dungeon, room, outcome, pl
         </p>
       `}
 
-      <div class="dm-result-actions">
+     <div class="dm-result-actions">
         ${outcome === 'win' && !isLastRoom
           ? `<button class="dm-btn-primary" id="dm-continue">⚔️ Stanza ${nextRoomNum}</button>`
+          : ''
+        }
+        ${outcome === 'win' && isLastRoom
+          ? `<button class="dm-btn-primary" id="dm-retry">🔁 Rifai Boss</button>`
           : ''
         }
         <button class="dm-btn-secondary" id="dm-to-map">🗺️ Torna alla Mappa</button>
