@@ -2244,13 +2244,47 @@ window._openBox = async function(boxType) {
 function showLootResult(item, rarity, color) {
   const overlay = document.createElement('div');
   overlay.className = 'loot-result-overlay';
+  const rarNames = { common:'Comune', uncommon:'Non Comune', rare:'Raro', epic:'Epico', legendary:'Leggendario', mythic:'Mitico' };
+  const bonusText = item ? buildBonusText(item) : '';
   overlay.innerHTML = `
-    <div class="loot-result-card" style="border-color:${color}">
+    <div class="loot-result-card" style="
+      border-color:${color};
+      box-shadow: 0 0 24px ${color}66, 0 0 48px ${color}22;
+    ">
       <div class="loot-result-icon" style="background:${color}22">${slotEmoji(item?.slot)}</div>
-      <div class="loot-result-rarity" style="color:${color}">${rarity.toUpperCase()}</div>
-      <div class="loot-result-name">${escHtml(item?.name || 'Oggetto Misterioso')}</div>
-      <p style="color:var(--text-2);font-size:0.85rem">${escHtml(item?.description || '')}</p>
-      <button class="btn-primary" onclick="this.closest('.loot-result-overlay').remove()">Ottimo!</button>
+      <div class="loot-result-rarity" style="
+        color:${color};
+        text-shadow: 0 0 10px ${color}99;
+        font-weight:700;
+        letter-spacing:1px;
+      ">${(rarNames[rarity] || rarity).toUpperCase()}</div>
+      <div class="loot-result-name" style="
+        color:${color};
+        text-shadow: 0 0 8px ${color}88;
+        font-size:1.1rem;
+        font-weight:700;
+        margin: 4px 0;
+      ">${escHtml(item?.name || 'Oggetto Misterioso')}</div>
+      ${item?.slot || item?.class_restriction ? `
+        <div style="font-size:0.72rem;color:var(--text-3);margin-bottom:6px;">
+          ${escHtml(item?.slot || '')}${item?.class_restriction ? ` · Solo ${escHtml(item.class_restriction)}` : ''}
+        </div>
+      ` : ''}
+      ${bonusText ? `
+        <div style="
+          font-size:0.75rem;
+          color:var(--text-2);
+          background:${color}11;
+          border:1px solid ${color}33;
+          border-radius:8px;
+          padding:8px 10px;
+          margin:6px 0;
+          line-height:1.8;
+          text-align:left;
+        ">${bonusText.split(' · ').join('<br>')}</div>
+      ` : ''}
+      ${item?.description ? `<p style="color:var(--text-2);font-size:0.82rem;margin-top:6px">${escHtml(item.description)}</p>` : ''}
+      <button class="btn-primary" style="margin-top:12px;background:${color};border-color:${color};" onclick="this.closest('.loot-result-overlay').remove()">Ottimo!</button>
     </div>
   `;
   overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
