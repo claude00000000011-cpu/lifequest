@@ -946,8 +946,9 @@ async function renderInventory(bc, user) {
               ${item ? `
                 <div class="equip-slot__item rarity-border-${item.rarity}">
                   <div class="equip-item-icon">${slotEmoji(slot)}</div>
-                  <div class="equip-item-name">${escHtml(item.name)}</div>
+                 <div class="equip-item-name">${escHtml(item.name)}</div>
                   <div class="equip-item-dur">Durabilità: ${s.durability}%</div>
+                  <div class="inv-item__bonuses" style="font-size:10px;margin-top:4px">${buildBonusText(item)}</div>
                   <button class="btn-sm btn-danger"
                     onclick="window._unequipItem?.('${s.id}', '${slot}')">
                     Rimuovi
@@ -959,8 +960,9 @@ async function renderInventory(bc, user) {
         }).join('')}
       </div>
 
-      <div class="village-section-title" style="margin-top:1.25rem">
-        🎒 Zaino (${sorted.length} oggetti)
+     <div class="village-section-title" style="margin-top:1.25rem;display:flex;align-items:center;justify-content:space-between">
+        <span>🎒 Zaino (${sorted.length} oggetti)</span>
+        <button class="btn-sm btn-primary" onclick="window._autoEquipBest?.()">⚡ Auto-Equip</button>
       </div>
 
       <!-- Filtri zaino -->
@@ -2688,6 +2690,99 @@ window._sendChatMessage = async function() {
     msgs.scrollTop = msgs.scrollHeight;
   }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+window._autoEquipBest = async function() {
+  const bc  = getBattleChar(CUR.id);
+  if (!bc) return toast('Personaggio non trovato', 'error');
+  const inv = await loadInventory(CUR.id);
+
+  // Pesi per classe
+  const classWeights = {
+    warrior: { bonus_attack:1.5, bonus_defense:1.0, bonus_hp:0.10, bonus_speed:1.0, bonus_mana:0.05 },
+    mage:    { bonus_attack:0.5, bonus_defense:0.8, bonus_hp:0.08, bonus_speed:0.8, bonus_mana:1.5  },
+    shadow:  { bonus_attack:1.4, bonus_defense:0.8, bonus_hp:0.08, bonus_speed:1.3, bonus_mana:0.3  },
+    oracle:  { bonus_attack:0.6, bonus_defense:1.0, bonus_hp:0.15, bonus_speed:0.8, bonus_mana:1.3  },
+    bard:    { bonus_attack:0.8, bonus_defense:0.8, bonus_hp:0.10, bonus_speed:1.2, bonus_mana:1.2  },
+  };
+  const w = classWeights[bc.class_id] || classWeights.warrior;
+
+  const score = (item) =>
+    (item.bonus_attack   || 0) * w.bonus_attack  +
+    (item.bonus_defense  || 0) * w.bonus_defense +
+    (item.bonus_hp       || 0) * w.bonus_hp      +
+    (item.bonus_speed    || 0) * w.bonus_speed   +
+    (item.bonus_mana     || 0) * w.bonus_mana;
+
+  // Raggruppa per slot e trova il migliore equipaggiabile
+  const slots = ['weapon','armor','helmet','leggings','gloves','shoes','ring','cloak','talisman','pet'];
+  const best  = {};
+
+  for (const entry of inv) {
+    const item = entry.item || entry.battle_items;
+    if (!item || item.slot === 'consumable') continue;
+    if (!slots.includes(item.slot)) continue;
+    if (!canEquipItem(CUR.id, item)) continue;
+    const s = score(item);
+    if (!best[item.slot] || s > best[item.slot].score) {
+      best[item.slot] = { entry, item, score: s };
+    }
+  }
+
+  if (!Object.keys(best).length) return toast('Nessun oggetto equipaggiabile trovato', 'error');
+
+  const { supabase: sb } = await import('../../supabase.js');
+  let equipped = 0;
+
+  for (const slot of slots) {
+    if (!best[slot]) continue;
+    const { entry, item } = best[slot];
+    const { error } = await sb.from('character_equipment').upsert({
+      character_id: bc.id,
+      slot,
+      item_id:     item.id,
+      durability:  100,
+      equipped_at: new Date().toISOString(),
+    }, { onConflict: 'character_id,slot' });
+    if (error) { console.warn('[AutoEquip] slot', slot, error.message); continue; }
+    const { data: eq } = await sb.from('character_equipment').select('id')
+      .eq('character_id', bc.id).eq('slot', slot).single();
+    if (eq) {
+      await sb.from('item_enhancements').update({ equipment_id: eq.id }).eq('inventory_id', entry.id);
+      await sb.from('inventory').delete().eq('id', entry.id);
+    }
+    equipped++;
+  }
+
+  await loadEquipment(CUR.id);
+  await syncBattleCharacter(CUR.id);
+  await syncPowerLevel(CUR.id);
+  playSound('equip');
+  toast(`⚡ Auto-equip: ${equipped} oggetti equipaggiati!`, 'success');
+  renderVillage();
+};
+
+
+
+
+
+
+
+
+
+
 
 
 
