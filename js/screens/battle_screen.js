@@ -7,7 +7,7 @@
 import { CUR, DB, persist }    from '../db.js';
 import { supabase } from '../../supabase.js';
 import { escHtml, toast }       from '../utils.js';
-import { playSound }            from '../audio.js';
+import { playSound, playSoundDucked } from '../audio.js';
 import { calcBattleStats, getBattleChar, getDailyLimits,
          incrementDailyLimit, updateGold } from '../battle/character.js';
 import { initBattle, processPlayerAction, calcPveRewards } from '../battle/engine.js';
@@ -391,7 +391,7 @@ async function _handleAction(container, action, payload, abilityData = null) {
     }
     if (msg.includes('CRITICO'))   playSound('crit');
     if (msg.includes('FASE 2'))    playSound('phase2');
-    if (type === 'win')  playSound('victory');
+    if (type === 'win')  playSoundDucked('victory', 0.4);
     if (type === 'lose') playSound('defeat');
     await _appendLog(container, msg, type);
     await _sleep(280);
@@ -564,7 +564,7 @@ async function _onBattleEnd(container, state) {
 
          
 if (won) {
-    playSound('victory');
+  playSoundDucked('victory', 0.4);
 
     // ── Daily Dungeon ─────────────────────────────────────────
     if (_dungeonCtx?.dailyDungeon) {
