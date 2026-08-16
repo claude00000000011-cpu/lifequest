@@ -239,8 +239,11 @@ function renderVillageHeader(bc, user, level) {
 window._openTestBattle = async function() {
   const { WORLD_DUNGEONS } = await import('../battle/config.js');
   const opts = WORLD_DUNGEONS.map((d,i) => `<option value="${i}">${d.name} (lv ${d.requiredLevel}+)</option>`).join('');
+ const modalId = 'daily-dungeon-modal';
+  document.getElementById(modalId)?.remove();
   const modal = document.createElement('div');
-  modal.style.cssText = 'position:fixed;inset:0;background:#0008;z-index:9999;display:flex;align-items:center;justify-content:center';
+  modal.id = modalId;
+  modal.style.cssText = 'position:fixed;inset:0;background:#0009;z-index:9999;display:flex;align-items:flex-end;justify-content:center';
   modal.innerHTML = `
     <div style="background:var(--surface-2);border-radius:16px;padding:1.5rem;width:320px;display:flex;flex-direction:column;gap:12px">
 
@@ -767,7 +770,7 @@ window._openDailyDungeon = async function(dungeonId) {
     <div style="background:var(--surface-2);border-radius:16px 16px 0 0;padding:1.5rem;width:100%;max-width:480px;max-height:85vh;overflow-y:auto">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
         <h3 style="margin:0">${dungeon.icon} ${escHtml(dungeon.name)}</h3>
-        <button onclick="this.closest('div[style]').parentElement.remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-2)">✕</button>
+       <button onclick="document.getElementById('daily-dungeon-modal')?.remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-2)">✕</button>
       </div>
       <div style="font-size:12px;color:var(--text-2);margin-bottom:1rem">
         ${escHtml(dungeon.description || '')} · Run oggi: <strong>${runsToday}/4</strong>
@@ -792,7 +795,7 @@ window._openDailyDungeon = async function(dungeonId) {
                   ? `<span style="font-size:18px">🔒</span>`
                   : runsToday >= 4
                     ? `<span style="font-size:11px;color:var(--text-3)">Limite giornaliero</span>`
-                    : `<button onclick="window._startDailyDungeon?.('${dungeonId}', ${d.difficulty}); this.closest('div[style]').parentElement.parentElement.parentElement.remove()"
+                  : `<button onclick="document.getElementById('daily-dungeon-modal')?.remove(); window._startDailyDungeon?.('${dungeonId}', ${d.difficulty})"
                                style="padding:6px 14px;border-radius:8px;background:${diffColors[d.difficulty]};color:white;border:none;cursor:pointer;font-size:13px">
                          Entra
                        </button>`
