@@ -154,7 +154,6 @@ export const ECONOMY = {
   goldGuildQuestMin: 30,
   goldGuildQuestMax: 100,
   LOOT_BOXES: {
-  LOOT_BOXES: {
     wood:   { cost: 100,  pity: 10, rarityTarget: 'common'    },
     iron:   { cost: 400,  pity: 10, rarityTarget: 'uncommon'  },
     gold:   { cost: 1200, pity: 10, rarityTarget: 'rare'      },
@@ -168,6 +167,7 @@ export const ECONOMY = {
     arcana: { common:0,    uncommon:0,    rare:0.20, epic:0.65, legendary:0.15, mythic:0    },
     mythic: { common:0,    uncommon:0,    rare:0,    epic:0.10, legendary:0.70, mythic:0.20 },
   },
+  MERCHANT: {
     rotationHours:24, slotsAvailable:6,
     priceHealSmall:15, priceHealMedium:35, priceHealLarge:70,
     priceManaSmall:15, priceManaLarge:60, priceBombAoe:40,
