@@ -309,9 +309,8 @@ window._openTestBattle = async function() {
         ...enemyData, hp_base: enemyData.hp_base,
         attack_base: enemyData.attack, defense_base: enemyData.defense,
         speed_base: enemyData.speed, already_scaled: false, _testMode: true,
-      };
-import('./battle_screen.js').then(m => m.renderBattleScreen?.(enemy, { testMode: true }));
-      window._gotoTab?.('battle');
+    };
+      await import('./battle_screen.js').then(m => m.renderBattleScreen?.(enemy, { testMode: true }));
       return;
     }
     const wi   = parseInt(modal.querySelector('#tb-dungeon').value);
@@ -331,9 +330,8 @@ import('./battle_screen.js').then(m => m.renderBattleScreen?.(enemy, { testMode:
       attack_base: roomData.enemyAttack, defense_base: roomData.enemyDef,
       speed_base: 5, is_boss: roomData.isBoss, xp_reward: 0, gold_reward: 0,
       already_scaled: true, _testMode: true,
-    };
-import('./battle_screen.js').then(m => m.renderBattleScreen?.(enemy, { testMode: true }));
-    window._gotoTab?.('battle');
+   };
+    await import('./battle_screen.js').then(m => m.renderBattleScreen?.(enemy, { testMode: true }));
   });
 };
 
