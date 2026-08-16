@@ -2117,3 +2117,47 @@
   gap: 0;
 }
 .village-tabs::-webkit-scrollbar { display: none; }
+
+
+
+/* ── Daily Dungeon Grid ───────────────────────────── */
+.daily-dungeon-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 1rem;
+}
+
+.daily-dungeon-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.daily-dungeon-card:hover {
+  border-color: var(--border-accent);
+}
+
+.daily-dungeon-icon {
+  font-size: 28px;
+  width: 44px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.daily-dungeon-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.daily-dungeon-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
