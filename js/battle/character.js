@@ -131,7 +131,44 @@ const cc = DB.combatConfig;
  
   // Bonus equipaggiamento
   const equipment = DB.characterEquipment[userId] || [];
-  const eqBonus   = calcEquipmentBonus(equipment);
+ const eqBonus   = calcEquipmentBonus(equipment);
+
+  const subStats = {
+    crit_chance: 0, crit_damage: 0, lifesteal_pct: 0,
+    armor_pierce_pct: 0, bonus_damage_pct: 0, execute_threshold: 0,
+    on_kill_hp_restore: 0, damage_reduction_pct: 0, reflect_pct: 0,
+    hp_regen_turn: 0, mana_regen_turn: 0, shield_on_hit: 0,
+    revive_once: false, dodge_chance: 0, counter_chance: 0,
+    gold_bonus_pct: 0, xp_bonus_pct: 0, cooldown_reduction: 0,
+    mana_on_hit: 0, double_hit_chance: 0, status_resist_pct: 0,
+    summon_boost_pct: 0,
+  };
+  for (const eq of equipment) {
+    const it = eq.item;
+    if (!it) continue;
+    subStats.crit_chance          += it.crit_chance          ?? 0;
+    subStats.crit_damage          += it.crit_damage          ?? 0;
+    subStats.lifesteal_pct        += it.lifesteal_pct        ?? 0;
+    subStats.armor_pierce_pct     += it.armor_pierce_pct     ?? 0;
+    subStats.bonus_damage_pct     += it.bonus_damage_pct     ?? 0;
+    subStats.execute_threshold     = Math.max(subStats.execute_threshold, it.execute_threshold ?? 0);
+    subStats.on_kill_hp_restore   += it.on_kill_hp_restore   ?? 0;
+    subStats.damage_reduction_pct += it.damage_reduction_pct ?? 0;
+    subStats.reflect_pct          += it.reflect_pct          ?? 0;
+    subStats.hp_regen_turn        += it.hp_regen_turn        ?? 0;
+    subStats.mana_regen_turn      += it.mana_regen_turn      ?? 0;
+    subStats.shield_on_hit        += it.shield_on_hit        ?? 0;
+    if (it.revive_once) subStats.revive_once = true;
+    subStats.dodge_chance         += it.dodge_chance         ?? 0;
+    subStats.counter_chance       += it.counter_chance       ?? 0;
+    subStats.gold_bonus_pct       += it.gold_bonus_pct       ?? 0;
+    subStats.xp_bonus_pct         += it.xp_bonus_pct         ?? 0;
+    subStats.cooldown_reduction   += it.cooldown_reduction   ?? 0;
+    subStats.mana_on_hit          += it.mana_on_hit          ?? 0;
+    subStats.double_hit_chance    += it.double_hit_chance    ?? 0;
+    subStats.status_resist_pct    += it.status_resist_pct    ?? 0;
+    subStats.summon_boost_pct     += it.summon_boost_pct     ?? 0;
+  }
  
 // Bonus passivi di classe crescenti ogni 10 livelli
   const passiveData = classData.passive_bonus_per_10lvl || {};
@@ -162,12 +199,30 @@ const cc = DB.combatConfig;
     luck:           finalLuck,
     level,
     classId,
-    crit_damage_bonus: passiveCritDmg  + (eqBonus.crit_damage  ?? 0),
-    dodge_chance:      passiveDodge,
-    hp_regen:          passiveHpRegen,
-    dmg_reduction:     passiveDmgRed,
-    magic_pierce:      passiveMagicPierce,
-    atk_bonus_pct:     passiveAtkBonusPct,
+    crit_damage_bonus:    passiveCritDmg + (eqBonus.crit_damage ?? 0) + subStats.crit_damage,
+    dodge_chance:         passiveDodge   + subStats.dodge_chance,
+    hp_regen:             passiveHpRegen + subStats.hp_regen_turn,
+    dmg_reduction:        passiveDmgRed  + subStats.damage_reduction_pct,
+    magic_pierce:         passiveMagicPierce,
+    atk_bonus_pct:        passiveAtkBonusPct,
+    crit_chance:          subStats.crit_chance,
+    lifesteal_pct:        subStats.lifesteal_pct,
+    armor_pierce_pct:     subStats.armor_pierce_pct,
+    bonus_damage_pct:     subStats.bonus_damage_pct,
+    execute_threshold:    subStats.execute_threshold,
+    on_kill_hp_restore:   subStats.on_kill_hp_restore,
+    reflect_pct:          subStats.reflect_pct,
+    mana_regen_turn:      subStats.mana_regen_turn,
+    shield_on_hit:        subStats.shield_on_hit,
+    revive_once:          subStats.revive_once,
+    counter_chance:       subStats.counter_chance,
+    gold_bonus_pct:       subStats.gold_bonus_pct,
+    xp_bonus_pct:         subStats.xp_bonus_pct,
+    cooldown_reduction:   subStats.cooldown_reduction,
+    mana_on_hit:          subStats.mana_on_hit,
+    double_hit_chance:    subStats.double_hit_chance,
+    status_resist_pct:    subStats.status_resist_pct,
+    summon_boost_pct:     subStats.summon_boost_pct,
   };
 }
 
@@ -702,7 +757,13 @@ export async function loadEquipment(userId) {
         id, name, slot, rarity, icon_path,
         bonus_hp, bonus_attack, bonus_defense, bonus_speed,
         bonus_mana, bonus_luck_pct, class_restriction,
-        buy_price, sell_price, level_req
+        buy_price, sell_price, level_req,
+        crit_chance, crit_damage, lifesteal_pct, armor_pierce_pct,
+        bonus_damage_pct, execute_threshold, on_kill_hp_restore,
+        damage_reduction_pct, reflect_pct, hp_regen_turn, mana_regen_turn,
+        shield_on_hit, revive_once, dodge_chance, counter_chance,
+        gold_bonus_pct, xp_bonus_pct, cooldown_reduction, mana_on_hit,
+        double_hit_chance, status_resist_pct, summon_boost_pct
       ),
       enhancement:item_enhancements!item_enhancements_equipment_id_fkey (
         enhancement_lvl,
