@@ -198,11 +198,7 @@ function renderVillageHeader(bc, user, level) {
         <div class="village-streak-badge" id="village-streak-badge">
           🔥 <span id="village-streak">…</span>
         </div>
-
-
-
-
-
+        ${isAdmin() ? `<button class="btn-sm" style="background:#7c3aed22;border:1px solid #7c3aed44;color:#a78bfa;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="window._openTestBattle?.()">⚗️ Test</button>` : ''}
       </div>
 
       <!-- Riga 2: HP | Mana | PA -->
@@ -232,6 +228,55 @@ function renderVillageHeader(bc, user, level) {
     </div>
   `;
 }
+
+
+
+
+
+
+
+window._openTestBattle = async function() {
+  const { WORLD_DUNGEONS } = await import('../battle/config.js');
+  const opts = WORLD_DUNGEONS.map((d,i) => `<option value="${i}">${d.name} (lv ${d.requiredLevel}+)</option>`).join('');
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:#0008;z-index:9999;display:flex;align-items:center;justify-content:center';
+  modal.innerHTML = `
+    <div style="background:var(--surface-2);border-radius:16px;padding:1.5rem;width:320px;display:flex;flex-direction:column;gap:12px">
+      <h3 style="margin:0">⚗️ Test Battaglia</h3>
+      <label style="font-size:12px">Dungeon<select id="tb-dungeon" style="width:100%;margin-top:4px">${opts}</select></label>
+      <label style="font-size:12px">Stanza (1-10)<input id="tb-room" type="number" min="1" max="10" value="1" style="width:100%;margin-top:4px"></label>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button onclick="this.closest('div[style]').remove()" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:none;cursor:pointer">Annulla</button>
+        <button id="tb-start" style="flex:1;padding:8px;border-radius:8px;background:#7c3aed;color:white;border:none;cursor:pointer">⚔️ Combatti</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.querySelector('#tb-start').addEventListener('click', async () => {
+    const wi   = parseInt(modal.querySelector('#tb-dungeon').value);
+    const room = Math.min(10, Math.max(1, parseInt(modal.querySelector('#tb-room').value) || 1));
+    modal.remove();
+    const { loadDungeonRooms } = await import('../battle/config.js');
+    const { supabase: sb } = await import('../../supabase.js');
+    const { data: cfgData } = await sb.from('dungeon_config').select('*').eq('id', WORLD_DUNGEONS[wi].id).single();
+    const rooms = cfgData ? loadDungeonRooms(WORLD_DUNGEONS[wi].id, { [WORLD_DUNGEONS[wi].id]: cfgData }) : [];
+    const roomData = rooms[room - 1];
+    if (!roomData) return toast('Stanza non trovata', 'error');
+    const enemy = {
+      id: 'test_enemy', name: roomData.enemyName, hp_base: roomData.enemyHp,
+      attack_base: roomData.enemyAttack, defense_base: roomData.enemyDef,
+      speed_base: 5, is_boss: roomData.isBoss, xp_reward: 0, gold_reward: 0,
+      already_scaled: true, _testMode: true,
+    };
+    import('../battle/battle_screen.js' ).then(m => m.renderBattleScreen?.(enemy, { testMode: true }));
+    window._gotoTab?.('battle');
+  });
+};
+
+
+
+
+
 
 // ════════════════════════════════════════════════════════════
 // TAB NAV
