@@ -271,3 +271,28 @@ export function playSound(name) {
     try { _playSynth(name); } catch(e) {}
   });
 }
+
+
+
+
+export function playSoundDucked(name, duckPct = 0.5) {
+  if (!_settings.bgmEnabled || !_bgmAudio) {
+    playSound(name);
+    return;
+  }
+  const originalVolume = _bgmAudio.volume;
+  _bgmAudio.volume = originalVolume * duckPct;
+  _afterGesture(() => {
+    const audio = _getSfxAudio(name);
+    const restore = () => { _bgmAudio.volume = originalVolume; };
+    if (audio) {
+      audio.volume = _settings.sfxVolume;
+      audio.currentTime = 0;
+      audio.play().catch(() => { try { _playSynth(name); } catch(e) {} });
+      audio.addEventListener('ended', restore, { once: true });
+      return;
+    }
+    try { _playSynth(name); } catch(e) {}
+    setTimeout(restore, 2000);
+  });
+}
