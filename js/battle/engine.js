@@ -363,7 +363,8 @@ function doAbility(s, attacker, defender, abilityData) {
       const defVal  = isMagic
         ? s[defender].defense * COMBAT.magicDefReduction
         : s[defender].defense;
-      const dmg = Math.max(1, COMBAT.damageFormula(rawDmg, Math.floor(defVal)));
+      const K = DB.combatConfig?.def_constant ?? 60;
+      const dmg = Math.max(1, Math.floor(rawDmg * (1 - Math.floor(defVal) / (Math.floor(defVal) + K))));
  
       s[defender].hp = Math.max(0, s[defender].hp - dmg);
       s.log.push(`🔮 ${abilityData.name}: ${dmg} danni!`);
