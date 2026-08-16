@@ -19,7 +19,7 @@ export function initBattle(playerStats, enemyData, playerLevel, support = null, 
     name:             'Tu',
     hp:               playerStats.hp,
     hpMax:            playerStats.hpMax ?? playerStats.hp,
-    attack:           playerStats.attack,
+   attack:           Math.floor(playerStats.attack * (1 + (playerStats.atk_bonus_pct ?? 0) / 100)),
     defense:          playerStats.defense,
     speed:            playerStats.speed,
     mana:             playerStats.mana,
@@ -189,7 +189,10 @@ function doAttack(s, attacker, defender) {
   const critMult= cc.crit_multiplier   ?? 1.5;
   const critCap = cc.crit_cap_pct      ?? 25;
 
-  const rawDmg  = COMBAT.damage(atk.attack, def.defense, K);
+  const effectiveDef = attacker === 'player'
+    ? Math.max(0, def.defense * (1 - (atk.magic_pierce ?? 0) / 100))
+    : def.defense;
+  const rawDmg  = COMBAT.damage(atk.attack, effectiveDef, K);
   const varied  = applyVariance(rawDmg, variance);
 
   const critChance = Math.min(critCap, atk.luck || 0);
