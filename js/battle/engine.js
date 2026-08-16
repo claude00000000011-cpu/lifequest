@@ -533,7 +533,7 @@ function doGuard(s, user) {
   s[user]._guarding = true;
   const counterChance = 25 + (s[user].counter_chance ?? 0);
   const doubleChance  = s[user].double_hit_chance ?? 0;
-  s.log.push(`🛡️ Posizione di contrattacco! Difesa +${Math.round(COMBAT.guardDefBonus * 100)}%.`);
+s.log.push(`🛡️ Posizione di contrattacco!`);
   const opponent = user === 'player' ? 'enemy' : 'player';
   if (Math.random() * 100 < counterChance) {
     s.log.push(`⚔️ Contrattacchi prima che il nemico agisca!`);
